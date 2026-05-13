@@ -2421,6 +2421,7 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-token-table__token-header {
+  container-type: inline-size;
   position: relative;
   display: flex;
   align-items: center;
@@ -2461,14 +2462,21 @@ button.tm-status-row:not(:disabled):hover {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   margin-left: auto;
 }
 
+.tm-token-table__header-actions-label {
+  font-size: var(--font-size-sm);
+  line-height: var(--leading-tight);
+  color: var(--color-figma-text-tertiary);
+}
+
 .tm-token-table__header-action {
-  inline-size: var(--control-size-compact);
   min-inline-size: var(--control-size-compact);
-  padding-inline: 0;
+  justify-content: flex-start;
+  gap: 4px;
+  padding-inline: 6px;
 }
 
 .tm-mode-column-header__resize-handle {
@@ -2559,6 +2567,19 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
   align-items: center;
   padding-inline: 8px 16px;
+}
+
+@container (max-width: 520px) {
+  .tm-token-table__header-actions-label,
+  .tm-token-table__header-action-label {
+    display: none;
+  }
+
+  .tm-token-table__header-action {
+    inline-size: var(--control-size-compact);
+    padding-inline: 0;
+    justify-content: center;
+  }
 }
 
 @container (max-width: 360px) {

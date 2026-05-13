@@ -88,10 +88,23 @@ function formatCollectionHealthLabel(
   return `${actionable} ${issueLabel}`;
 }
 
-function formatCollectionMeta(tokenCount: number, modeCount: number): string {
+function formatModeSummary(modes: TokenCollection["modes"]): string {
+  const modeNames = modes.map((mode) => mode.name.trim()).filter(Boolean);
+  if (modeNames.length === 0) {
+    return "No modes";
+  }
+  if (modeNames.length <= 3) {
+    return modeNames.join(", ");
+  }
+  return `${modeNames.slice(0, 2).join(", ")} +${modeNames.length - 2} modes`;
+}
+
+function formatCollectionMeta(
+  tokenCount: number,
+  modes: TokenCollection["modes"],
+): string {
   const tokenLabel = tokenCount === 1 ? "token" : "tokens";
-  const modeLabel = modeCount === 1 ? "mode" : "modes";
-  return `${tokenCount} ${tokenLabel} · ${modeCount} ${modeLabel}`;
+  return `${tokenCount} ${tokenLabel} · ${formatModeSummary(modes)}`;
 }
 
 function formatAllCollectionsMeta(
@@ -170,7 +183,7 @@ export function CollectionTabs({
     ? (collectionMetaById?.[currentCollection.id] ??
       formatCollectionMeta(
         collectionTokenCounts[currentCollection.id] ?? 0,
-        currentCollection.modes.length,
+        currentCollection.modes,
       ))
     : "";
   const visibleTitle =
@@ -404,7 +417,7 @@ export function CollectionTabs({
             );
             const meta = formatCollectionMeta(
               collectionTokenCounts[collectionId] ?? 0,
-              collection.modes.length,
+              collection.modes,
             );
             const visibleMeta = collectionMetaById?.[collectionId] ?? meta;
 

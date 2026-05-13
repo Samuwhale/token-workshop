@@ -2,6 +2,8 @@ import archiver from "archiver";
 import type { FastifyPluginAsync } from "fastify";
 import { handleRouteError } from "../errors.js";
 import {
+  browsePublicIconCollection,
+  listPublicIconCollections,
   listPublicIconProviders,
   searchPublicIcons,
 } from "../services/icon-public-sources.js";
@@ -88,6 +90,28 @@ export const iconRoutes: FastifyPluginAsync = async (fastify) => {
         return await searchPublicIcons(request.query);
       } catch (err) {
         return handleRouteError(reply, err, "Failed to search public icons");
+      }
+    },
+  );
+
+  fastify.get<{ Querystring: Record<string, unknown> }>(
+    "/icons/public/collections",
+    async (request, reply) => {
+      try {
+        return await listPublicIconCollections(request.query);
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to load public icon collections");
+      }
+    },
+  );
+
+  fastify.get<{ Querystring: Record<string, unknown> }>(
+    "/icons/public/collection",
+    async (request, reply) => {
+      try {
+        return await browsePublicIconCollection(request.query);
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to browse public icon collection");
       }
     },
   );

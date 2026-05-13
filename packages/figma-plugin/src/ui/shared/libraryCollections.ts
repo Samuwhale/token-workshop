@@ -45,7 +45,10 @@ export function filterCollections(
     const displayName = getCollectionDisplayName(collection.id, collectionDisplayNames);
     return (
       collection.id.toLowerCase().includes(normalizedQuery) ||
-      displayName.toLowerCase().includes(normalizedQuery)
+      displayName.toLowerCase().includes(normalizedQuery) ||
+      collection.modes.some((mode) =>
+        mode.name.toLowerCase().includes(normalizedQuery),
+      )
     );
   });
 }

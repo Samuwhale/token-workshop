@@ -1,9 +1,7 @@
 import { Plus, X } from "lucide-react";
 import type { Ref } from "react";
+import { Button, Field, IconButton, TextInput } from "../primitives";
 import { COLLECTION_NAME_RE } from "../shared/utils";
-
-const COLLECTION_INPUT_CLASS =
-  "rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-body text-[color:var(--color-figma-text)] outline-none placeholder-[var(--color-figma-text-secondary)] focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60";
 
 export interface CollectionAuthoringDraft {
   name: string;
@@ -36,17 +34,17 @@ const MODE_PRESETS: Array<{
 }> = [
   {
     label: "One mode",
-    description: "Use one value per token.",
+    description: "One value per token.",
     modes: ["Default"],
   },
   {
     label: "Light and dark",
-    description: "Switch colors, shadows, or surfaces by theme.",
+    description: "Separate values for light and dark.",
     modes: ["Light", "Dark"],
   },
   {
     label: "Mobile and desktop",
-    description: "Tune spacing, type, or layout by screen size.",
+    description: "Separate values for mobile and desktop.",
     modes: ["Mobile", "Desktop"],
   },
 ];
@@ -128,35 +126,33 @@ export function CollectionAuthoringFields({
 
   return (
     <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1">
-        <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Collection name
-        </span>
-        <input
+      <Field label="Collection name">
+        <TextInput
           ref={nameInputRef}
-          type="text"
+          size="sm"
           value={draft.name}
           onChange={(event) => onNameChange(event.target.value)}
           placeholder="colors"
           disabled={pending}
-          className={COLLECTION_INPUT_CLASS}
         />
-      </label>
+      </Field>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             Modes
           </span>
-          <button
+          <Button
             type="button"
             onClick={onAddMode}
             disabled={pending}
-            className="inline-flex items-center gap-1 text-secondary text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 px-1.5"
           >
             <Plus size={12} strokeWidth={1.5} aria-hidden />
             Add mode
-          </button>
+          </Button>
         </div>
 
         {onModeNamesChange ? (
@@ -194,39 +190,45 @@ export function CollectionAuthoringFields({
         ) : null}
 
         <div className="flex flex-col gap-2">
-          {draft.modeNames.map((modeName, index) => (
-            <label key={index} className="flex flex-col gap-1">
-              <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {getModeFieldLabel(index, hasMultipleModes)}
-              </span>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={modeName}
-                  onChange={(event) => onModeNameChange(index, event.target.value)}
-                  placeholder={index === 0 ? "Light" : index === 1 ? "Dark" : "Mode name"}
-                  disabled={pending}
-                  aria-label={`Mode ${index + 1} name`}
-                  className={`${COLLECTION_INPUT_CLASS} flex-1`}
-                />
-                {draft.modeNames.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => onRemoveMode(index)}
+          {draft.modeNames.map((modeName, index) => {
+            const modeInputId = `collection-mode-${index}`;
+            return (
+              <Field
+                key={index}
+                label={getModeFieldLabel(index, hasMultipleModes)}
+                htmlFor={modeInputId}
+              >
+                <div className="flex items-center gap-2">
+                  <TextInput
+                    id={modeInputId}
+                    size="sm"
+                    value={modeName}
+                    onChange={(event) => onModeNameChange(index, event.target.value)}
+                    placeholder={index === 0 ? "Light" : index === 1 ? "Dark" : "Mode name"}
                     disabled={pending}
-                    aria-label={`Remove ${modeName.trim() || `mode ${index + 1}`}`}
-                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-[color:var(--color-figma-text-secondary)] transition-colors hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:opacity-50"
-                  >
-                    <X size={12} strokeWidth={1.5} aria-hidden />
-                  </button>
-                ) : null}
-              </div>
-            </label>
-          ))}
+                    aria-label={`Mode ${index + 1} name`}
+                    className="flex-1"
+                  />
+                  {draft.modeNames.length > 1 ? (
+                    <IconButton
+                      type="button"
+                      onClick={() => onRemoveMode(index)}
+                      disabled={pending}
+                      aria-label={`Remove ${modeName.trim() || `mode ${index + 1}`}`}
+                      title={`Remove ${modeName.trim() || `mode ${index + 1}`}`}
+                      size="sm"
+                    >
+                      <X size={12} strokeWidth={1.5} aria-hidden />
+                    </IconButton>
+                  ) : null}
+                </div>
+              </Field>
+            );
+          })}
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Each token gets one value for every mode in this collection.
+          Each token gets a value in every mode.
         </span>
       </div>
 

@@ -542,8 +542,8 @@ function ModesSection({
               {!addError ? (
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   {addSourceModeName === EMPTY_MODE_SOURCE
-                    ? "Existing tokens will show this mode with no value until each one is filled."
-                    : `Existing tokens will start with editable copies of their ${addSourceModeName} values.`}
+                    ? "Existing tokens get an empty value in this mode."
+                    : `Existing tokens start with copies of their ${addSourceModeName} values.`}
                 </p>
               ) : null}
               <div className="mt-2 flex items-center justify-end gap-2">

@@ -409,6 +409,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           Token
         </span>
         <div className="tm-token-table__header-actions">
+          <span className="tm-token-table__header-actions-label">Modes</span>
           <Button
             ref={addModeTriggerRef}
             onClick={() => {
@@ -436,6 +437,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             aria-expanded={addModeMenuOpen}
           >
             <Plus size={12} strokeWidth={2} aria-hidden />
+            <span className="tm-token-table__header-action-label">Add mode</span>
           </Button>
           {props.navigation.onManageCollectionModes ? (
             <Button
@@ -456,6 +458,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               aria-label="Edit modes"
             >
               <Settings2 size={12} strokeWidth={1.5} aria-hidden />
+              <span className="tm-token-table__header-action-label">Edit modes</span>
             </Button>
           ) : null}
         </div>
@@ -544,10 +547,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                   ) : null}
                   <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                     {tokens.length === 0
-                      ? "New tokens in this collection will include this mode."
+                      ? "New tokens will include this mode."
                       : newModeSourceName === EMPTY_MODE_SOURCE
-                        ? "Existing tokens in this collection will show this mode with no value until each one is filled."
-                        : `Existing tokens in this collection will start with editable copies of their ${newModeSourceName} values.`}
+                        ? "Existing tokens get an empty value in this mode."
+                        : `Existing tokens start with copies of their ${newModeSourceName} values.`}
                   </p>
                 </>
               )}
