@@ -6,7 +6,7 @@ import { applyVariables, readFigmaVariables, deleteOrphanVariables, scanTokenVar
 import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode, setSelectionDeepInspectEnabled } from './selectionHandling.js';
-import { selectNode, selectNextSibling, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
+import { selectNode, selectNextSibling, batchBindHeatmapNodes } from './heatmapScanning.js';
 import { createSelectionIconSlots, insertIconInstance, replaceSelectionWithIcon, setSelectionIconSwapProperty } from './iconCanvas.js';
 import { readSelectedIconsForImport } from './iconSelectionImport.js';
 import { publishIcons } from './iconSync.js';
@@ -48,9 +48,7 @@ function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
 // all active scans when no requestId is supplied.
 // ---------------------------------------------------------------------------
 
-type ScanKind =
-  | 'token-usage-map'
-  | 'single-token-usage';
+type ScanKind = 'token-usage-map';
 
 type ActiveScanState = {
   kind: ScanKind;
@@ -143,7 +141,6 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'select-node':                [['nodeId', 'string']],
   'select-next-sibling':        [],
   'batch-bind-heatmap-nodes':   [['nodeIds', 'array'], ['tokenPath', 'string'], ['tokenType', 'string'], ['targetProperty', 'string'], ['resolvedValue', 'any']],
-  'scan-single-token-usage':    [['tokenPath', 'string']],
   'scan-token-variable-bindings': [['tokenPath', 'string']],
   'extract-tokens-from-selection': [],
   'search-layers':              [['query', 'string']],
@@ -640,7 +637,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'cancel-scan':
       cancelActiveScan(msg.requestId);
-      figma.ui.postMessage({ type: 'scan-cancelled' });
       break;
     case 'scan-token-usage': {
       const signal = createScanSignal('token-usage-map');
@@ -670,17 +666,6 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         reportError('batch-bind-heatmap-nodes', e);
       }
       break;
-    case 'scan-single-token-usage': {
-      const signal = createScanSignal('single-token-usage');
-      try {
-        await scanTokenUsage(msg.tokenPath, signal);
-      } catch (e) {
-        reportError('scan-single-token-usage', e);
-      } finally {
-        clearScanSignal('single-token-usage', signal);
-      }
-      break;
-    }
     case 'scan-token-variable-bindings':
       try {
         await scanTokenVariableBindings(msg.tokenPath);

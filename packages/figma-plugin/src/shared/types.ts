@@ -602,11 +602,6 @@ export interface EyedropperMessage {
   type: 'eyedropper';
 }
 
-export interface ScanSingleTokenUsageMessage {
-  type: 'scan-single-token-usage';
-  tokenPath: string;
-}
-
 // --- Search layers ---
 
 export interface SearchLayersMessage {
@@ -1185,15 +1180,6 @@ export interface TokenUsageMapCancelledMessage {
   type: 'token-usage-map-cancelled';
 }
 
-export interface TokenUsageResultMessage {
-  type: 'token-usage-result';
-  tokenPath: string;
-  layers: { id: string; name: string; type: string; componentName: string | null; properties: string[] }[];
-  total: number;
-  componentNames: string[];
-  error?: string;
-}
-
 /** Discriminated union of all Controller→UI (plugin sandbox → iframe) messages */
 export type ControllerMessage =
   | ControllerErrorMessage
@@ -1227,7 +1213,6 @@ export type ControllerMessage =
   | FindPeersResultMessage
   | TokenUsageMapMessage
   | TokenUsageMapCancelledMessage
-  | TokenUsageResultMessage
   | VariablesRevertedMessage
   | StylesRevertedMessage
   | IconPublishProgressMessage
@@ -1270,7 +1255,6 @@ export const KNOWN_CONTROLLER_MESSAGE_TYPES = new Set<ControllerMessage['type']>
   'peers-for-property-result',
   'token-usage-map',
   'token-usage-map-cancelled',
-  'token-usage-result',
   'variables-reverted',
   'styles-reverted',
   'icons-publish-progress',
@@ -1301,7 +1285,6 @@ export type PluginMessage =
   | ScanTokenUsageMessage
   | BatchBindHeatmapNodesMessage
   | EyedropperMessage
-  | ScanSingleTokenUsageMessage
   | ScanTokenVariableBindingsMessage
   | ExtractTokensFromSelectionMessage
   | SelectNextSiblingMessage
