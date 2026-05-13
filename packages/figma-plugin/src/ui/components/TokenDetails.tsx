@@ -6,6 +6,7 @@ import {
 import {
   Clock,
   Link2,
+  Lock,
   MoreHorizontal,
   X,
 } from "lucide-react";
@@ -1295,11 +1296,13 @@ export function TokenDetails({
         : isCreateMode
           ? "New"
           : "Saved";
-  const headerContextText = [
-    ownerCollectionName,
-    ...(showingExternalCollection ? ["Opened from another collection"] : []),
-    headerStatus,
-  ].join(" · ");
+  const headerStatusToneClass = isGeneratorLocked
+    ? "tm-token-details__header-context-item--locked"
+    : isDirty
+      ? "tm-token-details__header-context-item--dirty"
+      : syncChanged
+        ? "tm-token-details__header-context-item--sync"
+        : "tm-token-details__header-context-item--saved";
 
   const headerTitle = (
     <div className="tm-token-details__header-title">
@@ -1310,21 +1313,44 @@ export function TokenDetails({
         >
           {isCreateMode ? "New token" : leafName}
         </span>
-        <span
-          className={`tm-token-details__status-dot ${
-            isGeneratorLocked
-              ? "tm-token-details__status-dot--locked"
-              : isDirty
+        {isGeneratorLocked ? (
+          <span
+            className="tm-token-details__status-lock"
+            title="Managed by generator"
+            aria-label="Managed by generator"
+          >
+            <Lock size={12} strokeWidth={1.7} aria-hidden />
+          </span>
+        ) : (
+          <span
+            className={`tm-token-details__status-dot ${
+              isDirty
                 ? "tm-token-details__status-dot--dirty"
                 : syncChanged
                   ? "tm-token-details__status-dot--sync"
                   : "tm-token-details__status-dot--saved"
-          }`}
-          aria-hidden
-        />
+            }`}
+            aria-hidden
+          />
+        )}
       </div>
       <div className="tm-token-details__header-context">
-        <span className={LONG_TEXT_CLASSES.textSecondary}>{headerContextText}</span>
+        <span
+          className={`tm-token-details__header-context-item ${LONG_TEXT_CLASSES.textSecondary}`}
+          title={ownerCollectionName}
+        >
+          {ownerCollectionName}
+        </span>
+        {showingExternalCollection ? (
+          <span className="tm-token-details__header-context-item">
+            Opened from another collection
+          </span>
+        ) : null}
+        <span
+          className={`tm-token-details__header-context-item ${headerStatusToneClass}`}
+        >
+          {headerStatus}
+        </span>
       </div>
     </div>
   );

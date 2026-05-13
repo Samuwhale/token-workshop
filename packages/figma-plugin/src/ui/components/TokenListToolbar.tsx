@@ -1,11 +1,11 @@
 import { useCallback, type MutableRefObject } from "react";
 import {
   ArrowLeft,
-  ArrowUpDown,
   ChevronDown,
   ChevronRight,
   MoreHorizontal,
   Plus,
+  SlidersHorizontal,
   Target,
 } from "lucide-react";
 import {
@@ -26,7 +26,6 @@ import {
   Chip,
   IconButton,
   MenuRadioGroup,
-  SegmentedControl,
   SearchField,
   type SegmentedOption,
 } from "../primitives";
@@ -209,10 +208,6 @@ export function TokenListToolbar({
     hasTokens ||
     (viewMode === "tree" && overflowMenuProps?.hasMultipleCollections === true);
   const showViewToggle = hasTokens;
-  const showSearchScopeToggle =
-    viewMode === "tree" &&
-    showSearch &&
-    overflowMenuProps?.hasMultipleCollections === true;
   const showGroupByToggle =
     viewMode === "tree" && hasTokens && overflowMenuProps !== null;
   const showResultPresentationToggle =
@@ -242,19 +237,14 @@ export function TokenListToolbar({
       ? "Collapse all groups"
       : "Expand all groups";
   const sortOrder: SortOrder = overflowMenuProps?.sortOrder ?? "default";
-  const showViewMenu =
-    viewMode === "tree" &&
-    hasTokens &&
-    (sortOrder !== "default" ||
-      (!showSearchScopeToggle &&
-        overflowMenuProps?.hasMultipleCollections === true) ||
-      showResultPresentationToggle);
+  const showViewMenu = hasTokens;
   const showSecondaryCluster =
     (overflowMenuProps && viewMode === "tree") ||
-    showViewToggle ||
     showViewMenu ||
     showOverflow;
   const viewMenuActive =
+    viewMode === "json" ||
+    groupBy !== "path" ||
     searchScope === "all" ||
     sortOrder !== "default" ||
     overflowMenuProps?.searchResultPresentation === "flat";
@@ -390,23 +380,6 @@ export function TokenListToolbar({
                     }}
                     containerClassName="min-w-[148px] flex-1"
                   />
-                  {showSearchScopeToggle && overflowMenuProps ? (
-                    <SegmentedControl
-                      value={searchScope}
-                      options={SEARCH_SCOPE_OPTIONS}
-                      onChange={(value) => {
-                        if (
-                          (value === "all") !==
-                          overflowMenuProps.crossCollectionSearch
-                        ) {
-                          overflowMenuProps.onToggleCrossCollectionSearch();
-                        }
-                      }}
-                      ariaLabel="Search scope"
-                      allowWrap
-                      size="compact"
-                    />
-                  ) : null}
                 </div>
 
                 {showQualifierHints &&
@@ -469,26 +442,6 @@ export function TokenListToolbar({
           <div className="tm-responsive-toolbar__actions">
             {showSecondaryCluster ? (
               <div className="tm-token-toolbar__secondary">
-                {showViewToggle ? (
-                  <SegmentedControl
-                    value={viewMode}
-                    options={VIEW_OPTIONS}
-                    onChange={setViewMode}
-                    ariaLabel="View"
-                    size="compact"
-                  />
-                ) : null}
-
-                {showGroupByToggle ? (
-                  <SegmentedControl
-                    value={groupBy}
-                    options={GROUP_OPTIONS}
-                    onChange={setGroupBy}
-                    ariaLabel="Group tokens"
-                    size="compact"
-                  />
-                ) : null}
-
                 {overflowMenuProps && viewMode === "tree" ? (
                   <div className="tm-token-toolbar__filter">
                     <FilterMenu
@@ -500,7 +453,7 @@ export function TokenListToolbar({
                 ) : null}
 
                 {showViewMenu ? (
-                  <div className="tm-token-toolbar__sort relative shrink-0">
+                  <div className="tm-token-toolbar__view relative shrink-0">
                     <Button
                       ref={viewMenu.triggerRef}
                       onClick={viewMenu.toggle}
@@ -517,7 +470,11 @@ export function TokenListToolbar({
                           : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                       }`}
                     >
-                      <ArrowUpDown size={12} strokeWidth={1.5} aria-hidden />
+                      <SlidersHorizontal
+                        size={12}
+                        strokeWidth={1.5}
+                        aria-hidden
+                      />
                       <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__secondary-label">
                         {viewMenuLabel}
                       </span>
@@ -530,9 +487,27 @@ export function TokenListToolbar({
                         className={FLOATING_MENU_CLASS}
                         role="menu"
                       >
+                        {showViewToggle ? (
+                          <MenuRadioGroup
+                            label="Display"
+                            value={viewMode}
+                            options={VIEW_OPTIONS}
+                            onChange={setViewMode}
+                            onSelect={closeViewMenu}
+                          />
+                        ) : null}
                         {overflowMenuProps && viewMode === "tree" ? (
                           <>
-                            {showSearchScopeToggle ? null : (
+                            {showGroupByToggle ? (
+                              <MenuRadioGroup
+                                label="Group"
+                                value={groupBy}
+                                options={GROUP_OPTIONS}
+                                onChange={setGroupBy}
+                                onSelect={closeViewMenu}
+                              />
+                            ) : null}
+                            {overflowMenuProps.hasMultipleCollections ? (
                               <MenuRadioGroup
                                 label="Search"
                                 value={searchScope}
@@ -547,7 +522,7 @@ export function TokenListToolbar({
                                 }}
                                 onSelect={closeViewMenu}
                               />
-                            )}
+                            ) : null}
                             <MenuRadioGroup
                               label="Sort"
                               value={sortOrder}

@@ -289,16 +289,20 @@ function iconFrameLabel(icon: ManagedIcon): string {
 }
 
 function iconGeometryLabel(icon: ManagedIcon): string {
-  const bounds = icon.svg.geometry.bounds;
+  const geometry = icon.svg.geometry;
+  if (!geometry) {
+    return "Unknown";
+  }
+  const bounds = geometry.bounds;
   if (!bounds) {
-    return icon.svg.geometry.precision === "unknown"
+    return geometry.precision === "unknown"
       ? "Unknown"
-      : `Unknown (${icon.svg.geometry.precision})`;
+      : `Unknown (${geometry.precision})`;
   }
   return [
     `${formatIconDimension(bounds.minX)}, ${formatIconDimension(bounds.minY)}`,
     `${formatIconDimension(bounds.maxX)}, ${formatIconDimension(bounds.maxY)}`,
-    icon.svg.geometry.precision,
+    geometry.precision,
   ].join(" / ");
 }
 
@@ -910,7 +914,7 @@ function IconUsageAuditPanel({
 
   return (
     <div className="flex min-w-0 flex-col gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-col gap-2">
         <SegmentedControl
           value={scope}
           options={AUDIT_SCOPE_OPTIONS}
@@ -918,23 +922,25 @@ function IconUsageAuditPanel({
           ariaLabel="Icon audit scope"
           size="compact"
         />
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={onRun}
-          disabled={loading}
-        >
-          <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-          {loading ? "Auditing" : "Audit usage"}
-        </Button>
-        {result ? (
-          <div className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
-            {findings.length === 0
-              ? `No issues across ${result.scannedNodes} layers`
-              : `${formatHealthCount(findings.length, "finding")} across ${result.scannedNodes} layers`}
-          </div>
-        ) : null}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onRun}
+            disabled={loading}
+          >
+            <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+            {loading ? "Auditing" : "Audit usage"}
+          </Button>
+          {result ? (
+            <div className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+              {findings.length === 0
+                ? `No issues across ${result.scannedNodes} layers`
+                : `${formatHealthCount(findings.length, "finding")} across ${result.scannedNodes} layers`}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {result?.error ? (
@@ -1039,6 +1045,7 @@ function IconDetailPanel({
   onSlotPreferredModeChange,
   onUpdateStatus,
   onBack,
+  variant = "full",
 }: {
   icon: ManagedIcon;
   content?: string;
@@ -1057,8 +1064,10 @@ function IconDetailPanel({
   onSlotPreferredModeChange: (mode: IconSlotPreferredMode) => void;
   onUpdateStatus: (status: IconStatus) => void;
   onBack?: () => void;
+  variant?: "compact" | "full";
 }) {
   const publicSource = icon.source.kind === "public-library" ? icon.source : null;
+  const [showDeveloperDetails, setShowDeveloperDetails] = useState(false);
   const restoreStatus = restoredIconStatus(icon);
   const canRestore = icon.quality.state !== "blocked";
   const rows: Array<[string, string]> = [
@@ -1086,6 +1095,12 @@ function IconDetailPanel({
   ];
   const colorNote = colorBehaviorNote(icon);
   const frameMismatchNote = iconFrameMismatchNote(icon, defaultIconSize);
+  const primaryRows = rows.filter(([label]) =>
+    ["Component", "Source", "Frame", "Color", "Readiness"].includes(label),
+  );
+  const developerRows = rows.filter(([label]) =>
+    !["Component", "Source", "Frame", "Color", "Readiness"].includes(label),
+  );
   const canUseOnCanvas = iconCanUseOnCanvas(icon);
   const publishNote = iconIsBlocked(icon)
     ? "Resolve blocked icon quality issues before publishing or placing this icon."
@@ -1094,6 +1109,89 @@ function IconDetailPanel({
         ? "The registry source changed since this component was last published."
         : "Publish this icon before designers use it from Figma assets."
       : null;
+
+  if (variant === "compact") {
+    return (
+      <section className="flex shrink-0 flex-col gap-2 border-t border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--color-figma-bg)]">
+            <IconPreview icon={icon} content={content} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-body font-medium text-[color:var(--color-figma-text)]">
+              {icon.name}
+            </div>
+            <div className="truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+              {icon.path}
+            </div>
+          </div>
+          <IconStatusPill status={icon.status} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onInsert}
+            disabled={!canUseOnCanvas || canvasActionBusy}
+            title={
+              canUseOnCanvas
+                ? "Insert icon instance"
+                : "Publish this icon before inserting it"
+            }
+          >
+            <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
+            Insert
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onReplaceSelection}
+            disabled={!canUseOnCanvas || selectionCount === 0 || canvasActionBusy}
+            title={
+              selectionCount === 0
+                ? "Select layers in Figma to replace"
+                : canUseOnCanvas
+                  ? "Replace selected layers with this icon"
+                  : "Publish this icon before replacing layers"
+            }
+          >
+            <Replace size={13} strokeWidth={1.5} aria-hidden />
+            Replace
+          </Button>
+        </div>
+        {iconSlotActions.length > 0 ? (
+          <div className="flex min-w-0 gap-2 overflow-x-auto">
+            {iconSlotActions.map((action) => (
+              <Button
+                key={action.propertyName}
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => onSetIconSlot(action)}
+                disabled={!canUseOnCanvas || canvasActionBusy}
+                title={`Set ${action.label} to ${icon.name}`}
+                className="shrink-0"
+              >
+                <Replace size={13} strokeWidth={1.5} aria-hidden />
+                <span className="min-w-0 truncate">
+                  Set {action.label}
+                  {action.targetNodeIds.length > 1
+                    ? ` (${action.targetNodeIds.length})`
+                    : ""}
+                </span>
+              </Button>
+            ))}
+          </div>
+        ) : publishNote ? (
+          <p className="m-0 text-secondary text-[color:var(--color-figma-text-warning)]">
+            {publishNote}
+          </p>
+        ) : null}
+      </section>
+    );
+  }
 
   return (
     <section className="flex min-h-0 shrink-0 flex-col gap-3 border-t border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
@@ -1121,8 +1219,6 @@ function IconDetailPanel({
             {icon.path}
           </div>
         </div>
-      </div>
-
         <IconStatusPill status={icon.status} />
         <IconQualityPill icon={icon} />
       </div>
@@ -1275,7 +1371,7 @@ function IconDetailPanel({
       ) : null}
 
       <dl className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-        {rows.slice(0, 7).map(([label, value]) => (
+        {primaryRows.map(([label, value]) => (
           <div key={label} className="min-w-0">
             <dt className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
               {label}
@@ -1286,6 +1382,35 @@ function IconDetailPanel({
           </div>
         ))}
       </dl>
+
+      {developerRows.length > 0 ? (
+        <div className="flex min-w-0 flex-col gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowDeveloperDetails((current) => !current)}
+            aria-expanded={showDeveloperDetails}
+            className="self-start px-1.5"
+          >
+            {showDeveloperDetails ? "Hide developer details" : "Developer details"}
+          </Button>
+          {showDeveloperDetails ? (
+            <dl className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+              {developerRows.map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <dt className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+                    {label}
+                  </dt>
+                  <dd className="break-words text-secondary text-[color:var(--color-figma-text)]">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+        </div>
+      ) : null}
 
       {colorNote ? (
         <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
@@ -1528,9 +1653,6 @@ export function IconPanel() {
       null,
     [filteredIcons, selectedIconId],
   );
-  const selectedIconCanUseOnCanvas = selectedIcon
-    ? iconCanUseOnCanvas(selectedIcon)
-    : false;
   const iconSlotActions = useMemo(
     () => getIconSlotActions(selectedNodes),
     [selectedNodes],
@@ -2034,6 +2156,33 @@ export function IconPanel() {
       />
 
       <div className="flex shrink-0 flex-col gap-2 border-b border-[color:var(--color-figma-border)] px-3 py-2">
+        <div className="flex min-w-0 flex-col gap-2">
+          <SegmentedControl
+            value={workspaceView}
+            options={ICON_WORKSPACE_VIEWS}
+            onChange={setWorkspaceView}
+            ariaLabel="Icons workspace view"
+            size="compact"
+          />
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+              {formatIconCount(filteredIcons.length)}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => void loadIcons()}
+              disabled={loading}
+              title="Refresh icons"
+              className="px-1.5"
+            >
+              <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+              {loading ? "Refreshing" : "Refresh"}
+            </Button>
+          </div>
+        </div>
+
         <SearchField
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -2041,142 +2190,86 @@ export function IconPanel() {
           placeholder="Search icons"
           size="sm"
         />
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-          <SegmentedControl
-            value={statusFilter}
-            options={STATUS_FILTERS}
-            onChange={setStatusFilter}
-            ariaLabel="Icon status"
-            size="compact"
-          />
-          <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-            {formatIconCount(filteredIcons.length)}
+
+        {workspaceView === "library" ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <SegmentedControl
+              value={statusFilter}
+              options={STATUS_FILTERS}
+              onChange={setStatusFilter}
+              ariaLabel="Icon status"
+              size="compact"
+            />
+            {healthFilter !== "all" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setHealthFilter("all")}
+              >
+                Clear health filter
+              </Button>
+            ) : null}
           </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => void handlePublish()}
-            disabled={publishing || iconsToPublish.length === 0}
-          >
-            <UploadCloud size={13} strokeWidth={1.5} aria-hidden />
-            {publishProgress
-              ? `Publishing ${publishProgress.current}/${publishProgress.total}`
-              : publishing
-                ? "Publishing"
-                : "Publish"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => void handleExportIcons()}
-            disabled={exporting || exportableIconCount === 0}
-            title={
-              exportableIconCount > 0
-                ? "Export SVGs, React components, manifests, and attribution metadata"
-                : "Import or unblock icons before exporting"
-            }
-          >
-            <Download size={13} strokeWidth={1.5} aria-hidden />
-            {exporting ? "Exporting" : "Export"}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => void handleCheckSourceUpdates()}
-            disabled={checkingSources || icons.length === 0}
-            title="Check local SVG and public icon sources for updates"
-          >
-            <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-            {checkingSources ? "Checking" : "Sources"}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => void loadIcons()}
-            disabled={loading}
-          >
-            <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-            {loading ? "Refreshing" : "Refresh"}
-          </Button>
-        </div>
-        <IconHealthStrip
-          summary={healthSummary}
-          activeFilter={healthFilter}
-          onFilterChange={setHealthFilter}
-        />
-        {sourceUpdateReport ? (
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            <span>{formatHealthCount(sourceUpdateReport.summary.checked, "source checked")}</span>
-            <span>{formatHealthCount(sourceUpdateReport.summary.changed, "artwork update")}</span>
-            <span>{formatHealthCount(sourceUpdateReport.summary.metadataChanged, "metadata update")}</span>
-            <span>{formatHealthCount(sourceUpdateReport.summary.unavailable, "unavailable source")}</span>
-          </div>
-        ) : null}
-        <IconUsageAuditPanel
-          scope={auditScope}
-          loading={auditLoading}
-          result={auditResult}
-          onScopeChange={(scope) => {
-            setAuditScope(scope);
-            setAuditResult(null);
-          }}
-          onRun={() => void handleAuditUsage()}
-          onFocusFinding={handleFocusAuditFinding}
-          onRefreshPreferredValues={handleRefreshPreferredValues}
-          repairBusy={canvasActionBusy}
-        />
-        {selectedIcon ? (
-          <div className="flex min-w-0 items-center gap-2 min-[560px]:hidden">
-            <div className="min-w-0 flex-1 truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
-              {selectedIcon.name}
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => void handleInsert()}
-              disabled={canvasActionBusy || !selectedIconCanUseOnCanvas}
-              title="Insert icon instance"
-            >
-              <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
-              Insert
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => void handleReplaceSelection()}
-              disabled={
-                canvasActionBusy ||
-                selectedNodes.length === 0 ||
-                !selectedIconCanUseOnCanvas
-              }
-              title="Replace selected layers with this icon"
-            >
-              <Replace size={13} strokeWidth={1.5} aria-hidden />
-              Replace
-            </Button>
-            {iconSlotActions[0] ? (
+        ) : (
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                onClick={() => void handleSetIconSlot(iconSlotActions[0])}
-                disabled={canvasActionBusy || !selectedIconCanUseOnCanvas}
-                title={`Set ${iconSlotActions[0].label} to this icon`}
+                onClick={() => void handlePublish()}
+                disabled={publishing || iconsToPublish.length === 0}
               >
-                <Replace size={13} strokeWidth={1.5} aria-hidden />
-                <span className="min-w-0 truncate">
-                  Set {iconSlotActions[0].label}
-                </span>
+                <UploadCloud size={13} strokeWidth={1.5} aria-hidden />
+                {publishProgress
+                  ? `Publishing ${publishProgress.current}/${publishProgress.total}`
+                  : publishing
+                    ? "Publishing"
+                    : "Publish"}
               </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleExportIcons()}
+                disabled={exporting || exportableIconCount === 0}
+                title={
+                  exportableIconCount > 0
+                    ? "Export SVGs, React components, manifests, and attribution metadata"
+                    : "Import or unblock icons before exporting"
+                }
+              >
+                <Download size={13} strokeWidth={1.5} aria-hidden />
+                {exporting ? "Exporting" : "Export"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleCheckSourceUpdates()}
+                disabled={checkingSources || icons.length === 0}
+                title="Check local SVG and public icon sources for updates"
+              >
+                <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+                {checkingSources ? "Checking" : "Sources"}
+              </Button>
+            </div>
+            <IconHealthStrip
+              summary={healthSummary}
+              activeFilter={healthFilter}
+              onFilterChange={setHealthFilter}
+            />
+            {sourceUpdateReport ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                <span>{formatHealthCount(sourceUpdateReport.summary.checked, "source checked")}</span>
+                <span>{formatHealthCount(sourceUpdateReport.summary.changed, "artwork update")}</span>
+                <span>{formatHealthCount(sourceUpdateReport.summary.metadataChanged, "metadata update")}</span>
+                <span>{formatHealthCount(sourceUpdateReport.summary.unavailable, "unavailable source")}</span>
+              </div>
             ) : null}
           </div>
-        ) : null}
+        )}
       </div>
 
       {error ? (
@@ -2212,9 +2305,9 @@ export function IconPanel() {
           title="No matching icons"
           description="Change the search or status filter."
         />
-      ) : (
-        <div className="flex min-h-0 flex-1">
-          <div className="min-w-0 flex-1 overflow-auto p-3">
+      ) : workspaceView === "library" ? (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="min-w-0 flex-1 overflow-auto p-3 pb-4">
             <IconGrid
               icons={filteredIcons}
               iconContent={iconContent}
@@ -2223,7 +2316,7 @@ export function IconPanel() {
             />
           </div>
           {selectedIcon ? (
-            <IconInspector
+            <IconDetailPanel
               icon={selectedIcon}
               content={iconContent[selectedIcon.id]?.content}
               selectionCount={selectedNodes.length}
@@ -2240,8 +2333,52 @@ export function IconPanel() {
               onCreateIconSlot={handleCreateIconSlot}
               onSlotPreferredModeChange={setSlotPreferredMode}
               onUpdateStatus={handleUpdateIconStatus}
+              onBack={() => setSelectedIconId(null)}
+              variant="compact"
             />
           ) : null}
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          <div className="flex min-w-0 flex-col gap-3">
+            <IconUsageAuditPanel
+              scope={auditScope}
+              loading={auditLoading}
+              result={auditResult}
+              onScopeChange={(scope) => {
+                setAuditScope(scope);
+                setAuditResult(null);
+              }}
+              onRun={() => void handleAuditUsage()}
+              onFocusFinding={handleFocusAuditFinding}
+              onRefreshPreferredValues={handleRefreshPreferredValues}
+              repairBusy={canvasActionBusy}
+            />
+            {selectedIcon ? (
+              <IconDetailPanel
+                icon={selectedIcon}
+                content={iconContent[selectedIcon.id]?.content}
+                selectionCount={selectedNodes.length}
+                iconSlotActions={iconSlotActions}
+                iconSlotSetupActions={iconSlotSetupActions}
+                slotPreferredMode={slotPreferredMode}
+                slotPreferredCount={slotPreferredIconRecords.length}
+                defaultIconSize={defaultIconSize}
+                canvasActionBusy={canvasActionBusy}
+                statusActionBusy={statusActionBusy}
+                onInsert={handleInsert}
+                onReplaceSelection={handleReplaceSelection}
+                onSetIconSlot={handleSetIconSlot}
+                onCreateIconSlot={handleCreateIconSlot}
+                onSlotPreferredModeChange={setSlotPreferredMode}
+                onUpdateStatus={handleUpdateIconStatus}
+              />
+            ) : (
+              <div className="rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                Select an icon in Library to review its publishing, quality, source, and developer details.
+              </div>
+            )}
+          </div>
         </div>
       )}
       {importOpen ? (

@@ -161,6 +161,138 @@ const mockIconRegistry = {
   },
 };
 
+const mockPublicIconProvider = {
+  id: 'iconify',
+  name: 'Iconify',
+  description: 'Browse governed public icon libraries for standalone preview.',
+};
+
+const mockPublicIconCollections = [
+  {
+    id: 'lucide',
+    name: 'Lucide',
+    total: 4,
+    category: 'General',
+    tags: ['interface', 'outline'],
+    license: {
+      name: 'ISC',
+      url: 'https://github.com/lucide-icons/lucide/blob/main/LICENSE',
+      attributionRequired: false,
+    },
+  },
+  {
+    id: 'heroicons',
+    name: 'Heroicons',
+    total: 2,
+    category: 'General',
+    tags: ['interface', 'outline'],
+    license: {
+      name: 'MIT',
+      url: 'https://github.com/tailwindlabs/heroicons/blob/master/LICENSE',
+      attributionRequired: false,
+    },
+  },
+];
+
+const mockPublicIcons = [
+  publicIcon('lucide:home', 'Home', 'navigation.home', mockPublicIconCollections[0], MOCK_ICON_SVG),
+  publicIcon(
+    'lucide:search',
+    'Search',
+    'action.search',
+    mockPublicIconCollections[0],
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M10.5 4a6.5 6.5 0 0 1 5.17 10.45l4.44 4.44-1.42 1.42-4.44-4.44A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg>',
+  ),
+  publicIcon(
+    'lucide:menu',
+    'Menu',
+    'navigation.menu',
+    mockPublicIconCollections[0],
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z"/></svg>',
+  ),
+  publicIcon(
+    'lucide:arrow-right',
+    'Arrow right',
+    'navigation.arrow-right',
+    mockPublicIconCollections[0],
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="m13 5 7 7-7 7-1.4-1.4 4.6-4.6H4v-2h12.2l-4.6-4.6L13 5Z"/></svg>',
+  ),
+  publicIcon(
+    'heroicons:user',
+    'User',
+    'people.user',
+    mockPublicIconCollections[1],
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0v1H5v-1Z"/></svg>',
+  ),
+  publicIcon(
+    'heroicons:bell',
+    'Bell',
+    'status.bell',
+    mockPublicIconCollections[1],
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-5-2-2v-5a5 5 0 0 0-10 0v5l-2 2v1h14v-1Z"/></svg>',
+  ),
+];
+
+function publicIcon(id, name, iconPath, collection, svg) {
+  return {
+    id,
+    provider: mockPublicIconProvider.id,
+    providerName: mockPublicIconProvider.name,
+    collection,
+    name,
+    path: iconPath,
+    svg,
+    svgUrl: svgDataUrl(svg),
+    sourceUrl: `https://icon-sets.iconify.design/${collection.id}/${id.split(':').at(-1)}/`,
+  };
+}
+
+function publicIconComponentName(iconPath) {
+  return `Icon/${iconPath
+    .split('.')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('/')}`;
+}
+
+function publicIconExportName(iconPath) {
+  return `${iconPath
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')}Icon`;
+}
+
+function svgDataUrl(svg) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function paginate(items, url) {
+  const start = Math.max(0, Number.parseInt(url.searchParams.get('start') ?? '0', 10) || 0);
+  const limit = Math.max(1, Number.parseInt(url.searchParams.get('limit') ?? '64', 10) || 64);
+  return {
+    start,
+    limit,
+    total: items.length,
+    items: items.slice(start, start + limit),
+  };
+}
+
+function publicIconsForRequest(url) {
+  const collection = url.searchParams.get('collection') ?? 'lucide';
+  const query = (url.searchParams.get('query') ?? '').trim().toLowerCase();
+  return mockPublicIcons.filter((icon) => {
+    const matchesCollection = icon.collection.id === collection;
+    const matchesQuery =
+      !query ||
+      [icon.name, icon.path, icon.collection.name, ...icon.collection.tags]
+        .join(' ')
+        .toLowerCase()
+        .includes(query);
+    return matchesCollection && matchesQuery;
+  });
+}
+
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
@@ -497,6 +629,169 @@ export async function handleMockApiRequest(req, res, url) {
       return true;
     }
     sendJson(res, 200, { registry: clone(mockIconRegistry) }, method);
+    return true;
+  }
+
+  if (pathname === '/api/icons/public/providers') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(res, 200, { providers: [clone(mockPublicIconProvider)] }, method);
+    return true;
+  }
+
+  if (pathname === '/api/icons/public/collections') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    const query = (url.searchParams.get('query') ?? '').trim().toLowerCase();
+    const matches = mockPublicIconCollections.filter((collection) =>
+      !query ||
+      [collection.name, collection.id, collection.category, ...collection.tags]
+        .join(' ')
+        .toLowerCase()
+        .includes(query),
+    );
+    const page = paginate(matches, url);
+    sendJson(
+      res,
+      200,
+      {
+        provider: clone(mockPublicIconProvider),
+        query,
+        total: page.total,
+        limit: page.limit,
+        start: page.start,
+        collections: clone(page.items),
+        categories: [{ name: 'General', count: matches.length }],
+      },
+      method,
+    );
+    return true;
+  }
+
+  if (pathname === '/api/icons/public/collection') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    const collectionId = url.searchParams.get('collection') ?? 'lucide';
+    const collection =
+      mockPublicIconCollections.find((item) => item.id === collectionId) ??
+      mockPublicIconCollections[0];
+    const matches = publicIconsForRequest(url);
+    const page = paginate(matches, url);
+    sendJson(
+      res,
+      200,
+      {
+        provider: clone(mockPublicIconProvider),
+        collection: clone(collection),
+        category: url.searchParams.get('category') || undefined,
+        total: page.total,
+        limit: page.limit,
+        start: page.start,
+        icons: clone(page.items),
+        categories: [{ name: 'General', count: matches.length }],
+      },
+      method,
+    );
+    return true;
+  }
+
+  if (pathname === '/api/icons/public/search') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    const query = (url.searchParams.get('query') ?? '').trim().toLowerCase();
+    const matches = publicIconsForRequest(url);
+    const page = paginate(matches, url);
+    sendJson(
+      res,
+      200,
+      {
+        provider: clone(mockPublicIconProvider),
+        query,
+        total: page.total,
+        limit: page.limit,
+        start: page.start,
+        icons: clone(page.items),
+        collections: clone(mockPublicIconCollections),
+      },
+      method,
+    );
+    return true;
+  }
+
+  if (pathname === '/api/icons/import/public') {
+    if (method !== 'POST' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['POST', 'HEAD'], method);
+      return true;
+    }
+    const body = method === 'HEAD' ? { icons: [] } : await readJsonBody(req);
+    const importedIcons = Array.isArray(body.icons)
+      ? body.icons.map((icon, index) => {
+          const publicIcon =
+            mockPublicIcons.find((item) => item.id === icon.id) ??
+            mockPublicIcons[index % mockPublicIcons.length];
+          return {
+            ...mockIconRegistry.icons[0],
+            id: `icon.${publicIcon.path}`,
+            name: icon.name || publicIcon.name,
+            path: icon.path || publicIcon.path,
+            componentName: publicIconComponentName(icon.path || publicIcon.path),
+            source: {
+              kind: 'public-library',
+              provider: publicIcon.provider,
+              providerName: publicIcon.providerName,
+              collection: publicIcon.collection.id,
+              collectionName: publicIcon.collection.name,
+              iconId: publicIcon.id,
+              sourceUrl: publicIcon.sourceUrl,
+              license: clone(publicIcon.collection.license),
+            },
+            svg: {
+              ...mockIconRegistry.icons[0].svg,
+              ...readSvgViewBoxMetadata(publicIcon.svg),
+              hash: `sha256:standalone-public-${publicIcon.id}`,
+              contentHash: `sha256:standalone-public-${publicIcon.id}`,
+              features: readSvgFeatureMetadata(publicIcon.svg),
+              content: publicIcon.svg,
+            },
+            figma: {
+              componentId: null,
+              componentKey: null,
+              lastSyncedHash: null,
+            },
+            code: {
+              exportName: publicIconExportName(icon.path || publicIcon.path),
+            },
+            quality: readIconQuality(
+              publicIcon.svg,
+              mockIconRegistry.settings.defaultSize,
+            ),
+            status: 'draft',
+            tags: [...publicIcon.collection.tags],
+          };
+        })
+      : [];
+    if (importedIcons.length > 0) {
+      mockIconRegistry.icons = importedIcons;
+    }
+    sendJson(
+      res,
+      200,
+      {
+        ok: true,
+        icons: importedIcons,
+        registry: clone(mockIconRegistry),
+        created: importedIcons.map(() => true),
+      },
+      method,
+    );
     return true;
   }
 

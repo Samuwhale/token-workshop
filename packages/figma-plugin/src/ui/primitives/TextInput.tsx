@@ -30,7 +30,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
       type={rest.type ?? "text"}
       aria-invalid={invalid || undefined}
       {...rest}
-      className={`w-full ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${sizeClass} ${stateClass} ${className}`}
+      className={`w-full ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${sizeClass} ${stateClass} hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--color-figma-bg)] ${className}`}
     />
   );
   if (!invalid) return input;

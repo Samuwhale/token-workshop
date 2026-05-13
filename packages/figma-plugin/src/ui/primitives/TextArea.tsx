@@ -32,7 +32,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         rows={rows}
         aria-invalid={invalid || undefined}
         {...rest}
-        className={`w-full resize-none ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${sizeClass} ${stateClass} ${className}`}
+        className={`w-full resize-none ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${sizeClass} ${stateClass} hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--color-figma-bg)] ${className}`}
       />
     );
   },

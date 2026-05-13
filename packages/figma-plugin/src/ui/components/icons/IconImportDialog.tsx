@@ -10,7 +10,7 @@ import type {
   ReadIconSelectionMessage,
   IconSelectionReadMessage,
 } from "../../../shared/types";
-import { Check, ExternalLink, FileUp, MousePointer2, Search } from "lucide-react";
+import { Check, ExternalLink, FileUp, MousePointer2, Search, X } from "lucide-react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { Button, Field, SearchField, SegmentedControl, TextInput } from "../../primitives";
 import {
@@ -357,36 +357,55 @@ function PublicLibraryRail({
   disabled,
   onSelectSource,
   onOpenCatalog,
+  onSelectCustom,
 }: {
   selectedPublicSourceId: PublicIconSourceId;
   disabled: boolean;
   onSelectSource: (source: (typeof PUBLIC_ICON_SOURCES)[number]) => void;
   onOpenCatalog: () => void;
+  onSelectCustom: () => void;
 }) {
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-      {PUBLIC_ICON_SOURCES.map((source) => (
-        <Button
-          key={source.id}
-          type="button"
-          variant="secondary"
-          size="sm"
-          aria-pressed={selectedPublicSourceId === source.id}
-          onClick={() => onSelectSource(source)}
+    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+      <Field label="Source">
+        <select
+          value={selectedPublicSourceId}
+          onChange={(event) => {
+            const value = event.target.value as PublicIconSourceId;
+            if (value === "all") {
+              onOpenCatalog();
+              return;
+            }
+            if (value === "custom") {
+              onSelectCustom();
+              return;
+            }
+            const source = PUBLIC_ICON_SOURCES.find((item) => item.id === value);
+            if (source) {
+              onSelectSource(source);
+            }
+          }}
           disabled={disabled}
+          className={`h-8 w-full px-2 text-body ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES}`}
         >
-          {source.label}
-        </Button>
-      ))}
+          {PUBLIC_ICON_SOURCES.map((source) => (
+            <option key={source.id} value={source.id}>
+              {source.label}
+            </option>
+          ))}
+          <option value="all">All libraries</option>
+          <option value="custom">Iconify prefix</option>
+        </select>
+      </Field>
       <Button
         type="button"
-        variant="secondary"
+        variant="ghost"
         size="sm"
-        aria-pressed={selectedPublicSourceId === "all"}
         onClick={onOpenCatalog}
         disabled={disabled}
+        className="mb-0.5 px-1.5"
       >
-        All libraries
+        Browse all
       </Button>
     </div>
   );
@@ -580,7 +599,7 @@ function PublicIconGrid({
   onToggleIcon: (iconId: string) => void;
 }) {
   return (
-    <div className="grid max-h-80 min-w-0 grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2 overflow-auto pr-1">
+    <div className="grid max-h-[46vh] min-w-0 grid-cols-[repeat(auto-fill,minmax(82px,1fr))] gap-x-2 gap-y-3 overflow-auto pr-1">
       {icons.map((icon) => {
         const selected = selectedIconIds.has(icon.id);
         const updatesExisting = existingIconPaths.has(iconPathKey(icon.path));
@@ -591,23 +610,31 @@ function PublicIconGrid({
             onClick={() => onToggleIcon(icon.id)}
             aria-pressed={selected}
             aria-label={`${selected ? "Deselect" : "Select"} ${icon.name} from ${icon.collection.name}`}
-            className={`relative flex min-h-[132px] min-w-0 flex-col gap-2 rounded-md border p-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
+            className={`relative flex min-h-[104px] min-w-0 flex-col items-center gap-1.5 rounded-md p-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
               selected
-                ? "border-[color:var(--color-figma-text-accent)] bg-[var(--color-figma-bg-selected)]"
-                : "border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--surface-hover)]"
+                ? "bg-[var(--color-figma-bg-selected)] shadow-[inset_0_0_0_1px_var(--color-figma-accent)]"
+                : "hover:bg-[var(--surface-hover)]"
             }`}
+            title={`${icon.name} · ${icon.collection.name} · ${icon.collection.license.name}`}
           >
             <span
-              className={`absolute right-1.5 top-1.5 flex size-5 items-center justify-center rounded-full border ${
+              className={`absolute right-1.5 top-1.5 flex size-4 items-center justify-center rounded-full border ${
                 selected
                   ? "border-[color:var(--color-figma-accent)] bg-[var(--color-figma-accent)] text-[color:var(--color-figma-text-onbrand)]"
                   : "border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg)] text-transparent"
               }`}
               aria-hidden
             >
-              <Check size={12} strokeWidth={2.5} />
+              <Check size={10} strokeWidth={2.5} />
             </span>
-            <span className="flex h-14 w-full items-center justify-center rounded border border-[var(--color-figma-border)] bg-white">
+            {updatesExisting ? (
+              <span
+                className="absolute left-1.5 top-1.5 size-1.5 rounded-full bg-[var(--color-figma-warning)]"
+                title="Updates existing icon"
+                aria-label="Updates existing icon"
+              />
+            ) : null}
+            <span className="flex h-11 w-full items-center justify-center rounded bg-white">
               <img
                 src={icon.svgUrl}
                 alt=""
@@ -616,22 +643,13 @@ function PublicIconGrid({
               />
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-body font-medium text-[color:var(--color-figma-text)]">
+              <span className="block truncate text-secondary font-medium text-[color:var(--color-figma-text)]">
                 {icon.name}
               </span>
-              <span className="block truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+              <span className="block truncate text-[11px] leading-tight text-[color:var(--color-figma-text-secondary)]">
                 {icon.collection.name}
               </span>
             </span>
-            <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-              {icon.collection.license.name}
-              {icon.collection.license.attributionRequired ? " / attribution" : ""}
-            </span>
-            {updatesExisting ? (
-              <span className="text-secondary font-medium text-[color:var(--color-figma-text-warning)]">
-                Updates existing
-              </span>
-            ) : null}
           </button>
         );
       })}
@@ -1273,6 +1291,16 @@ export function IconImportDialog({
     }
   };
 
+  const handleSelectCustomPublicSource = () => {
+    libraryRequestVersionRef.current += 1;
+    libraryAbortControllerRef.current?.abort();
+    setSelectedPublicSourceId("custom");
+    setLibraryQuery("");
+    setLibraryCategory("");
+    setSelectedPublicIconIds(new Set());
+    setError("");
+  };
+
   const handlePublicCatalogCollectionSelect = (
     collection: PublicIconCollection,
   ) => {
@@ -1462,22 +1490,35 @@ export function IconImportDialog({
         ref={dialogRef}
         className={`tm-modal-panel ${
           mode === "library" ? "tm-modal-panel--wide" : "tm-modal-panel--dialog"
-        }`}
+        } min-h-[min(720px,calc(100vh_-_16px))]`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="icon-import-title"
         onSubmit={handleSubmit}
       >
-        <div className="tm-modal-header">
-          <h3
-            id="icon-import-title"
-            className="text-heading font-semibold text-[color:var(--color-figma-text)]"
+        <div className="tm-modal-header tm-modal-header--split">
+          <div className="tm-modal-header__headline">
+            <h3
+              id="icon-import-title"
+              className="text-heading font-semibold text-[color:var(--color-figma-text)]"
+            >
+              Import icons
+            </h3>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={busy}
+            aria-label="Close import icons"
+            className="px-1.5"
           >
-            Import icons
-          </h3>
+            <X size={14} strokeWidth={1.75} aria-hidden />
+          </Button>
         </div>
 
-        <div className="tm-modal-body">
+        <div className="tm-modal-body gap-3">
           <SegmentedControl
             value={mode}
             options={IMPORT_MODES}
@@ -1505,6 +1546,7 @@ export function IconImportDialog({
                 disabled={busy || libraryLoading || catalogLoading}
                 onSelectSource={handlePublicSourceSelect}
                 onOpenCatalog={handleOpenPublicCatalog}
+                onSelectCustom={handleSelectCustomPublicSource}
               />
 
               {selectedPublicSourceId === "all" ? (

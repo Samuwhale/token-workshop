@@ -992,6 +992,15 @@ export const TokenLeafNode = memo(
             style={{ paddingLeft: `${computePaddingLeft(depth, 14)}px` }}
           >
           <DepthBar depth={depth} />
+          {structuralActionsEnabled && (!selectionActive || isSelected) ? (
+            <span
+              className="tm-token-tree-row__drag-handle"
+              title={`Drag to move ${formatDisplayPath(node.path, node.name)}`}
+              aria-hidden="true"
+            >
+              <Rows3 size={12} strokeWidth={1.5} />
+            </span>
+          ) : null}
           {/* Drag reorder indicator line */}
           {reorderPos && (
             <div
