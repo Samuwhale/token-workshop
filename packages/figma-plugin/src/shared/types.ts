@@ -775,6 +775,10 @@ export interface IconCanvasItem {
   componentKey?: string | null;
 }
 
+export type IconSlotPreferredValuePolicy =
+  | 'all-governed-icons'
+  | 'curated-icons';
+
 export interface InsertIconMessage {
   type: 'insert-icon';
   icon: IconCanvasItem;
@@ -799,6 +803,8 @@ export interface CreateIconSlotMessage {
   type: 'create-icon-slot';
   icon: IconCanvasItem;
   preferredIcons: IconCanvasItem[];
+  preferredValuePolicy: IconSlotPreferredValuePolicy;
+  preferredIconIds: string[];
   targetNodeIds: string[];
   correlationId?: string;
 }
@@ -806,6 +812,8 @@ export interface CreateIconSlotMessage {
 export interface RefreshIconSlotPreferredValuesMessage {
   type: 'refresh-icon-slot-preferred-values';
   preferredIcons: IconCanvasItem[];
+  preferredValuePolicy?: IconSlotPreferredValuePolicy;
+  preferredIconIds?: string[];
   targetNodeIds: string[];
   correlationId?: string;
 }
@@ -874,6 +882,7 @@ export type IconUsageAuditFindingType =
   | 'icon-frame-mismatch'
   | 'hardcoded-icon-color'
   | 'stale-preferred-values'
+  | 'slot-policy-violation'
   | 'unknown-managed-component';
 
 export interface IconUsageAuditFinding {
@@ -889,6 +898,8 @@ export interface IconUsageAuditFinding {
   nodeName?: string;
   nodeType?: string;
   pageName?: string;
+  preferredValuePolicy?: IconSlotPreferredValuePolicy;
+  preferredIconIds?: string[];
 }
 
 export interface IconUsageAuditSummary {
@@ -899,6 +910,7 @@ export interface IconUsageAuditSummary {
   frameIssues: number;
   colorIssues: number;
   preferredValueIssues: number;
+  policyViolations: number;
   deprecatedUsages: number;
   blockedUsages: number;
   unusedIcons: number;

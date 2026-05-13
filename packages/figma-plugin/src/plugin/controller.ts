@@ -156,7 +156,7 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'insert-icon':                [['icon', 'object']],
   'replace-selection-with-icon': [['icon', 'object']],
   'set-icon-swap-property':     [['icon', 'object'], ['propertyName', 'string'], ['targetNodeIds', 'array']],
-  'create-icon-slot':           [['icon', 'object'], ['preferredIcons', 'array'], ['targetNodeIds', 'array']],
+  'create-icon-slot':           [['icon', 'object'], ['preferredIcons', 'array'], ['preferredValuePolicy', 'string'], ['preferredIconIds', 'array'], ['targetNodeIds', 'array']],
   'refresh-icon-slot-preferred-values': [['preferredIcons', 'array'], ['targetNodeIds', 'array']],
   'scan-icon-usage':            [['scope', 'string'], ['icons', 'array']],
   'cancel-scan':                [],
@@ -608,6 +608,8 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         const result = await createSelectionIconSlots(
           msg.icon,
           msg.preferredIcons,
+          msg.preferredValuePolicy,
+          msg.preferredIconIds,
           msg.targetNodeIds,
         );
         figma.ui.postMessage({
@@ -634,6 +636,8 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       try {
         const result = await refreshIconSlotPreferredValues(
           msg.preferredIcons,
+          msg.preferredValuePolicy,
+          msg.preferredIconIds,
           msg.targetNodeIds,
         );
         figma.ui.postMessage({

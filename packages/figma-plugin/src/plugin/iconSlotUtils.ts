@@ -4,6 +4,8 @@ const ICON_SLOT_SIZE_MAX = 64;
 const ICON_SLOT_ASPECT_TOLERANCE = 0.35;
 export const ICON_SLOT_PREFERRED_VALUE_POLICY_KEY = 'iconSlotPreferredValuePolicy';
 export const ICON_SLOT_ALL_GOVERNED_ICONS_POLICY = 'all-governed-icons';
+export const ICON_SLOT_CURATED_ICONS_POLICY = 'curated-icons';
+export const ICON_SLOT_PREFERRED_ICON_IDS_KEY = 'iconSlotPreferredIconIds';
 
 export function findNearestMainComponent(node: SceneNode): ComponentNode | null {
   let parent = node.parent;

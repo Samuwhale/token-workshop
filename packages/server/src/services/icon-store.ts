@@ -12,6 +12,7 @@ import {
   parseIconSvg,
   stableStringify,
   type IconFigmaLink,
+  type IconLicenseMetadata,
   type IconRegistryFile,
   type IconStatus,
   type ManagedIcon,
@@ -70,6 +71,37 @@ export interface IconFigmaLinkBatchUpdateResult {
 export interface IconStatusUpdateResult {
   icon: ManagedIcon;
   registry: IconRegistryFile;
+}
+
+export type IconSourceUpdateStatus =
+  | "current"
+  | "changed"
+  | "metadata-changed"
+  | "unavailable"
+  | "unsupported";
+
+export interface IconSourceUpdateCheck {
+  id: string;
+  name: string;
+  path: string;
+  sourceKind: ManagedIcon["source"]["kind"];
+  status: IconSourceUpdateStatus;
+  currentHash: string;
+  latestHash?: string;
+  licenseChanged?: boolean;
+  message: string;
+}
+
+export interface IconSourceUpdateReport {
+  generatedAt: string;
+  summary: {
+    checked: number;
+    changed: number;
+    metadataChanged: number;
+    unavailable: number;
+    unsupported: number;
+  };
+  icons: IconSourceUpdateCheck[];
 }
 
 export interface IconAttributionManifestIcon {
@@ -481,6 +513,28 @@ export class IconStore {
     });
   }
 
+  async checkSourceUpdates(): Promise<IconSourceUpdateReport> {
+    return this.lock.withLock(async () => {
+      await this.reloadFromDiskUnlocked();
+      const icons = await Promise.all(
+        this.registry.icons.map((icon) => this.checkIconSourceUpdate(icon)),
+      );
+      return {
+        generatedAt: new Date().toISOString(),
+        summary: {
+          checked: icons.filter((icon) =>
+            icon.status !== "unsupported" && icon.status !== "unavailable"
+          ).length,
+          changed: icons.filter((icon) => icon.status === "changed").length,
+          metadataChanged: icons.filter((icon) => icon.status === "metadata-changed").length,
+          unavailable: icons.filter((icon) => icon.status === "unavailable").length,
+          unsupported: icons.filter((icon) => icon.status === "unsupported").length,
+        },
+        icons,
+      };
+    });
+  }
+
   private findIconById(iconId: string): ManagedIcon {
     const normalizedId = readRequiredNonEmptyString(iconId, "iconId");
     const icon = this.registry.icons.find(
@@ -524,6 +578,75 @@ export class IconStore {
       icon,
       content: parsed.content,
     };
+  }
+
+  private async checkIconSourceUpdate(
+    icon: ManagedIcon,
+  ): Promise<IconSourceUpdateCheck> {
+    try {
+      if (icon.source.kind === "local-svg") {
+        const sourcePath = this.resolveSourceSvgPath(icon.source.path);
+        const content = await readLocalSvgFile(sourcePath.absolutePath);
+        const parsed = parseSvgContent(content);
+        return sourceUpdateCheckForHash(icon, parsed.hash, "local SVG source");
+      }
+
+      if (icon.source.kind === "public-library") {
+        const [publicIcon] = await readPublicIconImportData({
+          icons: [{
+            id: icon.source.iconId,
+            path: icon.path,
+            name: icon.name,
+          }],
+        });
+        if (!publicIcon) {
+          throw new ConflictError(`Public icon "${icon.source.iconId}" was not returned.`);
+        }
+        const parsed = parseSvgContent(publicIcon.svg);
+        const licenseChanged =
+          publicIcon.source.kind === "public-library" &&
+          !iconLicenseMetadataEqual(icon.source.license, publicIcon.source.license);
+        const hashCheck = sourceUpdateCheckForHash(
+          icon,
+          parsed.hash,
+          `${icon.source.providerName} source`,
+        );
+        if (hashCheck.status === "current" && licenseChanged) {
+          return {
+            ...hashCheck,
+            status: "metadata-changed",
+            licenseChanged,
+            message: `${icon.name} has updated public source metadata or license details.`,
+          };
+        }
+        return {
+          ...hashCheck,
+          licenseChanged,
+        };
+      }
+
+      return {
+        id: icon.id,
+        name: icon.name,
+        path: icon.path,
+        sourceKind: icon.source.kind,
+        status: "unsupported",
+        currentHash: icon.svg.hash,
+        message: `${icon.name} was imported from ${icon.source.kind}; automatic source checks are not available.`,
+      };
+    } catch (err) {
+      return {
+        id: icon.id,
+        name: icon.name,
+        path: icon.path,
+        sourceKind: icon.source.kind,
+        status: "unavailable",
+        currentHash: icon.svg.hash,
+        message: err instanceof Error
+          ? err.message
+          : `Source for ${icon.name} could not be checked.`,
+      };
+    }
   }
 
   private async updateFigmaLinksUnlocked(
@@ -982,6 +1105,37 @@ function buildIconAttributionManifest(
     sources: sourceList,
     icons: publicIcons,
   };
+}
+
+function sourceUpdateCheckForHash(
+  icon: ManagedIcon,
+  latestHash: string,
+  sourceLabel: string,
+): IconSourceUpdateCheck {
+  const changed = latestHash !== icon.svg.hash;
+  return {
+    id: icon.id,
+    name: icon.name,
+    path: icon.path,
+    sourceKind: icon.source.kind,
+    status: changed ? "changed" : "current",
+    currentHash: icon.svg.hash,
+    latestHash,
+    message: changed
+      ? `${icon.name} has changed in its ${sourceLabel}. Review before re-importing.`
+      : `${icon.name} matches its ${sourceLabel}.`,
+  };
+}
+
+function iconLicenseMetadataEqual(
+  left: IconLicenseMetadata,
+  right: IconLicenseMetadata,
+): boolean {
+  return (
+    left.name === right.name &&
+    left.url === right.url &&
+    left.attributionRequired === right.attributionRequired
+  );
 }
 
 function parseSvgMetadata(

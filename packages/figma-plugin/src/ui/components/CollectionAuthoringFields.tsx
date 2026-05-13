@@ -29,10 +29,26 @@ export function createInitialCollectionAuthoringDraft(
       };
 }
 
-const MODE_PRESETS: Array<{ label: string; modes: string[] }> = [
-  { label: "Default only", modes: ["Default"] },
-  { label: "Light / Dark", modes: ["Light", "Dark"] },
-  { label: "Mobile / Desktop", modes: ["Mobile", "Desktop"] },
+const MODE_PRESETS: Array<{
+  label: string;
+  description: string;
+  modes: string[];
+}> = [
+  {
+    label: "One mode",
+    description: "Use one value per token.",
+    modes: ["Default"],
+  },
+  {
+    label: "Light and dark",
+    description: "Switch colors, shadows, or surfaces by theme.",
+    modes: ["Light", "Dark"],
+  },
+  {
+    label: "Mobile and desktop",
+    description: "Tune spacing, type, or layout by screen size.",
+    modes: ["Mobile", "Desktop"],
+  },
 ];
 
 interface CollectionAuthoringFieldsProps {
@@ -87,6 +103,16 @@ export function buildCollectionModeNames(
   return draft.modeNames.map((modeName) => modeName.trim()).filter(Boolean);
 }
 
+function getModeFieldLabel(index: number, hasMultipleModes: boolean): string {
+  if (!hasMultipleModes) {
+    return "Mode name";
+  }
+  if (index === 0) {
+    return "First mode";
+  }
+  return `Mode ${index + 1}`;
+}
+
 export function CollectionAuthoringFields({
   draft,
   pending = false,
@@ -137,7 +163,7 @@ export function CollectionAuthoringFields({
         </div>
 
         {onModeNamesChange ? (
-          <div className="flex flex-wrap gap-1.5" aria-label="Mode presets">
+          <div className="grid gap-1" aria-label="Mode presets">
             {MODE_PRESETS.map((preset) => {
               const presetActive =
                 preset.modes.length === normalizedModes.length &&
@@ -152,13 +178,18 @@ export function CollectionAuthoringFields({
                   onClick={() => onModeNamesChange(preset.modes)}
                   disabled={pending}
                   aria-pressed={presetActive}
-                  className={`rounded border px-2 py-1 text-secondary transition-colors disabled:opacity-50 ${
+                  className={`rounded px-2 py-1.5 text-left transition-colors disabled:opacity-50 ${
                     presetActive
-                      ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[color:var(--color-figma-text-accent)]"
-                      : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+                      ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
+                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
                   }`}
                 >
-                  {preset.label}
+                  <span className="block text-body font-medium">
+                    {preset.label}
+                  </span>
+                  <span className="mt-0.5 block text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
+                    {preset.description}
+                  </span>
                 </button>
               );
             })}
@@ -169,7 +200,7 @@ export function CollectionAuthoringFields({
           {draft.modeNames.map((modeName, index) => (
             <label key={index} className="flex flex-col gap-1">
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {hasMultipleModes ? `Mode ${index + 1}` : "Mode name"}
+                {getModeFieldLabel(index, hasMultipleModes)}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -198,7 +229,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Modes become value columns for every token in this collection.
+          Each token gets one value for every mode in this collection.
         </span>
       </div>
 

@@ -51,6 +51,7 @@ interface IconExportManifestIcon {
     rawSvgPath: string;
     svgPath: string;
     reactPath: string;
+    webCssClass: string;
   };
   svg: {
     viewBox: string;
@@ -110,6 +111,7 @@ export function buildIconExportBundle(
         rawSvgPath,
         svgPath,
         reactPath,
+        webCssClass: webIconClassName(icon),
       },
       svg: {
         viewBox: icon.svg.viewBox,
@@ -160,6 +162,10 @@ export function buildIconExportBundle(
     path: "index.ts",
     content: renderIconIndex(manifest.icons),
   });
+  files.push({
+    path: "web/icons.css",
+    content: renderWebIconCss(manifest.icons, sources),
+  });
 
   return {
     fileName: "token-workshop-icons.zip",
@@ -197,6 +203,15 @@ function iconSvgPath(root: "raw-svg" | "svg", icon: ManagedIcon): string {
 
 function reactComponentPath(icon: ManagedIcon): string {
   return `react/${icon.code.exportName}.tsx`;
+}
+
+function webIconClassName(icon: ManagedIcon): string {
+  return `tw-icon-${icon.path
+    .toLowerCase()
+    .split(".")
+    .filter(Boolean)
+    .map((segment) => segment.replace(/[^a-z0-9_-]+/g, "-"))
+    .join("-")}`;
 }
 
 function assertUniqueExportNames(icons: ManagedIcon[]): void {
@@ -324,6 +339,49 @@ export const icons = {
 ${iconMapEntries.join("\n")}
 } satisfies Record<IconName, React.ComponentType<React.SVGProps<SVGSVGElement> & { title?: string }>>;
 `;
+}
+
+function renderWebIconCss(
+  icons: IconExportManifestIcon[],
+  sources: IconExportSource[],
+): string {
+  const svgByIconId = new Map(
+    sources.map(({ icon, svgContent }) => [
+      icon.id,
+      normalizeSvgForDeveloperExport(icon, normalizeIconSvgText(svgContent)),
+    ]),
+  );
+  const rules = icons.map((icon) => {
+    const svg = svgByIconId.get(icon.id);
+    if (!svg) {
+      throw new Error(`Missing SVG content for "${icon.path}".`);
+    }
+    const url = `url("${svgDataUri(svg)}")`;
+    if (icon.svg.colorBehavior === "multicolor") {
+      return `.${icon.code.webCssClass} { background-color: transparent; background-image: ${url}; background-position: center; background-repeat: no-repeat; background-size: contain; }`;
+    }
+    return `.${icon.code.webCssClass} { --tw-icon: ${url}; -webkit-mask: var(--tw-icon) center / contain no-repeat; mask: var(--tw-icon) center / contain no-repeat; }`;
+  });
+
+  return `.tw-icon {
+  display: inline-block;
+  inline-size: 1em;
+  block-size: 1em;
+  flex: none;
+  background-color: currentColor;
+  vertical-align: -0.125em;
+}
+
+${rules.join("\n")}
+`;
+}
+
+function svgDataUri(svg: string): string {
+  return `data:image/svg+xml,${encodeURIComponent(svg)
+    .replace(/%20/g, " ")
+    .replace(/%3D/g, "=")
+    .replace(/%3A/g, ":")
+    .replace(/%2F/g, "/")}`;
 }
 
 function buildExportAttributionManifest(manifest: IconExportManifest): unknown {

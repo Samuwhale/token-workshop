@@ -54,20 +54,23 @@ Implemented:
 - Public icon source governance now includes explicit provider discovery/search validation, selected-import license and attribution review, source links before import, UI request timeouts, and bounded server-side collection metadata caching.
 - Public icon attribution can be exported from the Icons workspace as a grouped JSON manifest for handoff, including provider, collection, license, source URL, status, and attribution-required summaries for every public-library icon.
 - Initial developer handoff export from the Icons workspace, including a server-generated zip with raw SVGs, normalized SVGs, React TypeScript components, a typed icon index, a full icon manifest, and attribution metadata for active non-blocked icons.
+- Developer handoff export now also includes a deterministic web CSS bundle with themeable mask classes for monotone icons and background-image classes for multicolor icons.
 - Initial icon lifecycle controls from the Icons workspace, including validated draft, published, deprecated, and blocked status updates, restore behavior that respects synced Figma component state, and server-side guards that prevent blocked-quality or unsynced icons from being marked published.
+- Component icon slot setup now supports broad governed menus or curated menus based on the current icon result set, persists the slot policy in Figma plugin metadata, refreshes policy-aware preferred values, and audits curated slot policy violations.
+- Initial explicit source update checks for local SVG and public Iconify-backed icons, including hash drift, public license metadata drift, unavailable source reporting, and an Icons workspace summary.
 
 Missing:
 
 - Rich publish review and richer component reconciliation for substantial SVG structure changes.
 - Richer selected-layer quality gates and normalization guidance for raw canvas vectors beyond initial frame, layer-type, visibility, mask, effect, stroke, and image-fill checks.
-- Broader public source governance beyond the initial Iconify browser, including multi-provider configuration and source update checks.
+- Broader public source governance beyond the initial Iconify browser and source update checks, including multi-provider configuration.
 - Near-duplicate geometry review beyond exact SVG hash matches.
 - Token color guidance, broader canvas color audits, and guided hardcoded fill repair beyond initial publish normalization and component-authored unmanaged monotone color findings.
 - Richer geometry bounding-box and keyline checks beyond initial static SVG primitive/path bounds, including transformed geometry and stronger curve handling.
 - Richer replacement previews and multi-slot selection controls from the Icons workspace.
-- Richer component icon slot setup with curated restricted preferred values, broader preferred-value repair previews, and multi-slot previews.
+- Richer component icon slot setup with broader preferred-value repair previews and multi-slot previews.
 - Richer icon usage audit, guided repair, configurable raw-icon heuristics, and full deprecation workflows beyond the initial selection/page/file audit, unused-icon lifecycle findings, node-backed finding navigation, unpromoted-slot detection, and manual lifecycle status controls.
-- Richer icon exports beyond the initial SVG, React TypeScript, manifest, and attribution bundle, including platform-specific bundles and deeper token-aligned handoff.
+- Richer icon exports beyond the initial SVG, React TypeScript, manifest, attribution, and web CSS bundle, including deeper token-aligned handoff.
 - Integration with review, publish, health, history, and git workflows.
 
 ## Experience Principles

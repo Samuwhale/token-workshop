@@ -112,6 +112,14 @@ export const iconRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  fastify.get("/icons/source-updates", async (_request, reply) => {
+    try {
+      return await fastify.iconStore.checkSourceUpdates();
+    } catch (err) {
+      return handleRouteError(reply, err, "Failed to check icon source updates");
+    }
+  });
+
   fastify.get("/icons/export", async (_request, reply) => {
     try {
       const bundle = await fastify.iconStore.getExportBundle();

@@ -3,6 +3,7 @@ import type { IconRegistryFile, IconStatus, ManagedIcon } from "@token-workshop/
 import type {
   IconCanvasActionResultMessage,
   IconCanvasItem,
+  IconSlotPreferredValuePolicy,
   CreateIconSlotMessage,
   IconPublishProgressMessage,
   IconUsageAuditFinding,
@@ -41,6 +42,7 @@ import { IconImportDialog } from "./IconImportDialog";
 
 type IconStatusFilter = "all" | IconStatus;
 type IconHealthFilter = "all" | "publish" | "blocked" | "quality" | "frame" | "color";
+type IconSlotPreferredMode = "all" | "matching";
 type IconCanvasActionRequest =
   | Omit<InsertIconMessage, "correlationId">
   | Omit<ReplaceSelectionWithIconMessage, "correlationId">
@@ -109,6 +111,28 @@ interface IconStatusUpdateResponse {
   registry: IconRegistryFile;
 }
 
+interface IconSourceUpdateReport {
+  generatedAt: string;
+  summary: {
+    checked: number;
+    changed: number;
+    metadataChanged: number;
+    unavailable: number;
+    unsupported: number;
+  };
+  icons: Array<{
+    id: string;
+    name: string;
+    path: string;
+    sourceKind: string;
+    status: "current" | "changed" | "metadata-changed" | "unavailable" | "unsupported";
+    currentHash: string;
+    latestHash?: string;
+    licenseChanged?: boolean;
+    message: string;
+  }>;
+}
+
 const SVG_FRAME_EPSILON = 1e-6;
 
 const STATUS_FILTERS: Array<{ value: IconStatusFilter; label: string }> = [
@@ -130,6 +154,11 @@ const AUDIT_SCOPE_OPTIONS: Array<{ value: IconUsageAuditScope; label: string }> 
   { value: "selection", label: "Selection" },
   { value: "page", label: "Page" },
   { value: "file", label: "File" },
+];
+
+const SLOT_PREFERRED_MODE_OPTIONS: Array<{ value: IconSlotPreferredMode; label: string }> = [
+  { value: "all", label: "All icons" },
+  { value: "matching", label: "Matching" },
 ];
 
 function formatIconCount(count: number): string {
@@ -455,6 +484,16 @@ function iconCanvasItem(icon: ManagedIcon): IconCanvasItem {
     componentId: icon.figma.componentId,
     componentKey: icon.figma.componentKey,
   };
+}
+
+function slotPreferredPolicyForMode(
+  mode: IconSlotPreferredMode,
+): IconSlotPreferredValuePolicy {
+  return mode === "matching" ? "curated-icons" : "all-governed-icons";
+}
+
+function slotPreferredModeLabel(mode: IconSlotPreferredMode): string {
+  return mode === "matching" ? "matching icons" : "all usable icons";
 }
 
 function runIconCanvasAction(
@@ -873,6 +912,7 @@ function IconUsageAuditPanel({
             <span>{formatHealthCount(result.summary.frameIssues, "size issue")}</span>
             <span>{formatHealthCount(result.summary.colorIssues, "color issue")}</span>
             <span>{formatHealthCount(result.summary.preferredValueIssues, "preferred value issue")}</span>
+            <span>{formatHealthCount(result.summary.policyViolations, "policy issue")}</span>
             <span>{formatHealthCount(result.summary.blockedUsages, "blocked use")}</span>
             <span>{formatHealthCount(result.summary.unusedIcons, "unused icon")}</span>
             <span>{formatHealthCount(result.summary.staleComponents, "stale sync")}</span>
@@ -946,6 +986,8 @@ function IconInspector({
   selectionCount,
   iconSlotActions,
   iconSlotSetupActions,
+  slotPreferredMode,
+  slotPreferredCount,
   defaultIconSize,
   canvasActionBusy,
   statusActionBusy,
@@ -953,6 +995,7 @@ function IconInspector({
   onReplaceSelection,
   onSetIconSlot,
   onCreateIconSlot,
+  onSlotPreferredModeChange,
   onUpdateStatus,
 }: {
   icon: ManagedIcon;
@@ -960,6 +1003,8 @@ function IconInspector({
   selectionCount: number;
   iconSlotActions: IconSlotAction[];
   iconSlotSetupActions: IconSlotSetupAction[];
+  slotPreferredMode: IconSlotPreferredMode;
+  slotPreferredCount: number;
   defaultIconSize: number;
   canvasActionBusy: boolean;
   statusActionBusy: boolean;
@@ -967,6 +1012,7 @@ function IconInspector({
   onReplaceSelection: () => void;
   onSetIconSlot: (action: IconSlotAction) => void;
   onCreateIconSlot: (action: IconSlotSetupAction) => void;
+  onSlotPreferredModeChange: (mode: IconSlotPreferredMode) => void;
   onUpdateStatus: (status: IconStatus) => void;
 }) {
   const publicSource = icon.source.kind === "public-library" ? icon.source : null;
@@ -1130,9 +1176,21 @@ function IconInspector({
 
       {iconSlotSetupActions.length > 0 ? (
         <div className="flex flex-col gap-1.5">
-          <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-            Component setup
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+              Component setup
+            </div>
+            <SegmentedControl
+              value={slotPreferredMode}
+              options={SLOT_PREFERRED_MODE_OPTIONS}
+              onChange={onSlotPreferredModeChange}
+              ariaLabel="Icon slot preferred values"
+              size="compact"
+            />
           </div>
+          <p className="m-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+            Slot menu will use {slotPreferredModeLabel(slotPreferredMode)} ({slotPreferredCount}).
+          </p>
           {iconSlotSetupActions.map((action) => (
             <Button
               key={`${action.propertyOwnerId}:${action.label}`}
@@ -1266,10 +1324,13 @@ export function IconPanel() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<IconStatusFilter>("all");
   const [healthFilter, setHealthFilter] = useState<IconHealthFilter>("all");
+  const [slotPreferredMode, setSlotPreferredMode] = useState<IconSlotPreferredMode>("all");
   const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [checkingSources, setCheckingSources] = useState(false);
+  const [sourceUpdateReport, setSourceUpdateReport] = useState<IconSourceUpdateReport | null>(null);
   const [canvasActionBusy, setCanvasActionBusy] = useState(false);
   const [statusActionBusy, setStatusActionBusy] = useState(false);
   const [auditScope, setAuditScope] = useState<IconUsageAuditScope>("selection");
@@ -1420,9 +1481,24 @@ export function IconPanel() {
     () => getIconSlotSetupActions(selectedNodes),
     [selectedNodes],
   );
-  const slotPreferredIcons = useMemo(
-    () => icons.filter(iconCanUseAsSlotPreference).map(iconCanvasItem),
+  const allSlotPreferredIcons = useMemo(
+    () => icons.filter(iconCanUseAsSlotPreference),
     [icons],
+  );
+  const matchingSlotPreferredIcons = useMemo(
+    () => filteredIcons.filter(iconCanUseAsSlotPreference),
+    [filteredIcons],
+  );
+  const slotPreferredIconRecords = slotPreferredMode === "matching"
+    ? matchingSlotPreferredIcons
+    : allSlotPreferredIcons;
+  const slotPreferredIcons = useMemo(
+    () => slotPreferredIconRecords.map(iconCanvasItem),
+    [slotPreferredIconRecords],
+  );
+  const slotPreferredIconIds = useMemo(
+    () => slotPreferredIconRecords.map((icon) => icon.id),
+    [slotPreferredIconRecords],
   );
 
   const iconsToPublish = useMemo(
@@ -1576,6 +1652,40 @@ export function IconPanel() {
     }
   }, [exportableIconCount, exporting, serverUrl]);
 
+  const handleCheckSourceUpdates = useCallback(async () => {
+    if (checkingSources) {
+      return;
+    }
+
+    setCheckingSources(true);
+    setError(null);
+    try {
+      const report = await apiFetch<IconSourceUpdateReport>(
+        `${serverUrl}/api/icons/source-updates`,
+        {
+          signal: createFetchSignal(undefined, 30_000),
+        },
+      );
+      setSourceUpdateReport(report);
+      const actionable =
+        report.summary.changed +
+        report.summary.metadataChanged +
+        report.summary.unavailable;
+      dispatchToast(
+        actionable === 0
+          ? "Icon source check found no updates."
+          : `Icon source check found ${formatHealthCount(actionable, "source issue")}.`,
+        actionable === 0 ? "success" : "warning",
+      );
+    } catch (err) {
+      const message = getErrorMessage(err, "Failed to check icon sources.");
+      setError(message);
+      dispatchToast(message, "error");
+    } finally {
+      setCheckingSources(false);
+    }
+  }, [checkingSources, serverUrl]);
+
   const handleUpdateIconStatus = useCallback(async (status: IconStatus) => {
     if (!selectedIcon || statusActionBusy) {
       return;
@@ -1709,6 +1819,8 @@ export function IconPanel() {
         type: "create-icon-slot",
         icon: iconCanvasItem(selectedIcon),
         preferredIcons: slotPreferredIcons,
+        preferredValuePolicy: slotPreferredPolicyForMode(slotPreferredMode),
+        preferredIconIds: slotPreferredIconIds,
         targetNodeIds: action.targetNodeIds,
       });
       if (result.error) {
@@ -1724,7 +1836,13 @@ export function IconPanel() {
     } finally {
       setCanvasActionBusy(false);
     }
-  }, [canvasActionBusy, selectedIcon, slotPreferredIcons]);
+  }, [
+    canvasActionBusy,
+    selectedIcon,
+    slotPreferredIconIds,
+    slotPreferredIcons,
+    slotPreferredMode,
+  ]);
 
   const handleAuditUsage = useCallback(async () => {
     if (auditLoading) {
@@ -1762,6 +1880,7 @@ export function IconPanel() {
           frameIssues: 0,
           colorIssues: 0,
           preferredValueIssues: 0,
+          policyViolations: 0,
           deprecatedUsages: 0,
           blockedUsages: 0,
           unusedIcons: 0,
@@ -1782,11 +1901,23 @@ export function IconPanel() {
       return;
     }
 
+    const findingPreferredIcons = finding.preferredValuePolicy === "curated-icons"
+      ? icons
+          .filter((icon) => (finding.preferredIconIds ?? []).includes(icon.id))
+          .filter(iconCanUseAsSlotPreference)
+          .map(iconCanvasItem)
+      : slotPreferredIcons;
+    const findingPreferredIconIds = finding.preferredValuePolicy === "curated-icons"
+      ? findingPreferredIcons.map((icon) => icon.id)
+      : slotPreferredIconIds;
+
     setCanvasActionBusy(true);
     try {
       const result = await runIconCanvasAction({
         type: "refresh-icon-slot-preferred-values",
-        preferredIcons: slotPreferredIcons,
+        preferredIcons: findingPreferredIcons,
+        preferredValuePolicy: finding.preferredValuePolicy,
+        preferredIconIds: findingPreferredIconIds,
         targetNodeIds: [finding.nodeId],
       });
       if (result.error) {
@@ -1803,7 +1934,13 @@ export function IconPanel() {
     } finally {
       setCanvasActionBusy(false);
     }
-  }, [canvasActionBusy, handleAuditUsage, slotPreferredIcons]);
+  }, [
+    canvasActionBusy,
+    handleAuditUsage,
+    icons,
+    slotPreferredIconIds,
+    slotPreferredIcons,
+  ]);
 
   const handleFocusAuditFinding = useCallback((finding: IconUsageAuditFinding) => {
     if (!finding.nodeId) {
@@ -1888,6 +2025,17 @@ export function IconPanel() {
           </Button>
           <Button
             type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => void handleCheckSourceUpdates()}
+            disabled={checkingSources || icons.length === 0}
+            title="Check local SVG and public icon sources for updates"
+          >
+            <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+            {checkingSources ? "Checking" : "Sources"}
+          </Button>
+          <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={() => void loadIcons()}
@@ -1902,6 +2050,14 @@ export function IconPanel() {
           activeFilter={healthFilter}
           onFilterChange={setHealthFilter}
         />
+        {sourceUpdateReport ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+            <span>{formatHealthCount(sourceUpdateReport.summary.checked, "source checked")}</span>
+            <span>{formatHealthCount(sourceUpdateReport.summary.changed, "artwork update")}</span>
+            <span>{formatHealthCount(sourceUpdateReport.summary.metadataChanged, "metadata update")}</span>
+            <span>{formatHealthCount(sourceUpdateReport.summary.unavailable, "unavailable source")}</span>
+          </div>
+        ) : null}
         <IconUsageAuditPanel
           scope={auditScope}
           loading={auditLoading}
@@ -2015,6 +2171,8 @@ export function IconPanel() {
               selectionCount={selectedNodes.length}
               iconSlotActions={iconSlotActions}
               iconSlotSetupActions={iconSlotSetupActions}
+              slotPreferredMode={slotPreferredMode}
+              slotPreferredCount={slotPreferredIconRecords.length}
               defaultIconSize={defaultIconSize}
               canvasActionBusy={canvasActionBusy}
               statusActionBusy={statusActionBusy}
@@ -2022,6 +2180,7 @@ export function IconPanel() {
               onReplaceSelection={handleReplaceSelection}
               onSetIconSlot={handleSetIconSlot}
               onCreateIconSlot={handleCreateIconSlot}
+              onSlotPreferredModeChange={setSlotPreferredMode}
               onUpdateStatus={handleUpdateIconStatus}
             />
           ) : null}

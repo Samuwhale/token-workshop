@@ -77,6 +77,17 @@ function collectionHealthTone(summary?: CollectionReviewSummary): string | null 
   return null;
 }
 
+function formatCollectionHealthLabel(
+  summary?: CollectionReviewSummary,
+): string | null {
+  const actionable = summary?.actionable ?? 0;
+  if (actionable === 0) {
+    return null;
+  }
+  const issueLabel = actionable === 1 ? "review issue" : "review issues";
+  return `${actionable} ${issueLabel}`;
+}
+
 function formatCollectionMeta(tokenCount: number, modeCount: number): string {
   const tokenLabel = tokenCount === 1 ? "token" : "tokens";
   const modeLabel = modeCount === 1 ? "mode" : "modes";
@@ -169,6 +180,14 @@ export function CollectionTabs({
       ? (allCollectionsMeta ??
         formatAllCollectionsMeta(collections.length, allCollectionsTokenCount))
       : currentCollectionMeta;
+  const currentCollectionHealthClass =
+    scopeValue !== "all" && currentCollectionId
+      ? collectionHealthTone(collectionHealth?.get(currentCollectionId))
+      : null;
+  const currentCollectionHealthLabel =
+    scopeValue !== "all" && currentCollectionId
+      ? formatCollectionHealthLabel(collectionHealth?.get(currentCollectionId))
+      : null;
 
   const filteredCollections = useMemo(
     () => filterCollections(collections, deferredQuery, collectionDisplayNames),
@@ -201,16 +220,23 @@ export function CollectionTabs({
           }
         : null;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
-  const triggerTitle =
-    visibleMeta.length > 0 ? `${visibleTitle} · ${visibleMeta}` : visibleTitle;
+  const triggerTitle = [
+    visibleTitle,
+    visibleMeta,
+    currentCollectionHealthLabel,
+  ].filter(Boolean).join(" · ");
+  const triggerDetails = [
+    visibleMeta,
+    currentCollectionHealthLabel,
+  ].filter(Boolean).join(", ");
   const triggerAriaLabel =
     scopeValue === "all"
       ? visibleMeta
         ? `All collections, ${visibleMeta}. Choose collection`
         : "All collections. Choose collection"
       : currentCollection
-        ? visibleMeta
-          ? `Collection: ${currentDisplayName}, ${visibleMeta}. Choose collection`
+        ? triggerDetails
+          ? `Collection: ${currentDisplayName}, ${triggerDetails}. Choose collection`
           : `Collection: ${currentDisplayName}. Choose collection`
         : "Choose collection";
   const triggerStateClass =
@@ -494,8 +520,15 @@ export function CollectionTabs({
                 className={`tm-collection-toolbar__trigger flex min-h-7 min-w-0 flex-1 items-center gap-2 rounded px-2 py-1 text-left transition-colors ${CONTROL_FOCUS_ACCENT} ${triggerStateClass}`}
               >
                 <span className="tm-collection-toolbar__summary min-w-0 flex-1">
-                  <span className="tm-collection-toolbar__summary-title block truncate text-body font-medium">
-                    {visibleTitle}
+                  <span className="tm-collection-toolbar__summary-title flex items-center gap-1.5 text-body font-medium">
+                    {currentCollectionHealthClass ? (
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${currentCollectionHealthClass}`}
+                        title={currentCollectionHealthLabel ?? undefined}
+                        aria-hidden
+                      />
+                    ) : null}
+                    <span className="min-w-0 truncate">{visibleTitle}</span>
                   </span>
                   {visibleMeta ? (
                     <span className="tm-collection-toolbar__summary-meta block truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
@@ -521,8 +554,8 @@ export function CollectionTabs({
                   onClick={createMenu.toggle}
                   aria-expanded={createMenu.open}
                   aria-haspopup="menu"
-                  aria-label="New collection actions"
-                  title="New collection actions"
+                  aria-label="Add to library"
+                  title="Add to library"
                   variant="secondary"
                   size="sm"
                   wrap
@@ -530,7 +563,7 @@ export function CollectionTabs({
                 >
                   {primaryAction?.icon}
                   <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                    New
+                    Add
                   </span>
                   <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
                 </Button>
@@ -573,7 +606,7 @@ export function CollectionTabs({
                 >
                   <Settings2 size={12} strokeWidth={1.5} aria-hidden />
                   <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                    Collection
+                    Modes
                   </span>
                 </Button>
               ) : null}

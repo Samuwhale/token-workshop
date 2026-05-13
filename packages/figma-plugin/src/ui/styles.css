@@ -3130,10 +3130,12 @@ button.tm-status-row:not(:disabled):hover {
   display: flex;
   min-inline-size: 0;
   align-items: center;
+  flex-wrap: wrap;
   gap: 5px;
   font-size: var(--font-size-sm);
   line-height: var(--leading-body);
   color: var(--color-figma-text-secondary);
+  overflow-wrap: anywhere;
 }
 
 .tm-token-details__status-dot {
@@ -3186,6 +3188,17 @@ button.tm-status-row:not(:disabled):hover {
   color: var(--color-figma-text);
 }
 
+.tm-token-details__header-icon:focus-visible,
+.tm-token-details__inline-icon:focus-visible,
+.tm-token-details__text-button:focus-visible,
+.tm-token-details__primary-button:focus-visible,
+.tm-token-details__secondary-button:focus-visible,
+.tm-token-details__inline-button:focus-visible,
+.tm-token-details__suggestion-button:focus-visible {
+  outline: 1.5px solid var(--color-figma-accent);
+  outline-offset: -1px;
+}
+
 .tm-token-details__identity-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(96px, 120px);
@@ -3209,18 +3222,6 @@ button.tm-status-row:not(:disabled):hover {
 
 .tm-token-details__identity-path {
   min-inline-size: 0;
-}
-
-.tm-token-details__identity-context {
-  min-inline-size: 0;
-  color: var(--color-figma-text-tertiary);
-  font-size: var(--font-size-sm);
-  line-height: var(--leading-body);
-  overflow-wrap: anywhere;
-}
-
-.tm-token-details__identity-context span {
-  color: var(--color-figma-text-secondary);
 }
 
 .tm-token-details__path-summary {
@@ -3528,10 +3529,16 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-token-details__suggestion-button {
+  display: inline-flex;
+  min-block-size: 28px;
+  align-items: center;
   padding: 3px 8px;
   border-radius: 4px;
   background: var(--color-figma-bg);
   color: var(--color-figma-text-secondary);
+  transition:
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
 }
 
 .tm-token-details__suggestion-button:hover {

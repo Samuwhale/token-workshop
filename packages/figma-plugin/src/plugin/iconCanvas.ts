@@ -1,8 +1,13 @@
-import type { IconCanvasItem } from '../shared/types.js';
+import type {
+  IconCanvasItem,
+  IconSlotPreferredValuePolicy,
+} from '../shared/types.js';
 import {
   findNearestMainComponent,
   getIconSlotPropertyOwner,
   ICON_SLOT_ALL_GOVERNED_ICONS_POLICY,
+  ICON_SLOT_CURATED_ICONS_POLICY,
+  ICON_SLOT_PREFERRED_ICON_IDS_KEY,
   ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
   iconSlotLabelFromNodeName,
   iconSlotVisibilityLabel,
@@ -28,6 +33,8 @@ interface IconSlotPropertyPair {
 
 interface IconSlotPromotionContext {
   preferredValues: InstanceSwapPreferredValue[];
+  preferredValuePolicy: IconSlotPreferredValuePolicy;
+  preferredIconIds: string[];
   propertiesByOwnerAndLabel: Map<string, IconSlotPropertyPair>;
 }
 
@@ -166,13 +173,20 @@ export async function setSelectionIconSwapProperty(
 export async function createSelectionIconSlots(
   icon: IconCanvasItem,
   preferredIcons: IconCanvasItem[],
+  preferredValuePolicy: IconSlotPreferredValuePolicy,
+  preferredIconIds: string[],
   targetNodeIds: string[],
 ): Promise<ReplaceIconResult> {
   const selectedIds = new Set(figma.currentPage.selection.map((node) => node.id));
   const targetIds = new Set(targetNodeIds);
   const component = await resolveIconComponent(icon);
+  const normalizedPolicy = normalizePreferredValuePolicy(preferredValuePolicy);
   const context: IconSlotPromotionContext = {
     preferredValues: await resolveIconPreferredValues(icon, preferredIcons),
+    preferredValuePolicy: normalizedPolicy,
+    preferredIconIds: normalizedPolicy === ICON_SLOT_CURATED_ICONS_POLICY
+      ? normalizePreferredIconIds([icon.id, ...preferredIconIds])
+      : [],
     propertiesByOwnerAndLabel: new Map(),
   };
   const replacements: InstanceNode[] = [];
@@ -222,6 +236,8 @@ export async function createSelectionIconSlots(
 
 export async function refreshIconSlotPreferredValues(
   preferredIcons: IconCanvasItem[],
+  preferredValuePolicy: IconSlotPreferredValuePolicy | undefined,
+  preferredIconIds: string[] | undefined,
   targetNodeIds: string[],
 ): Promise<ReplaceIconResult> {
   const preferredValues = await resolveIconPreferredValuesForIcons(preferredIcons);
@@ -242,14 +258,13 @@ export async function refreshIconSlotPreferredValues(
       continue;
     }
 
-    if (
-      node.getSharedPluginData(
-        PLUGIN_DATA_NAMESPACE,
-        ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
-      ) !== ICON_SLOT_ALL_GOVERNED_ICONS_POLICY
-    ) {
+    const storedPolicy = readStoredPreferredValuePolicy(node);
+    const nextPolicy = normalizePreferredValuePolicy(preferredValuePolicy ?? storedPolicy);
+    const nextPreferredIconIds =
+      preferredIconIds ?? readStoredPreferredIconIds(node);
+    if (!storedPolicy) {
       skipped += 1;
-      skippedReasons.push('This icon slot does not use the governed icon library policy.');
+      skippedReasons.push('This icon slot does not use Token Workshop governed preferred values.');
       continue;
     }
 
@@ -276,13 +291,13 @@ export async function refreshIconSlotPreferredValues(
     }
 
     const propertyKey = `${propertyOwner.id}:${propertyName}`;
-    if (refreshedProperties.has(propertyKey)) {
-      continue;
+    if (!refreshedProperties.has(propertyKey)) {
+      propertyOwner.editComponentProperty(propertyName, { preferredValues });
+      refreshedProperties.add(propertyKey);
+      count += 1;
     }
 
-    propertyOwner.editComponentProperty(propertyName, { preferredValues });
-    refreshedProperties.add(propertyKey);
-    count += 1;
+    writeIconSlotPreferredValuePolicy(node, nextPolicy, nextPreferredIconIds);
   }
 
   if (count === 0) {
@@ -411,10 +426,10 @@ function promoteNodeToIconSlot(
       visible: propertyPair.visibilityPropertyName,
     };
     replacement.isExposedInstance = true;
-    replacement.setSharedPluginData(
-      PLUGIN_DATA_NAMESPACE,
-      ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
-      ICON_SLOT_ALL_GOVERNED_ICONS_POLICY,
+    writeIconSlotPreferredValuePolicy(
+      replacement,
+      context.preferredValuePolicy,
+      context.preferredIconIds,
     );
     node.remove();
     return replacement;
@@ -437,6 +452,72 @@ async function resolveIconPreferredValues(
   preferredIcons: IconCanvasItem[],
 ): Promise<InstanceSwapPreferredValue[]> {
   return resolveIconPreferredValuesForIcons([selectedIcon, ...preferredIcons]);
+}
+
+function writeIconSlotPreferredValuePolicy(
+  node: SceneNode,
+  policy: IconSlotPreferredValuePolicy,
+  preferredIconIds: string[],
+): void {
+  node.setSharedPluginData(
+    PLUGIN_DATA_NAMESPACE,
+    ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
+    policy,
+  );
+  node.setSharedPluginData(
+    PLUGIN_DATA_NAMESPACE,
+    ICON_SLOT_PREFERRED_ICON_IDS_KEY,
+    policy === ICON_SLOT_CURATED_ICONS_POLICY
+      ? JSON.stringify(normalizePreferredIconIds(preferredIconIds))
+      : '',
+  );
+}
+
+function readStoredPreferredValuePolicy(
+  node: SceneNode,
+): IconSlotPreferredValuePolicy | null {
+  const value = node.getSharedPluginData(
+    PLUGIN_DATA_NAMESPACE,
+    ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
+  );
+  return value === ICON_SLOT_ALL_GOVERNED_ICONS_POLICY ||
+    value === ICON_SLOT_CURATED_ICONS_POLICY
+    ? value
+    : null;
+}
+
+function readStoredPreferredIconIds(node: SceneNode): string[] {
+  const raw = node.getSharedPluginData(
+    PLUGIN_DATA_NAMESPACE,
+    ICON_SLOT_PREFERRED_ICON_IDS_KEY,
+  );
+  if (!raw) {
+    return [];
+  }
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return Array.isArray(value)
+      ? normalizePreferredIconIds(
+          value.filter((id): id is string => typeof id === 'string'),
+        )
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function normalizePreferredValuePolicy(
+  value: IconSlotPreferredValuePolicy | string | null | undefined,
+): IconSlotPreferredValuePolicy {
+  return value === ICON_SLOT_CURATED_ICONS_POLICY
+    ? ICON_SLOT_CURATED_ICONS_POLICY
+    : ICON_SLOT_ALL_GOVERNED_ICONS_POLICY;
+}
+
+function normalizePreferredIconIds(ids: string[]): string[] {
+  return Array.from(
+    new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0)),
+  );
 }
 
 async function resolveIconPreferredValuesForIcons(

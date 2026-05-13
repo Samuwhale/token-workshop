@@ -247,6 +247,7 @@ export function TokenDetailsModeRow({
     aliasPreview !== null &&
     !aliasPreview.isUnresolvedAlias &&
     aliasPreview.displayValue.length > 0;
+  const referenceActionLabel = aliasMode ? "Referenced" : "Reference";
   const typographyPreview =
     tokenType === "typography" ? getTypographyPreviewValue(value ?? "") : null;
   const copyMenuStyle = useAnchoredFloatingStyle({
@@ -350,7 +351,7 @@ export function TokenDetailsModeRow({
       >
         <Link2 size={12} strokeWidth={1.5} aria-hidden />
         <span className="tm-token-mode-row__action-button-label">
-          Reference
+          {referenceActionLabel}
         </span>
       </Button>
       {copyActions.length > 0 ? (
@@ -488,6 +489,8 @@ export function TokenDetailsModeRow({
                 <p
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
+                  role="status"
+                  aria-live="polite"
                 >
                   No token at this path.
                 </p>
@@ -495,6 +498,8 @@ export function TokenDetailsModeRow({
                 <p
                   id={aliasStatusId}
                   className="tm-token-mode-row__helper"
+                  role="status"
+                  aria-live="polite"
                 >
                   Path exists in{" "}
                   {formatCollectionDisplayNameList(
@@ -504,7 +509,11 @@ export function TokenDetailsModeRow({
                   . Use a unique path.
                 </p>
               ) : showAliasResolvedState && aliasPreview ? (
-                <div className="tm-token-mode-row__helper tm-token-mode-row__helper--resolved">
+                <div
+                  className="tm-token-mode-row__helper tm-token-mode-row__helper--resolved"
+                  role="status"
+                  aria-live="polite"
+                >
                   <ValuePreview
                     type={aliasPreview.resolvedType}
                     value={aliasPreview.resolvedValue}
@@ -572,7 +581,7 @@ export function TokenDetailsModeRow({
                 wrap
                 className="justify-start"
               >
-                {hasInheritedValue ? "Use token value" : "Add value"}
+                {hasInheritedValue ? "Use reused value" : "Add value"}
               </Button>
               <Button
                 onClick={handleAliasToggle}

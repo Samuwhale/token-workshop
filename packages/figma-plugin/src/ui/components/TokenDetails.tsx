@@ -1295,11 +1295,11 @@ export function TokenDetails({
         : isCreateMode
           ? "New"
           : "Saved";
-  const contextLabel = isCreateMode
-    ? `Create in ${ownerCollectionName}`
-    : showingExternalCollection
-      ? `${ownerCollectionName} · opened from another collection`
-      : null;
+  const headerContextText = [
+    ownerCollectionName,
+    ...(showingExternalCollection ? ["Opened from another collection"] : []),
+    headerStatus,
+  ].join(" · ");
 
   const headerTitle = (
     <div className="tm-token-details__header-title">
@@ -1324,13 +1324,7 @@ export function TokenDetails({
         />
       </div>
       <div className="tm-token-details__header-context">
-        {contextLabel ? (
-          <>
-            <span className={LONG_TEXT_CLASSES.textSecondary}>{contextLabel}</span>
-            <span aria-hidden>·</span>
-          </>
-        ) : null}
-        <span>{headerStatus}</span>
+        <span className={LONG_TEXT_CLASSES.textSecondary}>{headerContextText}</span>
       </div>
     </div>
   );
@@ -1428,7 +1422,7 @@ export function TokenDetails({
           <button
             type="button"
             onClick={() => applyDraft(pendingDraft)}
-            className="shrink-0 text-secondary font-medium text-[color:var(--color-figma-text-warning)] hover:underline"
+            className="tm-token-details__text-button shrink-0 text-[color:var(--color-figma-text-warning)]"
           >
             Restore
           </button>
@@ -1438,7 +1432,7 @@ export function TokenDetails({
               setPendingDraft(null);
               clearEditorDraft(ownerCollectionId, tokenPath);
             }}
-            className="shrink-0 text-secondary text-[color:var(--color-figma-text-warning)] hover:underline"
+            className="tm-token-details__text-button tm-token-details__text-button--muted shrink-0 text-[color:var(--color-figma-text-warning)]"
           >
             Dismiss
           </button>
@@ -1475,7 +1469,7 @@ export function TokenDetails({
                 duplicatePath
               }
               title={`Create this token and immediately start creating another (${adaptShortcut(SHORTCUT_KEYS.EDITOR_SAVE_AND_NEW)})`}
-              className="self-start text-secondary font-medium text-[color:var(--color-figma-text-accent)] hover:underline disabled:opacity-50"
+              className="tm-token-details__text-button self-start"
             >
               Create another{" "}
               <span className="opacity-60">
@@ -1940,12 +1934,6 @@ export function TokenDetails({
             </div>
           ) : null}
 
-          <div
-            className="tm-token-details__identity-context"
-            title={ownerCollectionName}
-          >
-            Collection: <span>{ownerCollectionName}</span>
-          </div>
         </Section>
 
         <Section
