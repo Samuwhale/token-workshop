@@ -1,7 +1,6 @@
 import type React from "react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ChevronRight,
   ChevronUp,
   Layers,
   MousePointer2,
@@ -263,9 +262,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const addModeMenuContainerRef = useRef<HTMLDivElement>(null);
   const addModeTriggerRef = useRef<HTMLButtonElement>(null);
   const addModeInputRef = useRef<HTMLInputElement>(null);
-  const tableHeaderRef = useRef<HTMLDivElement>(null);
-  const [tableHeaderHeight, setTableHeaderHeight] = useState(0);
-
   const addModeTargetId = multiModeData?.collection.id ?? null;
   const modeNames = useMemo(
     () => multiModeData?.results.map((result) => result.optionName) ?? [],
@@ -316,34 +312,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     serverUrl,
   ]);
 
-  const tableContentRef = useRef<HTMLDivElement | null>(null);
-  const [tableContentElement, setTableContentElement] =
-    useState<HTMLDivElement | null>(null);
-  const setTableContentRef = useCallback<React.RefCallback<HTMLDivElement>>(
-    (element) => {
-      tableContentRef.current = element;
-      setTableContentElement(element);
-    },
-    [],
-  );
   const widthsCollectionId = multiModeData?.collection.id ?? null;
-  const [tableViewportWidth, setTableViewportWidth] = useState<number | null>(null);
-  useLayoutEffect(() => {
-    const viewport = tableContentElement?.parentElement;
-    if (!viewport) {
-      setTableViewportWidth(null);
-      return;
-    }
-
-    const updateWidth = () => {
-      setTableViewportWidth(viewport.clientWidth);
-    };
-
-    updateWidth();
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(viewport);
-    return () => observer.disconnect();
-  }, [tableContentElement]);
   const {
     widths: modeColumnWidths,
     setWidth: setModeColumnWidth,
@@ -353,13 +322,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   const tableMinWidth = multiModeData
     ? getGridMinWidth(modeColumnWidths)
     : null;
-  const modeTableOverflowing =
-    viewMode === "tree" &&
-    multiModeData !== null &&
-    multiModeData.results.length > 1 &&
-    tableMinWidth !== null &&
-    tableViewportWidth !== null &&
-    tableMinWidth > tableViewportWidth + 8;
   const treeTableStyle =
     tableMinWidth && viewMode === "tree"
       ? { minWidth: `${tableMinWidth}px` }
@@ -413,52 +375,11 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     initialFocusRef: addModeInputRef,
   });
 
-  const scrollModeColumns = useCallback(() => {
-    const viewport = tableContentRef.current?.parentElement;
-    if (!viewport) {
-      return;
-    }
-    viewport.scrollBy({
-      left: Math.max(160, Math.round(viewport.clientWidth * 0.72)),
-      behavior: "smooth",
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    const headerElement = tableHeaderRef.current;
-    if (!headerElement) {
-      setTableHeaderHeight(0);
-      return;
-    }
-
-    const measure = () => {
-      const nextHeight = headerElement.offsetHeight;
-      setTableHeaderHeight((currentHeight) =>
-        currentHeight === nextHeight ? currentHeight : nextHeight,
-      );
-    };
-
-    measure();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", measure);
-      return () => window.removeEventListener("resize", measure);
-    }
-
-    const observer = new ResizeObserver(() => {
-      requestAnimationFrame(measure);
-    });
-
-    observer.observe(headerElement);
-    return () => observer.disconnect();
-  }, [gridTemplate, multiModeData, modeNames.length, viewMode]);
-
   // Unified table header — always shown for the tree view. Mode columns keep
   // readable widths and intentionally overflow horizontally when space is tight.
   const tableHeader = multiModeData && viewMode === "tree" ? (
     <div
-      ref={tableHeaderRef}
-      className={`tm-token-table__header sticky top-0 z-20 bg-[var(--color-figma-bg-secondary)]${modeTableOverflowing ? " tm-token-table__header--overflowing" : ""}`}
+      className="tm-token-table__header bg-[var(--color-figma-bg-secondary)]"
       style={{ display: "grid", gridTemplateColumns: gridTemplate }}
     >
       <div
@@ -508,7 +429,9 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                 : "Connect to the token library before adding modes"
             }
             aria-label="Add mode to this collection"
-            aria-controls="token-table-add-mode-dialog"
+            aria-controls={
+              addModeMenuOpen ? "token-table-add-mode-dialog" : undefined
+            }
             aria-haspopup="dialog"
             aria-expanded={addModeMenuOpen}
           >
@@ -533,18 +456,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               aria-label="Manage collection modes"
             >
               <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-            </Button>
-          ) : null}
-          {modeTableOverflowing ? (
-            <Button
-              onClick={scrollModeColumns}
-              variant="ghost"
-              size="sm"
-              className="tm-token-table__header-action text-[color:var(--color-figma-text-secondary)]"
-              title="Scroll to more modes"
-              aria-label={`Scroll to more modes in ${modeNames.length}-mode collection`}
-            >
-              <ChevronRight size={12} strokeWidth={1.8} aria-hidden />
             </Button>
           ) : null}
         </div>
@@ -627,7 +538,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
                             {formatModeCopyOption(modeName)}
                           </option>
                         ))}
-                        <option value={EMPTY_MODE_SOURCE}>Empty values</option>
+                        <option value={EMPTY_MODE_SOURCE}>Leave empty</option>
                       </select>
                     </label>
                   ) : null}
@@ -672,11 +583,149 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           onReset={() => resetModeColumnWidth(idx)}
         />
       ))}
-      {modeTableOverflowing ? (
-        <span className="tm-token-table__overflow-fade" aria-hidden="true" />
-      ) : null}
     </div>
   ) : null;
+  const breadcrumbBar = zoomBreadcrumb ? (
+    <div className="bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary">
+      <div className="flex items-center gap-1">
+        <button
+          onClick={handleZoomUpOneLevel}
+          disabled={!zoomParentPath}
+          className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:cursor-default disabled:opacity-40"
+          title={
+            zoomParentPath
+              ? "Move up one group"
+              : "Already at the top scoped branch"
+          }
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 19V5" />
+            <path d="m5 12 7-7 7 7" />
+          </svg>
+          <span>Up</span>
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
+          title="Clear the scoped branch (Esc)"
+        >
+          <X size={10} strokeWidth={2} aria-hidden />
+          <span>All tokens</span>
+        </button>
+        <div className="min-w-0 flex flex-wrap items-center gap-0.5">
+          {zoomBreadcrumb.map((seg, i) => (
+            <span
+              key={seg.path}
+              className="flex min-w-0 items-center gap-0.5"
+            >
+              {i > 0 && <span className="mx-0.5 opacity-40">›</span>}
+              {i < zoomBreadcrumb.length - 1 ? (
+                <button
+                  className="min-w-0 max-w-full text-left text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline [overflow-wrap:anywhere]"
+                  title={seg.path}
+                  onClick={() => handleZoomToAncestor(seg.path)}
+                >
+                  {seg.name}
+                </button>
+              ) : (
+                <span
+                  className="min-w-0 max-w-full font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
+                  title={seg.path}
+                >
+                  {seg.name}
+                </span>
+              )}
+            </span>
+          ))}
+        </div>
+      </div>
+      {zoomSiblingBranches.length > 0 && (
+        <div className="mt-1 flex flex-wrap items-center gap-1">
+          <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+            Other branches
+          </span>
+          {zoomSiblingBranches.map((branch) => (
+            <button
+              key={branch.path}
+              onClick={() => handleZoomToAncestor(branch.path)}
+              className="min-w-0 max-w-full text-left text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline [overflow-wrap:anywhere]"
+              title={`Scope to ${branch.path}`}
+            >
+              {branch.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
+    <div className="flex flex-wrap items-center gap-0.5 bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+      <svg
+        width="10"
+        height="10"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className="mr-0.5 shrink-0 opacity-40"
+      >
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+      {breadcrumbSegments.map((seg, i) => (
+        <span key={seg.path} className="flex min-w-0 items-center gap-0.5">
+          {i > 0 && <span className="mx-0.5 opacity-40">›</span>}
+          {i < breadcrumbSegments.length - 1 ? (
+            <button
+              className="min-w-0 max-w-full text-left hover:text-[color:var(--color-figma-text)] hover:underline [overflow-wrap:anywhere]"
+              title={`Jump to ${seg.path}`}
+              onClick={() => handleJumpToGroup(seg.path)}
+            >
+              {seg.name}
+            </button>
+          ) : (
+            <span
+              className="min-w-0 max-w-full font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
+              title={seg.path}
+            >
+              {seg.name}
+            </span>
+          )}
+        </span>
+      ))}
+      <button
+        className="ml-auto flex shrink-0 items-center gap-0.5 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
+        title="Collapse and jump to group"
+        onClick={() =>
+          handleCollapseBelow(
+            breadcrumbSegments[breadcrumbSegments.length - 1].path,
+          )
+        }
+      >
+        <ChevronUp size={10} strokeWidth={1.5} aria-hidden />
+        <span>Collapse</span>
+      </button>
+    </div>
+  ) : null;
+  const stickyTreeHeader =
+    tableHeader || breadcrumbBar ? (
+      <div className="sticky top-0 z-20 flex flex-col bg-[var(--color-figma-bg-secondary)]">
+        {tableHeader}
+        {breadcrumbBar}
+      </div>
+    ) : null;
 
   // Cross-collection search results
   if (
@@ -859,7 +908,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Inspect mode with no selection
   if (inspectMode && selectedNodes.length === 0) {
     return (
-      <div ref={setTableContentRef} className="min-w-0" style={treeTableStyle}>
+      <div className="min-w-0" style={treeTableStyle}>
         {tableHeader}
         <FeedbackPlaceholder
           variant="empty"
@@ -874,7 +923,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // JSON editor
   if (viewMode === "json") {
     return (
-      <div ref={setTableContentRef} className="min-w-0" style={treeTableStyle}>
+      <div className="min-w-0" style={treeTableStyle}>
         {tableHeader}
         <JsonEditorView
           jsonText={jsonEditorProps.jsonText}
@@ -935,7 +984,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
     }
 
     return (
-      <div ref={setTableContentRef} className="min-w-0" style={treeTableStyle}>
+      <div className="min-w-0" style={treeTableStyle}>
         {tableHeader}
         <div className="flex flex-col items-center justify-center gap-3 px-3 py-3 text-center">
           <FeedbackPlaceholder
@@ -959,7 +1008,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Filtered empty state
   if (displayedTokens.length === 0 && filtersActive) {
     return (
-      <div ref={setTableContentRef} className="min-w-0" style={treeTableStyle}>
+      <div className="min-w-0" style={treeTableStyle}>
         {tableHeader}
         <TokenListFilteredEmptyState
           searchQuery={searchQuery}
@@ -980,155 +1029,14 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
   // Tree view with virtual scroll
   return (
     <div
-      ref={setTableContentRef}
       className="min-w-full"
       style={treeTableStyle}
       role="tree"
       aria-label="Token tree"
       aria-multiselectable="true"
     >
-      {tableHeader}
+      {stickyTreeHeader}
       <div className="py-1">
-        {zoomBreadcrumb ? (
-          <div
-            className="sticky z-10 bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 text-secondary"
-            style={{ top: tableHeaderHeight }}
-          >
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handleZoomUpOneLevel}
-                disabled={!zoomParentPath}
-                className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)] disabled:cursor-default disabled:opacity-40"
-                title={
-                  zoomParentPath
-                    ? "Move up one group"
-                    : "Already at the top scoped branch"
-                }
-              >
-                <svg
-                  width="10"
-                  height="10"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M12 19V5" />
-                  <path d="m5 12 7-7 7 7" />
-                </svg>
-                <span>Up</span>
-              </button>
-              <button
-                onClick={handleZoomOut}
-                className="inline-flex items-center gap-1 rounded px-1.5 py-1 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                title="Clear the scoped branch (Esc)"
-              >
-                <X size={10} strokeWidth={2} aria-hidden />
-                <span>All tokens</span>
-              </button>
-              <div className="min-w-0 flex flex-wrap items-center gap-0.5">
-                {zoomBreadcrumb.map((seg, i) => (
-                  <span
-                    key={seg.path}
-                    className="flex min-w-0 items-center gap-0.5"
-                  >
-                    {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
-                    {i < zoomBreadcrumb.length - 1 ? (
-                      <button
-                        className="min-w-0 max-w-full text-left text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline [overflow-wrap:anywhere]"
-                        title={seg.path}
-                        onClick={() => handleZoomToAncestor(seg.path)}
-                      >
-                        {seg.name}
-                      </button>
-                    ) : (
-                      <span
-                        className="min-w-0 max-w-full font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
-                        title={seg.path}
-                      >
-                        {seg.name}
-                      </span>
-                    )}
-                  </span>
-                ))}
-              </div>
-            </div>
-            {zoomSiblingBranches.length > 0 && (
-              <div className="mt-1 flex flex-wrap items-center gap-1">
-                <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  Other branches
-                </span>
-                {zoomSiblingBranches.map((branch) => (
-                  <button
-                    key={branch.path}
-                    onClick={() => handleZoomToAncestor(branch.path)}
-                    className="min-w-0 max-w-full text-left text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)] hover:underline [overflow-wrap:anywhere]"
-                    title={`Scope to ${branch.path}`}
-                  >
-                    {branch.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : !showFlatSearchResults && breadcrumbSegments.length > 0 ? (
-          <div
-            className="sticky z-10 flex flex-wrap items-center gap-0.5 bg-[var(--color-figma-bg-secondary)] px-2 py-1 text-secondary text-[color:var(--color-figma-text-secondary)]"
-            style={{ top: tableHeaderHeight }}
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0 opacity-40 mr-0.5"
-            >
-              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            {breadcrumbSegments.map((seg, i) => (
-              <span key={seg.path} className="flex min-w-0 items-center gap-0.5">
-                {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
-                {i < breadcrumbSegments.length - 1 ? (
-                  <button
-                    className="min-w-0 max-w-full text-left hover:text-[color:var(--color-figma-text)] hover:underline [overflow-wrap:anywhere]"
-                    title={`Jump to ${seg.path}`}
-                    onClick={() => handleJumpToGroup(seg.path)}
-                  >
-                    {seg.name}
-                  </button>
-                ) : (
-                  <span
-                    className="min-w-0 max-w-full font-medium text-[color:var(--color-figma-text)] [overflow-wrap:anywhere]"
-                    title={seg.path}
-                  >
-                    {seg.name}
-                  </span>
-                )}
-              </span>
-            ))}
-            <button
-              className="ml-auto flex shrink-0 items-center gap-0.5 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
-              title="Collapse and jump to group"
-              onClick={() =>
-                handleCollapseBelow(
-                  breadcrumbSegments[breadcrumbSegments.length - 1].path,
-                )
-              }
-            >
-              <ChevronUp size={10} strokeWidth={1.5} aria-hidden />
-              <span>Collapse</span>
-            </button>
-          </div>
-        ) : null}
         <div style={{ height: virtualTopPad }} aria-hidden="true" />
         {flatItems
           .slice(virtualStartIdx, virtualEndIdx)

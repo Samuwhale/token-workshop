@@ -2115,6 +2115,10 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
 }
 
+.tm-token-toolbar__secondary > .tm-segmented-control {
+  flex: 0 1 auto;
+}
+
 .tm-token-toolbar__scope {
   max-inline-size: 100%;
 }
@@ -2150,32 +2154,6 @@ button.tm-status-row:not(:disabled):hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 4px;
-}
-
-.tm-token-toolbar__split-button {
-  display: inline-flex;
-  min-inline-size: 0;
-  max-inline-size: 100%;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, white 10%, transparent);
-}
-
-.tm-token-toolbar__split-button-primary {
-  min-inline-size: 0;
-  flex: 1 1 auto;
-}
-
-.tm-token-toolbar__split-button-toggle {
-  flex: 0 0 28px;
-  min-inline-size: 28px;
-}
-
-@media (pointer: coarse) {
-  .tm-token-toolbar__split-button-toggle {
-    flex-basis: 44px;
-    min-inline-size: 44px;
-  }
 }
 
 @container (max-width: 720px) {
@@ -2245,16 +2223,6 @@ button.tm-status-row:not(:disabled):hover {
     max-inline-size: 100%;
   }
 
-  .tm-token-toolbar__split-button {
-    inline-size: auto;
-    min-inline-size: 0;
-    max-inline-size: 100%;
-  }
-
-  .tm-token-toolbar__split-button-primary {
-    justify-content: flex-start;
-  }
-
   .tm-token-toolbar__filter > .relative > button,
   .tm-token-toolbar__sort > button,
   .tm-token-toolbar__overflow > button {
@@ -2274,6 +2242,10 @@ button.tm-status-row:not(:disabled):hover {
 
   .tm-token-toolbar__secondary > * {
     min-inline-size: 0;
+  }
+
+  .tm-token-toolbar__secondary > .tm-segmented-control {
+    grid-column: 1 / -1;
   }
 
   .tm-token-toolbar__filter > .relative,
@@ -2329,7 +2301,7 @@ button.tm-status-row:not(:disabled):hover {
   }
 
   .tm-token-toolbar__group-button,
-  .tm-token-toolbar__split-button {
+  .tm-token-toolbar__create-group > button {
     inline-size: 100%;
   }
 }
@@ -2471,24 +2443,6 @@ button.tm-status-row:not(:disabled):hover {
   padding-inline: 0;
 }
 
-.tm-token-table__overflow-fade {
-  pointer-events: none;
-  position: sticky;
-  right: 0;
-  z-index: 4;
-  grid-column: 1 / -1;
-  grid-row: 1;
-  justify-self: end;
-  align-self: stretch;
-  inline-size: 18px;
-  min-block-size: 100%;
-  background: linear-gradient(
-    to right,
-    transparent,
-    color-mix(in srgb, var(--color-figma-bg-secondary) 94%, transparent)
-  );
-}
-
 .tm-mode-column-header__resize-handle {
   position: absolute;
   inset-block: 0;
@@ -2577,6 +2531,19 @@ button.tm-status-row:not(:disabled):hover {
   min-inline-size: 0;
   align-items: center;
   padding-inline: 8px 16px;
+}
+
+@container (max-width: 360px) {
+  .tm-token-table__token-header {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .tm-token-table__header-actions {
+    inline-size: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+  }
 }
 
 .tm-value-cell {

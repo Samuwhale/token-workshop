@@ -397,7 +397,10 @@ export function QuickApplyPicker({
   onApply,
   onClose,
 }: QuickApplyPickerProps) {
-  const rootNodes = useMemo(() => selectedNodes.filter(n => n.depth === 0), [selectedNodes]);
+  const rootNodes = useMemo(
+    () => selectedNodes.filter((node) => (node.depth ?? 0) === 0),
+    [selectedNodes],
+  );
   const eligibleProps = useMemo(() => getEligibleProperties(rootNodes), [rootNodes]);
   const [activeProp, setActiveProp] = useState<BindableProperty>(() => inferPrimaryProperty(eligibleProps, rootNodes) ?? 'fill');
   const currentBinding = getBindingForProperty(rootNodes, activeProp);

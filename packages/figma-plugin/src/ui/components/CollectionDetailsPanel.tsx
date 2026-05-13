@@ -535,7 +535,7 @@ function ModesSection({
                         {formatModeCopyOption(modeName)}
                       </option>
                     ))}
-                    <option value={EMPTY_MODE_SOURCE}>Empty values</option>
+                    <option value={EMPTY_MODE_SOURCE}>Leave empty</option>
                   </select>
                 </label>
               ) : null}

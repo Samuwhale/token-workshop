@@ -2000,7 +2000,7 @@ export function TokenList({
       <div className="relative flex-1 min-h-0">
         <div
           ref={virtualListRef}
-          className={`h-full overflow-auto${operationLoading ? " opacity-50 pointer-events-none" : ""}`}
+          className={`h-full overflow-auto overscroll-x-contain${operationLoading ? " opacity-50 pointer-events-none" : ""}`}
           onScroll={(e) => {
             const top = e.currentTarget.scrollTop;
             virtualScrollTopRef.current = top;
