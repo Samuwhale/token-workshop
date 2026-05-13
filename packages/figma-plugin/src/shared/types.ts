@@ -810,7 +810,7 @@ export interface IconCanvasActionResultMessage {
   correlationId?: string;
 }
 
-export type IconUsageAuditScope = 'selection' | 'page';
+export type IconUsageAuditScope = 'selection' | 'page' | 'file';
 
 export interface IconUsageAuditInput {
   id: string;
@@ -851,6 +851,7 @@ export type IconUsageAuditFindingType =
   | 'renamed-component'
   | 'deprecated-usage'
   | 'blocked-icon-usage'
+  | 'unused-icon'
   | 'unmanaged-icon-component'
   | 'unpromoted-icon-slot'
   | 'raw-icon-layer'
@@ -882,6 +883,7 @@ export interface IconUsageAuditSummary {
   colorIssues: number;
   deprecatedUsages: number;
   blockedUsages: number;
+  unusedIcons: number;
   staleComponents: number;
   missingComponents: number;
 }

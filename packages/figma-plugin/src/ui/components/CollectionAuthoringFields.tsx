@@ -30,7 +30,7 @@ export function createInitialCollectionAuthoringDraft(
 }
 
 const MODE_PRESETS: Array<{ label: string; modes: string[] }> = [
-  { label: "Single mode", modes: ["Default"] },
+  { label: "Default only", modes: ["Default"] },
   { label: "Light / Dark", modes: ["Light", "Dark"] },
   { label: "Mobile / Desktop", modes: ["Mobile", "Desktop"] },
 ];
@@ -136,7 +136,7 @@ export function CollectionAuthoringFields({
         </div>
 
         {onModeNamesChange ? (
-          <div className="flex flex-wrap gap-1.5" aria-label="Mode examples">
+          <div className="flex flex-wrap gap-1.5" aria-label="Mode presets">
             {MODE_PRESETS.map((preset) => {
               const presetActive =
                 preset.modes.length === normalizedModes.length &&
@@ -168,7 +168,7 @@ export function CollectionAuthoringFields({
           {draft.modeNames.map((modeName, index) => (
             <label key={index} className="flex flex-col gap-1">
               <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Mode {index + 1}
+                {index === 0 ? "First mode" : `Mode ${index + 1}`}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -197,7 +197,7 @@ export function CollectionAuthoringFields({
         </div>
 
         <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Each mode stores its own value.
+          Modes become value columns for every token in this collection.
         </span>
       </div>
 

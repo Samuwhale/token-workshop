@@ -473,7 +473,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "library",
         "tokens",
-        "Retry failed batches.",
+        "Retry failed imports.",
       ),
     );
   }

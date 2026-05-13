@@ -13,6 +13,7 @@ import type {
   PublishIconsMessage,
   ReplaceSelectionWithIconMessage,
   ScanIconUsageMessage,
+  SelectNodeMessage,
   SelectionNodeInfo,
   SetIconSwapPropertyMessage,
 } from "../../../shared/types";
@@ -118,6 +119,7 @@ const STATUS_CLASS: Record<IconStatus, string> = {
 const AUDIT_SCOPE_OPTIONS: Array<{ value: IconUsageAuditScope; label: string }> = [
   { value: "selection", label: "Selection" },
   { value: "page", label: "Page" },
+  { value: "file", label: "File" },
 ];
 
 function formatIconCount(count: number): string {
@@ -766,15 +768,22 @@ function IconUsageAuditPanel({
   result,
   onScopeChange,
   onRun,
+  onFocusFinding,
 }: {
   scope: IconUsageAuditScope;
   loading: boolean;
   result: IconUsageAuditResultMessage | null;
   onScopeChange: (scope: IconUsageAuditScope) => void;
   onRun: () => void;
+  onFocusFinding: (finding: IconUsageAuditFinding) => void;
 }) {
+  const [findingLimit, setFindingLimit] = useState(8);
   const findings = result?.findings ?? [];
-  const visibleFindings = findings.slice(0, 4);
+  const visibleFindings = findings.slice(0, findingLimit);
+
+  useEffect(() => {
+    setFindingLimit(8);
+  }, [result]);
 
   return (
     <div className="flex min-w-0 flex-col gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
@@ -821,22 +830,51 @@ function IconUsageAuditPanel({
             <span>{formatHealthCount(result.summary.frameIssues, "size issue")}</span>
             <span>{formatHealthCount(result.summary.colorIssues, "color issue")}</span>
             <span>{formatHealthCount(result.summary.blockedUsages, "blocked use")}</span>
+            <span>{formatHealthCount(result.summary.unusedIcons, "unused icon")}</span>
             <span>{formatHealthCount(result.summary.staleComponents, "stale sync")}</span>
           </div>
           {visibleFindings.map((finding) => (
             <div key={finding.id} className="flex min-w-0 items-start gap-2 text-secondary">
-              <span className={`shrink-0 font-medium ${auditSeverityClass(finding.severity)}`}>
-                {auditActionLabel(finding.action)}
-              </span>
-              <span className="min-w-0 text-[color:var(--color-figma-text-secondary)]">
-                {finding.message}
-              </span>
+              <button
+                type="button"
+                onClick={() => onFocusFinding(finding)}
+                disabled={!finding.nodeId}
+                className={`mt-[-2px] flex size-6 shrink-0 items-center justify-center rounded transition-colors ${
+                  finding.nodeId
+                    ? "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
+                    : "cursor-default text-[color:var(--color-figma-text-tertiary)] opacity-50"
+                }`}
+                aria-label={finding.nodeName ? `Focus ${finding.nodeName}` : "No canvas layer to focus"}
+                title={finding.nodeName ? `Focus ${finding.nodeName}` : "No canvas layer to focus"}
+              >
+                <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
+              </button>
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5">
+                  <span className={`shrink-0 font-medium ${auditSeverityClass(finding.severity)}`}>
+                    {auditActionLabel(finding.action)}
+                  </span>
+                  {finding.pageName || finding.nodeName ? (
+                    <span className="min-w-0 truncate text-[color:var(--color-figma-text-tertiary)]">
+                      {[finding.pageName, finding.nodeName].filter(Boolean).join(" / ")}
+                    </span>
+                  ) : null}
+                </div>
+                <span className="min-w-0 text-[color:var(--color-figma-text-secondary)]">
+                  {finding.message}
+                </span>
+              </div>
             </div>
           ))}
           {findings.length > visibleFindings.length ? (
-            <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-              {findings.length - visibleFindings.length} more findings.
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setFindingLimit((current) => current + 12)}
+            >
+              Show {Math.min(12, findings.length - visibleFindings.length)} more
+            </Button>
           ) : null}
         </div>
       ) : null}
@@ -1582,6 +1620,7 @@ export function IconPanel() {
           colorIssues: 0,
           deprecatedUsages: 0,
           blockedUsages: 0,
+          unusedIcons: 0,
           staleComponents: 0,
           missingComponents: 0,
         },
@@ -1593,6 +1632,20 @@ export function IconPanel() {
       setAuditLoading(false);
     }
   }, [auditLoading, auditScope, defaultIconSize, icons]);
+
+  const handleFocusAuditFinding = useCallback((finding: IconUsageAuditFinding) => {
+    if (!finding.nodeId) {
+      dispatchToast("This finding is not attached to a canvas layer.", "warning");
+      return;
+    }
+
+    parent.postMessage({
+      pluginMessage: {
+        type: "select-node",
+        nodeId: finding.nodeId,
+      } satisfies SelectNodeMessage,
+    }, "*");
+  }, []);
 
   if (!connected) {
     return (
@@ -1686,6 +1739,7 @@ export function IconPanel() {
             setAuditResult(null);
           }}
           onRun={() => void handleAuditUsage()}
+          onFocusFinding={handleFocusAuditFinding}
         />
         {selectedIcon ? (
           <div className="flex min-w-0 items-center gap-2 min-[560px]:hidden">

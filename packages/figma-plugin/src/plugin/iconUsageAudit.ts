@@ -52,6 +52,7 @@ export async function scanIconUsage(options: {
     }
 
     collectDuplicateComponentFindings(index, findings, componentOccurrences);
+    collectUnusedIconFindings(options.scope, index, findings, usageCounts);
 
     const summary = summarizeIconUsageFindings(findings, usageCounts);
     figma.ui.postMessage({
@@ -105,7 +106,15 @@ function collectAuditNodes(scope: IconUsageAuditScope): AuditNode[] {
     ]);
   }
 
-  return figma.currentPage.children.flatMap((node) => [
+  if (scope === 'page') {
+    return collectPageAuditNodes(figma.currentPage);
+  }
+
+  return figma.root.children.flatMap((page) => collectPageAuditNodes(page));
+}
+
+function collectPageAuditNodes(page: PageNode): AuditNode[] {
+  return page.children.flatMap((node) => [
     node,
     ...collectDescendantNodes(node),
   ]);
@@ -480,6 +489,42 @@ function collectDuplicateComponentFindings(
   }
 }
 
+function collectUnusedIconFindings(
+  scope: IconUsageAuditScope,
+  index: IconUsageIndex,
+  findings: IconUsageAuditFinding[],
+  usageCounts: Map<string, number>,
+): void {
+  if (scope !== 'file') {
+    return;
+  }
+
+  for (const icon of index.byId.values()) {
+    if (!shouldReportUnusedIcon(icon) || usageCounts.has(icon.id)) {
+      continue;
+    }
+
+    findings.push({
+      id: findingId('unused-icon', icon.id),
+      type: 'unused-icon',
+      action: 'deprecate',
+      severity: 'info',
+      iconId: icon.id,
+      iconName: icon.name,
+      iconPath: icon.path,
+      message: `${icon.name} has no managed instances in this file. Review before deprecating or removing it from the active icon library.`,
+    });
+  }
+}
+
+function shouldReportUnusedIcon(icon: IconUsageAuditInput): boolean {
+  return (
+    icon.status === 'published' &&
+    icon.qualityState !== 'blocked' &&
+    Boolean(icon.componentId || icon.componentKey)
+  );
+}
+
 function summarizeIconUsageFindings(
   findings: IconUsageAuditFinding[],
   usageCounts: Map<string, number>,
@@ -496,6 +541,7 @@ function summarizeIconUsageFindings(
     colorIssues: countFindings(findings, 'hardcoded-icon-color'),
     deprecatedUsages: countFindings(findings, 'deprecated-usage'),
     blockedUsages: countFindings(findings, 'blocked-icon-usage'),
+    unusedIcons: countFindings(findings, 'unused-icon'),
     staleComponents: countFindings(findings, 'stale-component'),
     missingComponents: countFindings(findings, 'missing-component'),
   };
@@ -511,6 +557,7 @@ function emptyIconUsageSummary(): IconUsageAuditSummary {
     colorIssues: 0,
     deprecatedUsages: 0,
     blockedUsages: 0,
+    unusedIcons: 0,
     staleComponents: 0,
     missingComponents: 0,
   };

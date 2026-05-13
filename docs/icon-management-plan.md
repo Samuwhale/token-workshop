@@ -42,6 +42,8 @@ Implemented:
 - Initial Icons workspace health summary and filtering for publish drift, non-standard frames, and unknown color behavior, with selected-icon guidance in the inspector.
 - Registry-level icon quality metadata with ready, review, and blocked states for reliable SVG checks, including frame origin/size, color ambiguity, inline styles, paint servers, opacity, strokes, masks, clipping, filters, and raster images; blocked icons are excluded from publish and canvas placement.
 - Initial icon usage audit from the Icons workspace for current selection or current page, grouped by repair action and covering managed usage counts, missing linked components, duplicate managed components, stale component hashes, renamed icon components, deprecated icon usage, unmanaged icon-like components, raw icon-layer candidates, and unknown managed component metadata.
+- Icon usage audit now also supports current-file scanning and reports published managed icons with zero file usage as lifecycle review candidates before deprecation or removal.
+- Icon usage audit findings now support progressive review in the Icons workspace, including canvas focus actions for node-backed findings across selection, page, and file scans.
 - Initial static geometry quality metadata for imported SVGs, including geometry bounds with explicit exact/estimated/unknown precision, configurable keyline padding, keyline overflow warnings, and off-center artwork warnings surfaced in library health and the inspector.
 - Initial token-aware icon usage audit checks for managed instances with non-standard icon frame sizes or component-authored monotone icon color without a Token Workshop token binding or Figma variable color binding.
 - Initial component icon slot setup from the Icons workspace: selected raw or unmanaged icon-like layers inside main components can be replaced with a managed icon instance and exposed as an instance-swap component property, with collision-safe property names and audit visibility for unpromoted icon slots.
@@ -60,7 +62,7 @@ Missing:
 - Richer geometry bounding-box and keyline checks beyond initial static SVG primitive/path bounds, including transformed geometry and stronger curve handling.
 - Richer replacement previews and multi-slot selection controls from the Icons workspace.
 - Richer component icon slot setup with boolean visibility, curated preferred values, component set support, exposed nested instances, and multi-slot previews.
-- Richer icon usage audit, guided repair, cross-page/file usage analytics, batch finding navigation, configurable raw-icon heuristics, and full deprecation workflows beyond the initial selection/page audit and unpromoted-slot detection.
+- Richer icon usage audit, guided repair, configurable raw-icon heuristics, and full deprecation workflows beyond the initial selection/page/file audit, unused-icon lifecycle findings, node-backed finding navigation, and unpromoted-slot detection.
 - Richer icon exports beyond the initial SVG, React TypeScript, manifest, and attribution bundle, including platform-specific bundles and deeper token-aligned handoff.
 - Integration with review, publish, health, history, and git workflows.
 

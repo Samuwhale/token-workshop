@@ -37,7 +37,7 @@ const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
 const COLLECTION_SCOPE_OPTIONS = [
   { value: "current", label: "This collection" },
-  { value: "all", label: "Browse all" },
+  { value: "all", label: "All collections" },
 ] as const;
 
 interface AllCollectionsScope {

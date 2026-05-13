@@ -36,7 +36,7 @@ export function ImportSuccessView() {
   const nextStepRecommendations = (
     hasFailedWrites
       ? importNextStepRecommendations.filter(
-          (recommendation) => recommendation.rationale !== "Retry failed batches.",
+          (recommendation) => recommendation.rationale !== "Retry failed imports.",
         )
       : importNextStepRecommendations
   ).slice(0, 2);
@@ -75,11 +75,11 @@ export function ImportSuccessView() {
       {nextStepRecommendations.length > 0 ? (
         <div className="flex flex-col items-center gap-1 text-center">
           <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
-            {hasFailedWrites ? "Recover failed batches" : "Next step"}
+            {hasFailedWrites ? "Recover failed imports" : "Next step"}
           </div>
           <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
             {hasFailedWrites
-              ? "Retry failed writes, or review the tokens that imported."
+              ? "Retry the failed items, or review the tokens that imported."
               : nextStepRecommendations[0]?.rationale}
           </div>
         </div>
@@ -101,7 +101,7 @@ export function ImportSuccessView() {
             </button>
           </div>
           <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Retry failed imports first. Copy details if the same paths fail again.
+            Retry failed imports first. Copy details if the same tokens fail again.
           </p>
           {showFailedDetails ? (
             failedImportGroups.length > 0 ? (
@@ -138,7 +138,7 @@ export function ImportSuccessView() {
             disabled={retrying}
             className="rounded bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] hover:opacity-90 disabled:opacity-50"
           >
-            {retrying ? "Retrying..." : "Retry failed batches"}
+            {retrying ? "Retrying..." : "Retry failed imports"}
           </button>
         ) : null}
         {hasFailedWrites ? (
