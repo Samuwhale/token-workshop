@@ -10,6 +10,11 @@ import type {
 import { qualifySnapshotEntries, snapshotPaths } from "../services/operation-log.js";
 import { ConflictError, handleRouteError } from "../errors.js";
 import type { GitTokenChange as TokenChange } from "../services/git-sync.js";
+import {
+  hasBodyField,
+  isRequestBodyObject,
+  readOptionalTrimmedStringField,
+} from "./body-utils.js";
 import { readPagination } from "./pagination.js";
 
 function readGitLogField(entry: unknown, field: string): string {
@@ -56,7 +61,10 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
     Body: CollectionPublishRouting;
   }>("/sync/publish-routing/:id", async (request, reply) => {
     const { id } = request.params;
-    const body = request.body || {};
+    if (!isRequestBodyObject(request.body)) {
+      return reply.status(400).send({ error: "Request body must be an object" });
+    }
+    const body = request.body;
     const bodyKeys = Object.keys(body);
     if (bodyKeys.some((key) => key !== "collectionName" && key !== "modeName")) {
       return reply.status(400).send({
@@ -74,8 +82,16 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         const patch: Partial<CollectionPublishRouting> = {};
         const changes: FieldChange[] = [];
 
-        if (Object.prototype.hasOwnProperty.call(body, "collectionName")) {
-          const nextValue = body.collectionName?.trim() || undefined;
+        if (hasBodyField(body, "collectionName")) {
+          const collectionNameResult = readOptionalTrimmedStringField(
+            body,
+            "collectionName",
+            "Figma collection",
+          );
+          if (!collectionNameResult.ok) {
+            return reply.status(400).send({ error: collectionNameResult.error });
+          }
+          const nextValue = collectionNameResult.value;
           patch.collectionName = nextValue;
           if (beforeRoute.collectionName !== nextValue) {
             changes.push({
@@ -87,8 +103,16 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        if (Object.prototype.hasOwnProperty.call(body, "modeName")) {
-          const nextValue = body.modeName?.trim() || undefined;
+        if (hasBodyField(body, "modeName")) {
+          const modeNameResult = readOptionalTrimmedStringField(
+            body,
+            "modeName",
+            "Figma mode",
+          );
+          if (!modeNameResult.ok) {
+            return reply.status(400).send({ error: modeNameResult.error });
+          }
+          const nextValue = modeNameResult.value;
           patch.modeName = nextValue;
           if (beforeRoute.modeName !== nextValue) {
             changes.push({

@@ -18,6 +18,12 @@ import {
   isValidCollectionName,
 } from "../services/collection-helpers.js";
 import type { CollectionStructuralOperation } from "../services/collection-service.js";
+import {
+  hasBodyField,
+  isRequestBodyObject,
+  readOptionalTrimmedStringField,
+  readRequiredTrimmedStringField,
+} from "./body-utils.js";
 
 function buildCollectionsRollbackStep(state: CollectionState): RollbackStep {
   return {
@@ -50,10 +56,18 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
   }>(
     "/collections",
     async (request, reply) => {
-      const { id, description, modes, tokens } = request.body || {};
-      if (!id) {
-        return reply.status(400).send({ error: "Collection id is required" });
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const idResult = readRequiredTrimmedStringField(
+        body,
+        "id",
+        "Collection id",
+      );
+      if (!idResult.ok) {
+        return reply.status(400).send({ error: idResult.error });
       }
+      const id = idResult.value;
+      const modes = body?.modes;
+      const tokens = body?.tokens;
       if (!isValidCollectionName(id)) {
         return reply.status(400).send({
           error:
@@ -84,6 +98,14 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
           error: "At least one collection mode is required",
         });
       }
+      const descriptionResult = readOptionalTrimmedStringField(
+        body ?? {},
+        "description",
+        "Description",
+      );
+      if (!descriptionResult.ok) {
+        return reply.status(400).send({ error: descriptionResult.error });
+      }
 
       let mutation: Awaited<
         ReturnType<typeof fastify.collectionService.createCollectionOperation>
@@ -92,7 +114,7 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
         mutation = await fastify.collectionService.createCollectionOperation({
           collectionId: id,
           definition: {
-            description: description?.trim() || undefined,
+            description: descriptionResult.value,
             modes: modes.map((mode) => ({ name: mode.name.trim() })),
           },
           tokens: (tokens as TokenGroup | undefined) ?? undefined,
@@ -135,7 +157,10 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
     Body: { description?: string };
   }>("/collections/:id", async (request, reply) => {
     const { id } = request.params;
-    const body = request.body || {};
+    if (!isRequestBodyObject(request.body)) {
+      return reply.status(400).send({ error: "Request body must be an object" });
+    }
+    const body = request.body;
     const bodyKeys = Object.keys(body);
     if (bodyKeys.some((key) => key !== "description")) {
       return reply.status(400).send({
@@ -144,13 +169,21 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
     }
 
     try {
-      if (!Object.prototype.hasOwnProperty.call(body, "description")) {
+      if (!hasBodyField(body, "description")) {
         const current = await fastify.collectionService.getCollectionMetadata(id);
         return { ok: true, id, ...current, changed: false };
       }
 
       const beforeMeta = await fastify.collectionService.getCollectionMetadata(id);
-      const nextValue = body.description?.trim() || undefined;
+      const descriptionResult = readOptionalTrimmedStringField(
+        body,
+        "description",
+        "Description",
+      );
+      if (!descriptionResult.ok) {
+        return reply.status(400).send({ error: descriptionResult.error });
+      }
+      const nextValue = descriptionResult.value;
       const changes: FieldChange[] = [];
       if (beforeMeta.description !== nextValue) {
         changes.push({
@@ -205,10 +238,16 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
     "/collections/:id/rename",
     async (request, reply) => {
       const { id } = request.params;
-      const { newName } = request.body || {};
-      if (!newName) {
-        return reply.status(400).send({ error: "newName is required" });
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const newNameResult = readRequiredTrimmedStringField(
+        body,
+        "newName",
+        "newName",
+      );
+      if (!newNameResult.ok) {
+        return reply.status(400).send({ error: newNameResult.error });
       }
+      const newName = newNameResult.value;
       if (!isValidCollectionName(newName)) {
         return reply.status(400).send({
           error:
@@ -259,11 +298,17 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
   fastify.post<{ Body: { order: string[] } }>(
     "/collections/reorder",
     async (request, reply) => {
-      const { order } = request.body || {};
+      const body = isRequestBodyObject(request.body) ? request.body : {};
+      const { order } = body;
       if (!Array.isArray(order)) {
         return reply
           .status(400)
           .send({ error: "order must be an array of collection ids" });
+      }
+      if (order.some((collectionId) => typeof collectionId !== "string")) {
+        return reply
+          .status(400)
+          .send({ error: "order must contain only collection ids" });
       }
       try {
         const { previousOrder } =
@@ -290,13 +335,27 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
   fastify.post<{ Body: { fromFolder?: string; toFolder?: string } }>(
     "/collections/folders/rename",
     async (request, reply) => {
-      const fromFolder = request.body?.fromFolder?.trim();
-      const toFolder = request.body?.toFolder?.trim();
-      if (!fromFolder || !toFolder) {
-        return reply
-          .status(400)
-          .send({ error: "fromFolder and toFolder are required" });
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const fromFolderResult = readRequiredTrimmedStringField(
+        body,
+        "fromFolder",
+        "fromFolder",
+      );
+      const toFolderResult = readRequiredTrimmedStringField(
+        body,
+        "toFolder",
+        "toFolder",
+      );
+      if (!fromFolderResult.ok) {
+        return reply.status(400).send({ error: fromFolderResult.error });
       }
+      if (!toFolderResult.ok) {
+        return reply.status(400).send({
+          error: toFolderResult.error,
+        });
+      }
+      const fromFolder = fromFolderResult.value;
+      const toFolder = toFolderResult.value;
       if (!isValidCollectionName(fromFolder) || !isValidCollectionName(toFolder)) {
         return reply.status(400).send({
           error:
@@ -428,13 +487,27 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
   fastify.post<{ Body: { sourceFolder?: string; targetFolder?: string } }>(
     "/collections/folders/merge",
     async (request, reply) => {
-      const sourceFolder = request.body?.sourceFolder?.trim();
-      const targetFolder = request.body?.targetFolder?.trim();
-      if (!sourceFolder || !targetFolder) {
-        return reply
-          .status(400)
-          .send({ error: "sourceFolder and targetFolder are required" });
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const sourceFolderResult = readRequiredTrimmedStringField(
+        body,
+        "sourceFolder",
+        "sourceFolder",
+      );
+      const targetFolderResult = readRequiredTrimmedStringField(
+        body,
+        "targetFolder",
+        "targetFolder",
+      );
+      if (!sourceFolderResult.ok) {
+        return reply.status(400).send({ error: sourceFolderResult.error });
       }
+      if (!targetFolderResult.ok) {
+        return reply.status(400).send({
+          error: targetFolderResult.error,
+        });
+      }
+      const sourceFolder = sourceFolderResult.value;
+      const targetFolder = targetFolderResult.value;
       if (
         !isValidCollectionName(sourceFolder) ||
         !isValidCollectionName(targetFolder)
@@ -516,10 +589,16 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
   fastify.post<{ Body: { folder?: string } }>(
     "/collections/folders/delete",
     async (request, reply) => {
-      const folder = request.body?.folder?.trim();
-      if (!folder) {
-        return reply.status(400).send({ error: "folder is required" });
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const folderResult = readRequiredTrimmedStringField(
+        body,
+        "folder",
+        "folder",
+      );
+      if (!folderResult.ok) {
+        return reply.status(400).send({ error: folderResult.error });
       }
+      const folder = folderResult.value;
       if (!isValidCollectionName(folder)) {
         return reply.status(400).send({
           error:
