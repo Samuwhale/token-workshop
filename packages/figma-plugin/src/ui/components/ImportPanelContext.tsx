@@ -7,7 +7,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { flattenTokenGroup, isReference, parseReference, type DTCGGroup } from "@token-workshop/core";
 import {
   type CollectionData,
   defaultCollectionName,
@@ -17,6 +16,22 @@ import {
   type ImportWorkflowStage,
   type SourceFamily,
 } from "./importPanelTypes";
+import {
+  buildCollectionImportPlans,
+  buildFailedImportGroups,
+  buildImportPayload,
+  DEFAULT_FLAT_IMPORT_MODE_NAME,
+  flattenExistingTokens,
+  getImportPlanModeNames,
+  sortPlansByAliasDependencies,
+  toImportRollbackOperation,
+  type ExistingTokenValue,
+  type ImportBatch,
+  type ImportHistory,
+  type ImportRollbackOperation,
+  type ImportSource,
+  type ImportStrategy,
+} from "./importPanelPlanning";
 import type { SkippedEntry } from "../shared/tokenParsers";
 import { useImportCollections } from "../hooks/useImportCollections";
 import {
@@ -36,8 +51,6 @@ import {
   type ImportNextStepRecommendation,
   type WorkspaceImportNextStepRecommendation,
 } from "../shared/navigationTypes";
-
-const DEFAULT_FLAT_IMPORT_MODE_NAME = "Default";
 
 export interface ImportPanelProps {
   serverUrl: string;
@@ -76,12 +89,6 @@ export interface LastImportReviewSummary {
   keepExistingCount: number;
 }
 
-export interface ImportRollbackOperation {
-  operationId: string;
-  collectionId: string;
-  changedPaths: string[];
-}
-
 export interface VariableConflictDetail {
   path: string;
   collectionId: string;
@@ -106,43 +113,7 @@ export interface ImportCompletionResult {
   sourceCollectionCount?: number;
 }
 
-type ExistingTokenValue = { $type: string; $value: unknown };
 type ConflictDecision = "accept" | "merge" | "reject";
-type ImportBatch = { collectionId: string; tokens: Record<string, unknown>[] };
-type ImportHistory = { operations: ImportRollbackOperation[] };
-type ImportStrategy = "overwrite" | "skip" | "merge";
-type ImportSource = ImportSourceKind | null;
-type CollectionImportTokenSource = {
-  modeKey: string;
-  sourceLabel: string;
-  token: ImportToken;
-  originalCollectionName: string;
-  originalModeName: string;
-  originalModeIndex: number;
-};
-type CollectionImportPlan = {
-  collectionId: string;
-  writeTokens: CollectionImportTokenSource[];
-  duplicateConflicts: {
-    path: string;
-    tokens: CollectionImportTokenSource[];
-  }[];
-  totalPathCount: number;
-  secondaryModeNames: string[];
-  primaryModeName: string | null;
-};
-
-function getImportPlanModeNames(plan: CollectionImportPlan): [string, ...string[]] {
-  const modeNames = plan.primaryModeName
-    ? [plan.primaryModeName, ...plan.secondaryModeNames]
-    : plan.secondaryModeNames;
-  const uniqueModeNames = [
-    ...new Set(modeNames.map((modeName) => modeName.trim()).filter(Boolean)),
-  ];
-  return uniqueModeNames.length > 0
-    ? [uniqueModeNames[0], ...uniqueModeNames.slice(1)]
-    : [DEFAULT_FLAT_IMPORT_MODE_NAME];
-}
 
 export interface ImportSourceContextValue {
   loading: boolean;
@@ -324,282 +295,6 @@ function useRequiredContext<T>(
   return value;
 }
 
-function getImportSourceTag(source: ImportSource): string | null {
-  if (source === "variables") return "figma-variables";
-  if (source === "styles") return "figma-styles";
-  return source;
-}
-
-// Sort plans so alias-target collections are imported before dependents.
-function sortPlansByAliasDependencies(
-  plans: CollectionImportPlan[],
-): CollectionImportPlan[] {
-  if (plans.length <= 1) return plans;
-
-  const pathToCollection = new Map<string, string>();
-  for (const plan of plans) {
-    for (const source of plan.writeTokens) {
-      pathToCollection.set(source.token.path, plan.collectionId);
-    }
-  }
-
-  const deps = new Map<string, Set<string>>();
-  for (const plan of plans) {
-    const planDeps = new Set<string>();
-    for (const source of plan.writeTokens) {
-      const val = source.token.$value;
-      if (typeof val === 'string' && isReference(val)) {
-        const target = parseReference(val);
-        const targetCollection = pathToCollection.get(target);
-        if (targetCollection && targetCollection !== plan.collectionId) {
-          planDeps.add(targetCollection);
-        }
-      }
-    }
-    deps.set(plan.collectionId, planDeps);
-  }
-
-  const sorted: CollectionImportPlan[] = [];
-  const visited = new Set<string>();
-  const visiting = new Set<string>();
-  const planById = new Map(plans.map((p) => [p.collectionId, p]));
-
-  function visit(id: string): boolean {
-    if (visited.has(id)) return true;
-    if (visiting.has(id)) return false; // cycle
-    visiting.add(id);
-    for (const dep of deps.get(id) ?? []) {
-      if (!visit(dep)) return false;
-    }
-    visiting.delete(id);
-    visited.add(id);
-    sorted.push(planById.get(id)!);
-    return true;
-  }
-
-  for (const plan of plans) {
-    if (!visit(plan.collectionId)) return plans; // cycle — fall back to original order
-  }
-
-  return sorted;
-}
-
-function buildImportPayload(
-  token: ImportToken,
-  source: ImportSource,
-): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
-    path: token.path,
-    $type: token.$type,
-    $value: token.$value,
-  };
-  if (token.$description) payload.$description = token.$description;
-  if (token.$scopes && token.$scopes.length > 0) {
-    payload.$scopes = token.$scopes;
-  }
-  const sourceTag = getImportSourceTag(source);
-  const existingExtensions = token.$extensions ?? {};
-  const existingTokenWorkshop =
-    (existingExtensions.tokenworkshop as Record<string, unknown>) ?? {};
-  if (sourceTag || Object.keys(existingTokenWorkshop).length > 0) {
-    payload.$extensions = {
-      ...existingExtensions,
-      tokenworkshop: {
-        ...existingTokenWorkshop,
-        ...(sourceTag ? { source: sourceTag } : {}),
-      },
-    };
-  }
-  return payload;
-}
-
-function flattenExistingTokens(
-  tokens: Record<string, unknown> | undefined,
-): Map<string, ExistingTokenValue> {
-  const flat = flattenTokenGroup((tokens ?? {}) as DTCGGroup);
-  const mapped = new Map<string, ExistingTokenValue>();
-  for (const [path, token] of flat) {
-    mapped.set(path, {
-      $type: typeof token.$type === "string" ? token.$type : "unknown",
-      $value: token.$value,
-    });
-  }
-  return mapped;
-}
-
-function buildFailedImportGroups(batches: ImportBatch[]): ImportFailureGroup[] {
-  return batches
-    .map((batch) => ({
-      collectionId: batch.collectionId,
-      paths: batch.tokens
-        .map((token) => token.path)
-        .filter((path): path is string => typeof path === "string"),
-    }))
-    .filter((group) => group.paths.length > 0);
-}
-
-function toImportRollbackOperation(
-  collectionId: string,
-  result: {
-    changedPaths?: string[];
-    operationId?: string;
-  },
-): ImportRollbackOperation | null {
-  if (!result.operationId) {
-    return null;
-  }
-  const changedPaths = result.changedPaths ?? [];
-  if (changedPaths.length === 0) {
-    return null;
-  }
-  return {
-    operationId: result.operationId,
-    collectionId,
-    changedPaths,
-  };
-}
-
-function buildCollectionImportSourceLabel(
-  collectionName: string,
-  modeName: string,
-): string {
-  return `${collectionName} / ${modeName}`;
-}
-
-function buildCollectionImportPlans(
-  collectionData: CollectionData[],
-  modeEnabled: Record<string, boolean>,
-  modeCollectionNames: Record<string, string>,
-): {
-  plans: CollectionImportPlan[];
-  ambiguousPathCount: number;
-} {
-  const groupedPlans = new Map<
-    string,
-    {
-      collectionId: string;
-      pathSources: Map<string, CollectionImportTokenSource[]>;
-    }
-  >();
-
-  for (const collection of collectionData) {
-    for (let modeIndex = 0; modeIndex < collection.modes.length; modeIndex++) {
-      const mode = collection.modes[modeIndex];
-      const key = modeKey(collection.name, mode.modeId);
-      if (!(modeEnabled[key] ?? true)) {
-        continue;
-      }
-
-      const collectionId = (
-        modeCollectionNames[key] ??
-        defaultCollectionName(collection.name)
-      ).trim();
-      const sourceLabel = buildCollectionImportSourceLabel(
-        collection.name,
-        mode.modeName,
-      );
-      let plan = groupedPlans.get(collectionId);
-      if (!plan) {
-        plan = {
-          collectionId,
-          pathSources: new Map(),
-        };
-        groupedPlans.set(collectionId, plan);
-      }
-
-      for (const token of mode.tokens) {
-        const pathSources = plan.pathSources.get(token.path) ?? [];
-        pathSources.push({
-          modeKey: key,
-          sourceLabel,
-          token,
-          originalCollectionName: collection.name,
-          originalModeName: mode.modeName,
-          originalModeIndex: modeIndex,
-        });
-        plan.pathSources.set(token.path, pathSources);
-      }
-    }
-  }
-
-  const plans: CollectionImportPlan[] = [];
-  let ambiguousPathCount = 0;
-
-  for (const plan of groupedPlans.values()) {
-    const writeTokens: CollectionImportTokenSource[] = [];
-    const duplicateConflicts: CollectionImportPlan["duplicateConflicts"] = [];
-    const mergedModeNames = new Set<string>();
-    let primaryModeName: string | null = null;
-
-    for (const [path, pathSources] of plan.pathSources) {
-      if (pathSources.length === 1) {
-        writeTokens.push(pathSources[0]);
-        if (!primaryModeName) {
-          primaryModeName = pathSources[0].originalModeName;
-        }
-        continue;
-      }
-
-      const originCollections = new Set(
-        pathSources.map((s) => s.originalCollectionName),
-      );
-      if (originCollections.size === 1) {
-        const sorted = [...pathSources].sort(
-          (a, b) => a.originalModeIndex - b.originalModeIndex,
-        );
-        const primary = sorted[0];
-        const secondaries = sorted.slice(1);
-
-        if (!primaryModeName) {
-          primaryModeName = primary.originalModeName;
-        }
-        for (const s of secondaries) {
-          mergedModeNames.add(s.originalModeName);
-        }
-
-        const modeValues: Record<string, unknown> = {};
-        for (const s of secondaries) {
-          modeValues[s.originalModeName] = s.token.$value;
-        }
-
-        const existingTokenWorkshop =
-          (primary.token.$extensions?.tokenworkshop as Record<string, unknown>) ?? {};
-        const mergedToken: ImportToken = {
-          ...primary.token,
-          $extensions: {
-            ...(primary.token.$extensions ?? {}),
-            tokenworkshop: {
-              ...existingTokenWorkshop,
-              modes: {
-                [plan.collectionId]: modeValues,
-              },
-            },
-          },
-        };
-
-        writeTokens.push({ ...primary, token: mergedToken });
-      } else {
-        ambiguousPathCount += 1;
-        duplicateConflicts.push({ path, tokens: pathSources });
-      }
-    }
-
-    plans.push({
-      collectionId: plan.collectionId,
-      writeTokens,
-      duplicateConflicts,
-      totalPathCount: plan.pathSources.size,
-      secondaryModeNames: [...mergedModeNames],
-      primaryModeName,
-    });
-  }
-
-  return {
-    plans,
-    ambiguousPathCount,
-  };
-}
-
 export function useImportSourceContext(): ImportSourceContextValue {
   return useRequiredContext(ImportSourceContext, "useImportSourceContext");
 }
@@ -724,6 +419,10 @@ export function ImportPanelProvider({
     setExistingTokenMapError(null);
     setExistingPathsFetching(false);
   }, []);
+
+  useEffect(() => {
+    resetExistingPathsCache();
+  }, [resetExistingPathsCache, serverUrl]);
 
   const src = useImportSource({
     onClearConflictState: clearConflictState,
@@ -858,25 +557,19 @@ export function ImportPanelProvider({
   );
 
   useEffect(() => {
+    clearConflictState();
     if (src.tokens.length === 0) {
       setExistingTokenMap(null);
       setExistingTokenMapError(null);
       setExistingPathsFetching(false);
       return;
     }
-      void prefetchExistingPaths(collectionsHook.targetCollectionId);
-  }, [prefetchExistingPaths, collectionsHook.targetCollectionId, src.tokens.length]);
-
-  useEffect(() => {
-    clearConflictState();
-    if (src.tokens.length > 0) {
-      void prefetchExistingPaths(collectionsHook.targetCollectionId);
-    }
+    void prefetchExistingPaths(collectionsHook.targetCollectionId);
   }, [
     clearConflictState,
     prefetchExistingPaths,
     collectionsHook.targetCollectionId,
-    src.tokens.length,
+    src.tokens,
   ]);
 
   useEffect(() => {
