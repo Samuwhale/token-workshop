@@ -8,6 +8,13 @@ const releaseDir = path.join(__dirname, 'release');
 const artifactPath = path.join(releaseDir, 'token-workshop-figma-plugin.zip');
 const requiredFiles = [
   'manifest.json',
+  path.join('assets', 'token-workshop-icon-32.png'),
+  path.join('assets', 'token-workshop-icon-64.png'),
+  path.join('assets', 'token-workshop-icon-128.png'),
+  path.join('assets', 'token-workshop-icon-256.png'),
+  path.join('assets', 'token-workshop-icon-512.png'),
+  path.join('assets', 'token-workshop-icon-1024.png'),
+  path.join('assets', 'token-workshop-logo.png'),
   path.join('dist', 'code.js'),
   path.join('dist', 'ui.html'),
 ];

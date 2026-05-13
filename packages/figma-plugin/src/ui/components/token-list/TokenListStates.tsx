@@ -1,4 +1,5 @@
 import { QUERY_QUALIFIERS } from "../tokenListUtils";
+import { Code2, Filter, Plus, Search } from "lucide-react";
 import type { PromoteRow } from "../tokenListTypes";
 import type { RelocateConflictAction } from "../../hooks/useTokenRelocate";
 import type { FilterBuilderSection } from "../TokenSearchFilterBuilder";
@@ -195,7 +196,7 @@ export function TokenListFilteredEmptyState({
           const qLower = q.toLowerCase();
           const suggestions: {
             label: string;
-            icon: string;
+            icon: "create" | "filter" | "value" | "hint";
             action: () => void;
           }[] = [];
 
@@ -300,65 +301,16 @@ export function TokenListFilteredEmptyState({
                   className="flex items-center gap-1.5 px-2 py-1 rounded text-secondary text-left hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text-accent)] transition-colors"
                 >
                   {suggestion.icon === "create" && (
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
+                    <Plus size={12} strokeWidth={1.5} aria-hidden />
                   )}
                   {suggestion.icon === "filter" && (
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-                    </svg>
+                    <Filter size={12} strokeWidth={1.5} aria-hidden />
                   )}
                   {suggestion.icon === "value" && (
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <circle cx="11" cy="11" r="8" />
-                      <path d="M21 21l-4.35-4.35" />
-                    </svg>
+                    <Search size={12} strokeWidth={1.5} aria-hidden />
                   )}
                   {suggestion.icon === "hint" && (
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
-                    </svg>
+                    <Code2 size={12} strokeWidth={1.5} aria-hidden />
                   )}
                   <span className="truncate">{suggestion.label}</span>
                 </button>

@@ -96,11 +96,11 @@ export const TOP_TABS: {
   },
   {
     id: "publish",
-    label: "Publish",
+    label: "Handoff",
     subTabs: [
       { id: "publish-figma", label: "Figma variables" },
       { id: "publish-code", label: "Export files" },
-      { id: "publish-repository", label: "Repository" },
+      { id: "publish-repository", label: "Repository sync" },
     ],
   },
 ];
@@ -295,7 +295,7 @@ export const SIDEBAR_GROUPS: SidebarGroup[] = [
       { id: "library", label: "Library", railCode: "Li", topTab: "library", subTab: "tokens", workspaceId: "library" },
       { id: "icons", label: "Icons", railCode: "Ic", topTab: "icons", subTab: "icons", workspaceId: "icons" },
       { id: "canvas", label: "Canvas", railCode: "Ca", topTab: "canvas", subTab: "inspect", workspaceId: "canvas" },
-      { id: "publish", label: "Publish", railCode: "Pu", topTab: "publish", subTab: "publish-figma", workspaceId: "publish" },
+      { id: "publish", label: "Handoff", railCode: "Ha", topTab: "publish", subTab: "publish-figma", workspaceId: "publish" },
     ],
   },
 ];
@@ -349,14 +349,14 @@ export const WORKSPACE_TABS: WorkspaceTab[] = [
   },
   {
     id: "publish",
-    label: "Publish",
-    summaryTitle: "Publish",
+    label: "Handoff",
+    summaryTitle: "Handoff",
     topTab: "publish",
     subTab: "publish-figma",
     sections: [
       { id: "publish-figma", label: "Figma variables", topTab: "publish", subTab: "publish-figma" },
       { id: "publish-code",  label: "Export files",  topTab: "publish", subTab: "publish-code" },
-      { id: "publish-repository",  label: "Repository",  topTab: "publish", subTab: "publish-repository" },
+      { id: "publish-repository",  label: "Repository sync",  topTab: "publish", subTab: "publish-repository" },
     ],
     matchRoutes: [
       route("publish", "publish-figma"),

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { KeyboardEvent } from "react";
 import type { IconRegistryFile, IconStatus, ManagedIcon } from "@token-workshop/core";
 import type {
   IconCanvasActionResultMessage,
@@ -43,7 +44,7 @@ import { IconImportDialog } from "./IconImportDialog";
 
 type IconStatusFilter = "all" | IconStatus;
 type IconHealthFilter = "all" | "publish" | "blocked" | "quality" | "frame" | "color";
-type IconWorkspaceView = "library" | "manage";
+type IconWorkspaceView = "library" | "audit";
 type IconSlotPreferredMode = "all" | "matching";
 type IconCanvasActionRequest =
   | Omit<InsertIconMessage, "correlationId">
@@ -146,8 +147,8 @@ const STATUS_FILTERS: Array<{ value: IconStatusFilter; label: string }> = [
 ];
 
 const ICON_WORKSPACE_VIEWS: Array<{ value: IconWorkspaceView; label: string }> = [
-  { value: "library", label: "Library" },
-  { value: "manage", label: "Manage" },
+  { value: "library", label: "Browse" },
+  { value: "audit", label: "Audit" },
 ];
 
 const STATUS_CLASS: Record<IconStatus, string> = {
@@ -173,7 +174,7 @@ function formatIconCount(count: number): string {
 }
 
 function formatSlotCount(count: number): string {
-  return `${count} ${count === 1 ? "slot" : "slots"}`;
+  return `${count} ${count === 1 ? "property" : "properties"}`;
 }
 
 function formatSkippedSuffix(
@@ -735,31 +736,66 @@ function IconGrid({
   icons,
   iconContent,
   selectedIconId,
+  canvasActionBusy,
   onSelectIcon,
+  onInsertIcon,
 }: {
   icons: ManagedIcon[];
   iconContent: Record<string, IconContentCacheItem>;
   selectedIconId: string | null;
+  canvasActionBusy: boolean;
   onSelectIcon: (iconId: string) => void;
+  onInsertIcon: (icon: ManagedIcon) => void;
 }) {
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(76px,1fr))] gap-x-2 gap-y-3">
       {icons.map((icon) => {
         const selected = icon.id === selectedIconId;
         const attentionLabel = iconAttentionLabel(icon);
+        const canInsert = iconCanUseOnCanvas(icon);
         return (
-          <button
+          <div
             key={icon.id}
-            type="button"
-            onClick={() => onSelectIcon(icon.id)}
-            aria-pressed={selected}
-            className={`group relative flex min-h-[92px] min-w-0 flex-col items-center gap-1.5 rounded-md p-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
+            className={`group relative min-h-[96px] min-w-0 rounded-md outline-none transition-colors ${
               selected
                 ? "bg-[var(--surface-selected)] shadow-[inset_0_0_0_1px_var(--color-figma-accent)]"
                 : "hover:bg-[var(--surface-hover)]"
             }`}
-            title={`${icon.name} · ${icon.path}${attentionLabel ? ` · ${attentionLabel}` : ""}`}
           >
+            <button
+              type="button"
+              onClick={() => onSelectIcon(icon.id)}
+              aria-pressed={selected}
+              className="flex h-full min-h-[96px] w-full min-w-0 flex-col items-center gap-1.5 rounded-md p-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)]"
+              title={`${icon.name} · ${icon.path}${attentionLabel ? ` · ${attentionLabel}` : ""}`}
+            >
+              <span className="flex h-11 w-full items-center justify-center rounded bg-[var(--color-figma-bg-secondary)] group-hover:bg-[var(--color-figma-bg)]">
+                <IconPreview icon={icon} content={iconContent[icon.id]?.content} />
+              </span>
+              <span className="min-w-0 max-w-full self-stretch">
+                <span className="block truncate text-secondary font-medium text-[color:var(--color-figma-text)]">
+                  {icon.name}
+                </span>
+                <span className="block truncate text-[11px] leading-tight text-[color:var(--color-figma-text-tertiary)]">
+                  {icon.path}
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onInsertIcon(icon)}
+              disabled={!canInsert || canvasActionBusy}
+              tabIndex={-1}
+              className={`absolute left-1.5 top-1.5 flex size-6 items-center justify-center rounded bg-[var(--color-figma-bg)] text-[color:var(--color-figma-text-secondary)] shadow-[0_1px_3px_rgba(0,0,0,0.16)] outline-none transition focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
+                canInsert
+                  ? "opacity-0 hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)] group-hover:opacity-100"
+                  : "pointer-events-none opacity-0"
+              }`}
+              aria-label={`Insert ${icon.name}`}
+              title={canInsert ? `Insert ${icon.name}` : "Publish this icon before inserting it"}
+            >
+              <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
+            </button>
             {attentionLabel ? (
               <span
                 className={`absolute right-1.5 top-1.5 size-1.5 rounded-full ${iconAttentionClass(icon)}`}
@@ -767,18 +803,7 @@ function IconGrid({
                 aria-label={attentionLabel}
               />
             ) : null}
-            <span className="flex h-11 w-full items-center justify-center rounded bg-[var(--color-figma-bg-secondary)] group-hover:bg-[var(--color-figma-bg)]">
-              <IconPreview icon={icon} content={iconContent[icon.id]?.content} />
-            </span>
-            <span className="min-w-0 max-w-full self-stretch">
-              <span className="block truncate text-secondary font-medium text-[color:var(--color-figma-text)]">
-                {icon.name}
-              </span>
-              <span className="block truncate text-[11px] leading-tight text-[color:var(--color-figma-text-tertiary)]">
-                {icon.path}
-              </span>
-            </span>
-          </button>
+          </div>
         );
       })}
     </div>
@@ -954,7 +979,7 @@ function IconUsageAuditPanel({
           <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
             <span>{formatHealthCount(result.summary.managedInstances, "managed use")}</span>
             <span>{formatHealthCount(result.summary.unmanagedComponents, "unmanaged component")}</span>
-            <span>{formatHealthCount(result.summary.unpromotedIconSlots, "slot to set up")}</span>
+            <span>{formatHealthCount(result.summary.unpromotedIconSlots, "property to set up")}</span>
             <span>{formatHealthCount(result.summary.rawIconLayers, "raw layer")}</span>
             <span>{formatHealthCount(result.summary.frameIssues, "size issue")}</span>
             <span>{formatHealthCount(result.summary.colorIssues, "color issue")}</span>
@@ -1303,7 +1328,7 @@ function IconDetailPanel({
       {iconSlotActions.length > 0 ? (
         <div className="flex flex-col gap-1.5">
           <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-            Icon slots
+            Icon properties
           </div>
           {iconSlotActions.map((action) => (
             <Button
@@ -1337,12 +1362,12 @@ function IconDetailPanel({
               value={slotPreferredMode}
               options={SLOT_PREFERRED_MODE_OPTIONS}
               onChange={onSlotPreferredModeChange}
-              ariaLabel="Icon slot preferred values"
+              ariaLabel="Icon property preferred values"
               size="compact"
             />
           </div>
           <p className="m-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-            Slot menu will use {slotPreferredModeLabel(slotPreferredMode)} ({slotPreferredCount}).
+            Property menu will use {slotPreferredModeLabel(slotPreferredMode)} ({slotPreferredCount}).
           </p>
           {iconSlotSetupActions.map((action) => (
             <Button
@@ -1355,7 +1380,7 @@ function IconDetailPanel({
               title={
                 canUseOnCanvas
                   ? `Create ${action.label} on ${action.propertyOwnerName}`
-                  : "Publish this icon before creating component slots"
+                  : "Publish this icon before creating component icon properties"
               }
             >
               <Replace size={13} strokeWidth={1.5} aria-hidden />
@@ -1897,8 +1922,8 @@ export function IconPanel() {
     }
   }, [selectedIcon, serverUrl, statusActionBusy]);
 
-  const handleInsert = useCallback(async () => {
-    if (!selectedIcon || canvasActionBusy || !iconCanUseOnCanvas(selectedIcon)) {
+  const handleInsertIcon = useCallback(async (icon: ManagedIcon) => {
+    if (canvasActionBusy || !iconCanUseOnCanvas(icon)) {
       return;
     }
 
@@ -1906,18 +1931,26 @@ export function IconPanel() {
     try {
       const result = await runIconCanvasAction({
         type: "insert-icon",
-        icon: iconCanvasItem(selectedIcon),
+        icon: iconCanvasItem(icon),
       });
       if (result.error) {
         throw new Error(result.error);
       }
-      dispatchToast(`Inserted ${selectedIcon.name}.`, "success");
+      setSelectedIconId(icon.id);
+      dispatchToast(`Inserted ${icon.name}.`, "success");
     } catch (err) {
       dispatchToast(getErrorMessage(err, "Failed to insert icon."), "error");
     } finally {
       setCanvasActionBusy(false);
     }
-  }, [canvasActionBusy, selectedIcon]);
+  }, [canvasActionBusy]);
+
+  const handleInsert = useCallback(async () => {
+    if (!selectedIcon) {
+      return;
+    }
+    await handleInsertIcon(selectedIcon);
+  }, [handleInsertIcon, selectedIcon]);
 
   const handleReplaceSelection = useCallback(async () => {
     if (
@@ -1977,7 +2010,7 @@ export function IconPanel() {
         result.skipped > 0 ? "warning" : "success",
       );
     } catch (err) {
-      dispatchToast(getErrorMessage(err, "Failed to set icon slot."), "error");
+      dispatchToast(getErrorMessage(err, "Failed to set icon property."), "error");
     } finally {
       setCanvasActionBusy(false);
     }
@@ -2012,7 +2045,7 @@ export function IconPanel() {
         result.skipped > 0 ? "warning" : "success",
       );
     } catch (err) {
-      dispatchToast(getErrorMessage(err, "Failed to create icon slot."), "error");
+      dispatchToast(getErrorMessage(err, "Failed to create icon property."), "error");
     } finally {
       setCanvasActionBusy(false);
     }
@@ -2136,6 +2169,44 @@ export function IconPanel() {
     }, "*");
   }, []);
 
+  const handleWorkspaceViewKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (
+        event.key !== "ArrowRight" &&
+        event.key !== "ArrowDown" &&
+        event.key !== "ArrowLeft" &&
+        event.key !== "ArrowUp" &&
+        event.key !== "Home" &&
+        event.key !== "End"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      const currentIndex = ICON_WORKSPACE_VIEWS.findIndex(
+        (view) => view.value === workspaceView,
+      );
+      const lastIndex = ICON_WORKSPACE_VIEWS.length - 1;
+      const nextIndex =
+        event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? lastIndex
+            : event.key === "ArrowRight" || event.key === "ArrowDown"
+              ? Math.min(currentIndex + 1, lastIndex)
+              : Math.max(currentIndex - 1, 0);
+      const nextView = ICON_WORKSPACE_VIEWS[nextIndex];
+      if (nextView) {
+        setWorkspaceView(nextView.value);
+        const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
+          '[role="radio"]',
+        );
+        buttons[nextIndex]?.focus();
+      }
+    },
+    [workspaceView],
+  );
+
   if (!connected) {
     return (
       <FeedbackPlaceholder
@@ -2157,29 +2228,51 @@ export function IconPanel() {
 
       <div className="flex shrink-0 flex-col gap-2 border-b border-[color:var(--color-figma-border)] px-3 py-2">
         <div className="flex min-w-0 flex-col gap-2">
-          <SegmentedControl
-            value={workspaceView}
-            options={ICON_WORKSPACE_VIEWS}
-            onChange={setWorkspaceView}
-            ariaLabel="Icons workspace view"
-            size="compact"
-          />
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-              {formatIconCount(filteredIcons.length)}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => void loadIcons()}
-              disabled={loading}
-              title="Refresh icons"
-              className="px-1.5"
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div
+              className="inline-flex shrink-0 items-stretch gap-[2px] rounded-[var(--radius-md)] bg-[var(--surface-group-quiet)] p-[2px]"
+              role="radiogroup"
+              aria-label="Icons workspace view"
+              onKeyDown={handleWorkspaceViewKeyDown}
             >
-              <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-              {loading ? "Refreshing" : "Refresh"}
-            </Button>
+              {ICON_WORKSPACE_VIEWS.map((view) => {
+                const selected = workspaceView === view.value;
+                return (
+                  <button
+                    key={view.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => setWorkspaceView(view.value)}
+                    className={`min-h-7 rounded-[3px] px-2 text-secondary font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
+                      selected
+                        ? "bg-[var(--surface-panel-header)] text-[color:var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--border-muted)]"
+                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
+                    }`}
+                  >
+                    {view.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="ml-auto flex min-w-0 items-center gap-2">
+              <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                {formatIconCount(filteredIcons.length)}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => void loadIcons()}
+                disabled={loading}
+                title="Refresh icons"
+                className="px-1.5"
+              >
+                <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+                {loading ? "Refreshing" : "Refresh"}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -2191,7 +2284,7 @@ export function IconPanel() {
           size="sm"
         />
 
-        {workspaceView === "library" ? (
+        <div className="flex min-w-0 flex-col gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <SegmentedControl
               value={statusFilter}
@@ -2200,6 +2293,46 @@ export function IconPanel() {
               ariaLabel="Icon status"
               size="compact"
             />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void handlePublish()}
+              disabled={publishing || iconsToPublish.length === 0}
+            >
+              <UploadCloud size={13} strokeWidth={1.5} aria-hidden />
+              {publishProgress
+                ? `${publishProgress.current}/${publishProgress.total}`
+                : publishing
+                  ? "Publishing"
+                  : "Publish"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleExportIcons()}
+              disabled={exporting || exportableIconCount === 0}
+              title={
+                exportableIconCount > 0
+                  ? "Export SVGs, React components, manifests, and attribution metadata"
+                  : "Import or unblock icons before exporting"
+              }
+            >
+              <Download size={13} strokeWidth={1.5} aria-hidden />
+              {exporting ? "Exporting" : "Export"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void handleCheckSourceUpdates()}
+              disabled={checkingSources || icons.length === 0}
+              title="Check local SVG and public icon sources for updates"
+            >
+              <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+              {checkingSources ? "Checking" : "Sources"}
+            </Button>
             {healthFilter !== "all" ? (
               <Button
                 type="button"
@@ -2207,69 +2340,24 @@ export function IconPanel() {
                 size="sm"
                 onClick={() => setHealthFilter("all")}
               >
-                Clear health filter
+                Clear health
               </Button>
             ) : null}
           </div>
-        ) : (
-          <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => void handlePublish()}
-                disabled={publishing || iconsToPublish.length === 0}
-              >
-                <UploadCloud size={13} strokeWidth={1.5} aria-hidden />
-                {publishProgress
-                  ? `Publishing ${publishProgress.current}/${publishProgress.total}`
-                  : publishing
-                    ? "Publishing"
-                    : "Publish"}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => void handleExportIcons()}
-                disabled={exporting || exportableIconCount === 0}
-                title={
-                  exportableIconCount > 0
-                    ? "Export SVGs, React components, manifests, and attribution metadata"
-                    : "Import or unblock icons before exporting"
-                }
-              >
-                <Download size={13} strokeWidth={1.5} aria-hidden />
-                {exporting ? "Exporting" : "Export"}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => void handleCheckSourceUpdates()}
-                disabled={checkingSources || icons.length === 0}
-                title="Check local SVG and public icon sources for updates"
-              >
-                <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-                {checkingSources ? "Checking" : "Sources"}
-              </Button>
+          <IconHealthStrip
+            summary={healthSummary}
+            activeFilter={healthFilter}
+            onFilterChange={setHealthFilter}
+          />
+          {sourceUpdateReport ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              <span>{formatHealthCount(sourceUpdateReport.summary.checked, "source checked")}</span>
+              <span>{formatHealthCount(sourceUpdateReport.summary.changed, "artwork update")}</span>
+              <span>{formatHealthCount(sourceUpdateReport.summary.metadataChanged, "metadata update")}</span>
+              <span>{formatHealthCount(sourceUpdateReport.summary.unavailable, "unavailable source")}</span>
             </div>
-            <IconHealthStrip
-              summary={healthSummary}
-              activeFilter={healthFilter}
-              onFilterChange={setHealthFilter}
-            />
-            {sourceUpdateReport ? (
-              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                <span>{formatHealthCount(sourceUpdateReport.summary.checked, "source checked")}</span>
-                <span>{formatHealthCount(sourceUpdateReport.summary.changed, "artwork update")}</span>
-                <span>{formatHealthCount(sourceUpdateReport.summary.metadataChanged, "metadata update")}</span>
-                <span>{formatHealthCount(sourceUpdateReport.summary.unavailable, "unavailable source")}</span>
-              </div>
-            ) : null}
-          </div>
-        )}
+          ) : null}
+        </div>
       </div>
 
       {error ? (
@@ -2303,7 +2391,7 @@ export function IconPanel() {
         <FeedbackPlaceholder
           variant="no-results"
           title="No matching icons"
-          description="Change the search or status filter."
+          description="Change the search, status, or health filter."
         />
       ) : workspaceView === "library" ? (
         <div className="flex min-h-0 flex-1 flex-col">
@@ -2312,7 +2400,9 @@ export function IconPanel() {
               icons={filteredIcons}
               iconContent={iconContent}
               selectedIconId={selectedIcon?.id ?? null}
+              canvasActionBusy={canvasActionBusy}
               onSelectIcon={setSelectedIconId}
+              onInsertIcon={(icon) => void handleInsertIcon(icon)}
             />
           </div>
           {selectedIcon ? (
@@ -2395,6 +2485,7 @@ export function IconPanel() {
               setSelectedIconId(firstIcon.id);
               setQuery("");
               setStatusFilter("all");
+              setHealthFilter("all");
             }
             dispatchToast(
               `Imported ${formatIconCount(importedIcons.length)}.`,

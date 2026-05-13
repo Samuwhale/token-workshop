@@ -72,7 +72,7 @@ export function SyncRouter({
       <PanelContentHeader primaryAction={publishAction} />
       <div className="min-h-0 flex-1 overflow-hidden">
         <ErrorBoundary
-          panelName="Publish · Figma"
+          panelName="Handoff · Figma variables"
           onReset={() => navigateTo("publish", "publish-figma")}
         >
           <PublishPanel

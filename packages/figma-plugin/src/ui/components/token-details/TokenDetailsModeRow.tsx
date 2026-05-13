@@ -324,6 +324,7 @@ export function TokenDetailsModeRow({
   const showHeader = showModeLabel;
   const showInlineModified = modified && !showHeader;
   const emptyModeCopyAction = isEmpty ? copyActions[0] : undefined;
+  const showInlineEmptyAlternatives = !showHeader;
   const controls = editable ? (
     <div
       className={joinClasses(
@@ -548,7 +549,7 @@ export function TokenDetailsModeRow({
                   </span>
                 </div>
               ) : null}
-              {emptyModeCopyAction ? (
+              {showInlineEmptyAlternatives && emptyModeCopyAction ? (
                 <Button
                   onClick={emptyModeCopyAction.onClick}
                   aria-label={`${emptyModeCopyAction.label} into ${modeName}`}
@@ -580,27 +581,29 @@ export function TokenDetailsModeRow({
                     ? `Use value from source token for ${modeName}`
                     : `Set ${defaultModeValueLabel} for ${modeName}`
                 }
-                variant={!emptyModeCopyAction ? "primary" : "secondary"}
+                variant="primary"
                 size="sm"
                 wrap
                 className="justify-start"
               >
                 {hasInheritedValue ? "Use source value" : "Set direct value"}
               </Button>
-              <Button
-                onClick={handleAliasToggle}
-                aria-label={`Reference another token for ${modeName}`}
-                title={`Reference another token for ${modeName}`}
-                variant="secondary"
-                size="sm"
-                wrap
-                className="tm-token-mode-row__action-button justify-start"
-              >
-                <Link2 size={12} strokeWidth={1.5} aria-hidden />
-                <span className="tm-token-mode-row__action-button-label">
-                  Reference
-                </span>
-              </Button>
+              {showInlineEmptyAlternatives ? (
+                <Button
+                  onClick={handleAliasToggle}
+                  aria-label={`Reference another token for ${modeName}`}
+                  title={`Reference another token for ${modeName}`}
+                  variant="secondary"
+                  size="sm"
+                  wrap
+                  className="tm-token-mode-row__action-button justify-start"
+                >
+                  <Link2 size={12} strokeWidth={1.5} aria-hidden />
+                  <span className="tm-token-mode-row__action-button-label">
+                    Reference
+                  </span>
+                </Button>
+              ) : null}
             </div>
           ) : editable ? (
             <ModeValueEditor

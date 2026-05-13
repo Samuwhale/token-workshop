@@ -391,7 +391,7 @@ export function QuickStartWizard({
                 : "Choose what to add next."}
           </p>
           <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Create a token, import an existing system, or extract values from the canvas.
+            Create a token, import tokens, or extract values from the canvas.
           </p>
         </div>
         <div className="px-2 pb-2">

@@ -576,7 +576,7 @@ export function CollectionTabs({
                 >
                   {primaryAction?.icon}
                   <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                    New
+                    Add
                   </span>
                   <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
                 </Button>

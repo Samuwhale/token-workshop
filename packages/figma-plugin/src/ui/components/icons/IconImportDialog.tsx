@@ -152,11 +152,11 @@ interface IconImportDialogProps {
 }
 
 const IMPORT_MODES: Array<{ value: ImportMode; label: string }> = [
-  { value: "library", label: "Library" },
-  { value: "files", label: "Files" },
-  { value: "selection", label: "Selection" },
-  { value: "paste", label: "Paste" },
-  { value: "workspace", label: "Path" },
+  { value: "library", label: "Public" },
+  { value: "selection", label: "Figma" },
+  { value: "files", label: "SVG files" },
+  { value: "paste", label: "Paste SVG" },
+  { value: "workspace", label: "Workspace" },
 ];
 
 const PUBLIC_ICON_SOURCES: Array<{
@@ -306,6 +306,38 @@ function editableSelectionIcons(
   }));
 }
 
+function normalizePathDraft(value: string): string {
+  return value
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/\s+/g, "-")
+    .replace(/[/.]+/g, ".")
+    .replace(/^\.+|\.+$/g, "");
+}
+
+function prefixedIconPath(prefix: string, path: string): string {
+  const cleanPrefix = normalizePathDraft(prefix);
+  const cleanPath = normalizePathDraft(path);
+  if (!cleanPrefix || !cleanPath || cleanPath === cleanPrefix) {
+    return cleanPath || cleanPrefix;
+  }
+  return cleanPath.startsWith(`${cleanPrefix}.`)
+    ? cleanPath
+    : `${cleanPrefix}.${cleanPath}`;
+}
+
+function displayNameFromIconPath(path: string): string {
+  const lastSegment = normalizePathDraft(path).split(".").filter(Boolean).pop();
+  if (!lastSegment) {
+    return "";
+  }
+  return lastSegment
+    .split(/[-_]+/g)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
 function isPublicIconCollectionBrowseResponse(
   response: PublicIconResultsResponse | null,
 ): response is PublicIconCollectionBrowseResponse {
@@ -366,47 +398,45 @@ function PublicLibraryRail({
   onSelectCustom: () => void;
 }) {
   return (
-    <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
-      <Field label="Source">
-        <select
-          value={selectedPublicSourceId}
-          onChange={(event) => {
-            const value = event.target.value as PublicIconSourceId;
-            if (value === "all") {
-              onOpenCatalog();
-              return;
-            }
-            if (value === "custom") {
-              onSelectCustom();
-              return;
-            }
-            const source = PUBLIC_ICON_SOURCES.find((item) => item.id === value);
-            if (source) {
-              onSelectSource(source);
-            }
-          }}
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+        Public library
+      </div>
+      <div className="flex min-w-0 flex-wrap gap-1">
+        {PUBLIC_ICON_SOURCES.map((source) => (
+          <Button
+            key={source.id}
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-pressed={selectedPublicSourceId === source.id}
+            onClick={() => onSelectSource(source)}
+            disabled={disabled}
+          >
+            {source.label}
+          </Button>
+        ))}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-pressed={selectedPublicSourceId === "all"}
+          onClick={onOpenCatalog}
           disabled={disabled}
-          className={`h-8 w-full px-2 text-body ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES}`}
         >
-          {PUBLIC_ICON_SOURCES.map((source) => (
-            <option key={source.id} value={source.id}>
-              {source.label}
-            </option>
-          ))}
-          <option value="all">All libraries</option>
-          <option value="custom">Iconify prefix</option>
-        </select>
-      </Field>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={onOpenCatalog}
-        disabled={disabled}
-        className="mb-0.5 px-1.5"
-      >
-        Browse all
-      </Button>
+          All libraries
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-pressed={selectedPublicSourceId === "custom"}
+          onClick={onSelectCustom}
+          disabled={disabled}
+        >
+          Iconify prefix
+        </Button>
+      </div>
     </div>
   );
 }
@@ -510,7 +540,7 @@ function PublicCollectionCatalog({
         </>
       ) : (
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Browse the full Iconify catalog or open a collection by prefix.
+          Browse the full Iconify catalog or open a collection by Iconify prefix.
         </div>
       )}
     </div>
@@ -721,11 +751,6 @@ function PublicSelectionSummary({
             <ExternalLink size={11} strokeWidth={1.5} aria-hidden />
           </a>
         ))}
-        {selectedIcons.length > 2 ? (
-          <span className="shrink-0 text-[color:var(--color-figma-text-tertiary)]">
-            {selectedIcons.length - 2} more source links stored on import.
-          </span>
-        ) : null}
       </div>
     </div>
   );
@@ -775,6 +800,7 @@ export function IconImportDialog({
   const [pastedPath, setPastedPath] = useState("");
   const [workspaceFilePath, setWorkspaceFilePath] = useState("");
   const [workspacePath, setWorkspacePath] = useState("");
+  const [selectionPathPrefix, setSelectionPathPrefix] = useState("");
   const [selectionIcons, setSelectionIcons] = useState<
     EditableSelectionIcon[]
   >([]);
@@ -1407,6 +1433,24 @@ export function IconImportDialog({
     );
   };
 
+  const applySelectionPathPrefix = () => {
+    setSelectionIcons((current) =>
+      current.map((icon) => ({
+        ...icon,
+        path: prefixedIconPath(selectionPathPrefix, icon.path),
+      })),
+    );
+  };
+
+  const generateSelectionDisplayNames = () => {
+    setSelectionIcons((current) =>
+      current.map((icon) => ({
+        ...icon,
+        displayName: displayNameFromIconPath(icon.path) || icon.displayName,
+      })),
+    );
+  };
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (confirmDisabled) {
@@ -1594,7 +1638,7 @@ export function IconImportDialog({
 
               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
                 <Field
-                  label="Search in collection"
+                  label="Search icons"
                   help={
                     selectedPublicSource
                       ? `${selectedPublicSource.label} via Iconify`
@@ -1699,25 +1743,61 @@ export function IconImportDialog({
 
           {mode === "selection" ? (
             <div className="flex min-w-0 flex-col gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => void handleReadSelection()}
-                disabled={busy || selectionLoading}
-                className="self-start bg-[var(--color-figma-bg-secondary)]"
-              >
-                <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
-                {selectionLoading ? "Reading selection" : "Read selection"}
-              </Button>
+              <div className="flex min-w-0 flex-wrap items-end gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void handleReadSelection()}
+                  disabled={busy || selectionLoading}
+                  className="bg-[var(--color-figma-bg-secondary)]"
+                >
+                  <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
+                  {selectionLoading ? "Reading selection" : "Read selection"}
+                </Button>
+                {selectionIcons.length > 0 ? (
+                  <>
+                    <Field label="Path prefix" className="min-w-[160px] flex-1">
+                      <TextInput
+                        value={selectionPathPrefix}
+                        onChange={(event) =>
+                          setSelectionPathPrefix(event.target.value)
+                        }
+                        placeholder="navigation"
+                        size="sm"
+                      />
+                    </Field>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={applySelectionPathPrefix}
+                      disabled={busy || !selectionPathPrefix.trim()}
+                      className="mb-0.5 bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      Apply
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={generateSelectionDisplayNames}
+                      disabled={busy}
+                      className="mb-0.5"
+                    >
+                      Name from path
+                    </Button>
+                  </>
+                ) : null}
+              </div>
 
               {selectionIcons.length > 0 ? (
-                <div className="flex max-h-72 min-w-0 flex-col gap-2 overflow-auto">
+                <div className="flex max-h-72 min-w-0 flex-col gap-2 overflow-auto pr-1">
                   {selectionIcons.map((icon) => (
                     <div
                       key={icon.nodeId}
-                      className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)_minmax(0,1fr)] gap-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2"
+                      className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)] gap-2 rounded bg-[var(--color-figma-bg-secondary)] p-2 min-[520px]:grid-cols-[40px_minmax(0,1fr)_minmax(0,1fr)]"
                     >
-                      <div className="row-span-2 flex h-10 w-10 items-center justify-center rounded bg-[var(--color-figma-bg)]">
+                      <div className="row-span-3 flex h-10 w-10 items-center justify-center rounded bg-[var(--color-figma-bg)]">
                         <img
                           src={svgDataUrl(icon.svg)}
                           alt=""
@@ -1725,7 +1805,7 @@ export function IconImportDialog({
                           draggable={false}
                         />
                       </div>
-                      <div className="col-span-2 min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                      <div className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)] min-[520px]:col-span-2">
                         <span className="block truncate font-medium text-[color:var(--color-figma-text)]">
                           {icon.nodeName}
                         </span>
@@ -1758,7 +1838,7 @@ export function IconImportDialog({
                         />
                       </Field>
                       {(selectionIssues.get(icon.nodeId) ?? []).length > 0 ? (
-                        <div className="col-span-3 flex min-w-0 flex-col gap-1">
+                        <div className="col-span-2 flex min-w-0 flex-col gap-1 min-[520px]:col-span-3">
                           {(selectionIssues.get(icon.nodeId) ?? []).map((issue) => (
                             <p
                               key={`${issue.tone}:${issue.message}`}

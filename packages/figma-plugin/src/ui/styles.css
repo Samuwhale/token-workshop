@@ -2076,7 +2076,9 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-token-toolbar__search-control [role="radiogroup"] {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-inline-size: 132px;
+  max-inline-size: 204px;
   background: var(--surface-group-quiet);
 }
 
@@ -2208,6 +2210,7 @@ button.tm-status-row:not(:disabled):hover {
 
   .tm-token-toolbar__search-control [role="radiogroup"] {
     inline-size: 100%;
+    max-inline-size: none;
   }
 
   .tm-token-toolbar .tm-responsive-toolbar__actions {

@@ -27,6 +27,7 @@ import {
   IconButton,
   MenuRadioGroup,
   SearchField,
+  SegmentedControl,
   type SegmentedOption,
 } from "../primitives";
 
@@ -188,12 +189,14 @@ export function TokenListToolbar({
 
   const searchScope: "collection" | "all" =
     overflowMenuProps?.crossCollectionSearch === true ? "all" : "collection";
+  const showSearchScopeToggle =
+    viewMode === "tree" && overflowMenuProps?.hasMultipleCollections === true;
   const searchPlaceholder =
     viewMode === "json"
       ? "Search JSON"
       : searchScope === "all"
         ? "Search all collections"
-        : "Search tokens";
+        : "Search this collection";
   const effectiveSearchTooltip =
     viewMode === "json" ? "Search raw JSON text" : searchTooltip;
   const searchAriaLabel =
@@ -201,7 +204,7 @@ export function TokenListToolbar({
       ? "Search JSON"
       : searchScope === "all"
         ? "Search all collections"
-        : "Search tokens";
+        : "Search this collection";
 
   const showSelectionChip = selectedNodeCount > 0 && boundTokenCount > 0;
   const showSearch =
@@ -245,7 +248,6 @@ export function TokenListToolbar({
   const viewMenuActive =
     viewMode === "json" ||
     groupBy !== "path" ||
-    searchScope === "all" ||
     sortOrder !== "default" ||
     overflowMenuProps?.searchResultPresentation === "flat";
   const viewMenuLabel = "View";
@@ -281,6 +283,24 @@ export function TokenListToolbar({
             {showSearch ? (
               <div className="tm-responsive-toolbar__search relative">
                 <div className="tm-token-toolbar__search-control">
+                  {showSearchScopeToggle ? (
+                    <SegmentedControl
+                      value={searchScope}
+                      options={SEARCH_SCOPE_OPTIONS}
+                      onChange={(value) => {
+                        if (
+                          overflowMenuProps &&
+                          (value === "all") !==
+                            overflowMenuProps.crossCollectionSearch
+                        ) {
+                          overflowMenuProps.onToggleCrossCollectionSearch();
+                        }
+                      }}
+                      ariaLabel="Search scope"
+                      allowWrap
+                      size="compact"
+                    />
+                  ) : null}
                   <SearchField
                     ref={searchRef}
                     role={viewMode === "tree" ? "combobox" : "searchbox"}
@@ -504,22 +524,6 @@ export function TokenListToolbar({
                                 value={groupBy}
                                 options={GROUP_OPTIONS}
                                 onChange={setGroupBy}
-                                onSelect={closeViewMenu}
-                              />
-                            ) : null}
-                            {overflowMenuProps.hasMultipleCollections ? (
-                              <MenuRadioGroup
-                                label="Search"
-                                value={searchScope}
-                                options={SEARCH_SCOPE_OPTIONS}
-                                onChange={(value) => {
-                                  if (
-                                    (value === "all") !==
-                                    overflowMenuProps.crossCollectionSearch
-                                  ) {
-                                    overflowMenuProps.onToggleCrossCollectionSearch();
-                                  }
-                                }}
                                 onSelect={closeViewMenu}
                               />
                             ) : null}
