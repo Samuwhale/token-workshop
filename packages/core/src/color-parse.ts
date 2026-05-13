@@ -384,6 +384,25 @@ function parseRawNum(s: string): number | null {
   return isNaN(n) ? null : n;
 }
 
+function parsePercentageOrUnitChannel(channel: string, unitDivisor: number): number | null {
+  if (channel.endsWith('%')) {
+    const raw = parseRawNum(channel.slice(0, -1));
+    return raw === null ? null : raw / 100;
+  }
+
+  const raw = parseRawNum(channel);
+  return raw === null ? null : raw / unitDivisor;
+}
+
+function parseLightnessChannel(channel: string): number | null {
+  if (channel.endsWith('%')) {
+    const raw = parseRawNum(channel.slice(0, -1));
+    return raw === null ? null : raw / 100;
+  }
+
+  return parseRawNum(channel);
+}
+
 function parseHexStr(hex: string): ParsedColor | null {
   const rgb = hexToRgb(hex);
   if (!rgb) return null;
@@ -411,10 +430,16 @@ export function parseAnyColor(input: string): ParsedColor | null {
   // Function-style: rgb(), hsl(), oklch(), oklab(), color()
   const funcMatch = trimmed.match(/^([a-z-]+)\s*\((.+)\)$/);
   if (!funcMatch) return null;
-  const [, func, argsStr] = funcMatch;
+  const func = funcMatch[1];
+  const argsStr = funcMatch[2];
+  if (!func || !argsStr) return null;
+
   // Normalize arg separators: allow both comma and space syntax
   // Split on / for alpha, then split channels
-  const [channelStr, alphaStr] = argsStr.split('/');
+  const channelParts = argsStr.split('/');
+  const channelStr = channelParts[0];
+  if (!channelStr) return null;
+  const alphaStr = channelParts[1];
   const alpha = alphaStr ? parseNum(alphaStr.trim()) ?? 1 : 1;
   // Split channels on commas or whitespace
   const channels = channelStr.trim().split(/[\s,]+/).filter(Boolean);
@@ -422,74 +447,63 @@ export function parseAnyColor(input: string): ParsedColor | null {
   switch (func) {
     case 'rgb':
     case 'rgba': {
-      if (channels.length < 3) return null;
+      const [rChannel, gChannel, bChannel, aChannel] = channels;
+      if (!rChannel || !gChannel || !bChannel) return null;
       // channels can be 0-255 or 0-100%
-      const rRaw = channels[0].endsWith('%') ? parseRawNum(channels[0].slice(0, -1)) : parseRawNum(channels[0]);
-      const gRaw = channels[1].endsWith('%') ? parseRawNum(channels[1].slice(0, -1)) : parseRawNum(channels[1]);
-      const bRaw = channels[2].endsWith('%') ? parseRawNum(channels[2].slice(0, -1)) : parseRawNum(channels[2]);
-      if (rRaw === null || gRaw === null || bRaw === null) return null;
-      const r = channels[0].endsWith('%') ? rRaw / 100 : rRaw / 255;
-      const g = channels[1].endsWith('%') ? gRaw / 100 : gRaw / 255;
-      const b = channels[2].endsWith('%') ? bRaw / 100 : bRaw / 255;
+      const r = parsePercentageOrUnitChannel(rChannel, 255);
+      const g = parsePercentageOrUnitChannel(gChannel, 255);
+      const b = parsePercentageOrUnitChannel(bChannel, 255);
+      if (r === null || g === null || b === null) return null;
       // Legacy rgba(r, g, b, a) — 4th channel as alpha
       let a = alpha;
-      if (channels.length >= 4 && !alphaStr) {
-        a = parseNum(channels[3]) ?? 1;
+      if (aChannel && !alphaStr) {
+        a = parseNum(aChannel) ?? 1;
       }
       return { space: 'srgb', coords: [clamp01(r), clamp01(g), clamp01(b)], alpha: clamp01(a) };
     }
 
     case 'hsl':
     case 'hsla': {
-      if (channels.length < 3) return null;
-      const h = parseRawNum(channels[0].replace('deg', ''));
-      const s = parseRawNum(channels[1].replace('%', ''));
-      const l = parseRawNum(channels[2].replace('%', ''));
+      const [hChannel, sChannel, lChannel, aChannel] = channels;
+      if (!hChannel || !sChannel || !lChannel) return null;
+      const h = parseRawNum(hChannel.replace('deg', ''));
+      const s = parseRawNum(sChannel.replace('%', ''));
+      const l = parseRawNum(lChannel.replace('%', ''));
       let a = alpha;
-      if (channels.length >= 4 && !alphaStr) {
-        a = parseNum(channels[3]) ?? 1;
+      if (aChannel && !alphaStr) {
+        a = parseNum(aChannel) ?? 1;
       }
       if (h === null || s === null || l === null) return null;
       return { space: 'hsl', coords: [((h % 360) + 360) % 360, clamp(s, 0, 100), clamp(l, 0, 100)], alpha: clamp01(a) };
     }
 
     case 'oklch': {
-      if (channels.length < 3) return null;
+      const [lChannel, cChannel, hChannel] = channels;
+      if (!lChannel || !cChannel || !hChannel) return null;
       // L: 0-1 or 0-100%, C: 0-0.4+, H: 0-360
-      let L: number | null;
-      if (channels[0].endsWith('%')) {
-        const raw = parseRawNum(channels[0].slice(0, -1));
-        L = raw !== null ? raw / 100 : null;
-      } else {
-        L = parseRawNum(channels[0]);
-      }
-      const C = parseRawNum(channels[1]);
-      const H = parseRawNum(channels[2].replace('deg', ''));
+      const L = parseLightnessChannel(lChannel);
+      const C = parseRawNum(cChannel);
+      const H = parseRawNum(hChannel.replace('deg', ''));
       if (L === null || C === null || H === null) return null;
       return { space: 'oklch', coords: [clamp(L, 0, 1), Math.max(0, C), ((H % 360) + 360) % 360], alpha: clamp01(alpha) };
     }
 
     case 'oklab': {
-      if (channels.length < 3) return null;
-      let L: number | null;
-      if (channels[0].endsWith('%')) {
-        const raw = parseRawNum(channels[0].slice(0, -1));
-        L = raw !== null ? raw / 100 : null;
-      } else {
-        L = parseRawNum(channels[0]);
-      }
-      const a2 = parseRawNum(channels[1]);
-      const b2 = parseRawNum(channels[2]);
+      const [lChannel, aChannel, bChannel] = channels;
+      if (!lChannel || !aChannel || !bChannel) return null;
+      const L = parseLightnessChannel(lChannel);
+      const a2 = parseRawNum(aChannel);
+      const b2 = parseRawNum(bChannel);
       if (L === null || a2 === null || b2 === null) return null;
       return { space: 'oklab', coords: [clamp(L, 0, 1), a2, b2], alpha: clamp01(alpha) };
     }
 
     case 'color': {
-      if (channels.length < 4) return null; // colorspace + 3 channels
-      const colorspace = channels[0];
-      const c0 = parseRawNum(channels[1]);
-      const c1 = parseRawNum(channels[2]);
-      const c2 = parseRawNum(channels[3]);
+      const [colorspace, c0Channel, c1Channel, c2Channel] = channels;
+      if (!colorspace || !c0Channel || !c1Channel || !c2Channel) return null;
+      const c0 = parseRawNum(c0Channel);
+      const c1 = parseRawNum(c1Channel);
+      const c2 = parseRawNum(c2Channel);
       if (c0 === null || c1 === null || c2 === null) return null;
       if (colorspace === 'display-p3') {
         return { space: 'display-p3', coords: [clamp01(c0), clamp01(c1), clamp01(c2)], alpha: clamp01(alpha) };
@@ -501,10 +515,11 @@ export function parseAnyColor(input: string): ParsedColor | null {
     }
 
     case 'hwb': {
-      if (channels.length < 3) return null;
-      const h = parseRawNum(channels[0].replace('deg', ''));
-      const w = parseRawNum(channels[1].replace('%', ''));
-      const bk = parseRawNum(channels[2].replace('%', ''));
+      const [hChannel, wChannel, bChannel] = channels;
+      if (!hChannel || !wChannel || !bChannel) return null;
+      const h = parseRawNum(hChannel.replace('deg', ''));
+      const w = parseRawNum(wChannel.replace('%', ''));
+      const bk = parseRawNum(bChannel.replace('%', ''));
       if (h === null || w === null || bk === null) return null;
       // HWB → sRGB
       const wn = w / 100, bn = bk / 100;
@@ -520,20 +535,22 @@ export function parseAnyColor(input: string): ParsedColor | null {
 
     case 'lab': {
       // CIE Lab — convert to sRGB via XYZ.
-      if (channels.length < 3) return null;
-      const L = channels[0].endsWith('%') ? parseRawNum(channels[0].slice(0, -1))! : parseRawNum(channels[0]);
-      const a2 = parseRawNum(channels[1]);
-      const b2 = parseRawNum(channels[2]);
+      const [lChannel, aChannel, bChannel] = channels;
+      if (!lChannel || !aChannel || !bChannel) return null;
+      const L = lChannel.endsWith('%') ? parseRawNum(lChannel.slice(0, -1)) : parseRawNum(lChannel);
+      const a2 = parseRawNum(aChannel);
+      const b2 = parseRawNum(bChannel);
       if (L === null || a2 === null || b2 === null) return null;
       return { space: 'srgb', coords: labToSrgbCoords(L, a2, b2), alpha: clamp01(alpha) };
     }
 
     case 'lch': {
       // CIE LCH → Lab → XYZ → sRGB
-      if (channels.length < 3) return null;
-      const L = parseRawNum(channels[0]);
-      const C = parseRawNum(channels[1]);
-      const H = parseRawNum(channels[2].replace('deg', ''));
+      const [lChannel, cChannel, hChannel] = channels;
+      if (!lChannel || !cChannel || !hChannel) return null;
+      const L = parseRawNum(lChannel);
+      const C = parseRawNum(cChannel);
+      const H = parseRawNum(hChannel.replace('deg', ''));
       if (L === null || C === null || H === null) return null;
       const rad = (H * Math.PI) / 180;
       const a2 = C * Math.cos(rad);
@@ -580,4 +597,3 @@ export function srgbFallbackHex(colorStr: string): string | null {
   if (!parsed) return null;
   return toHex(parsed);
 }
-

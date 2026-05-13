@@ -417,6 +417,8 @@ function resolveInternalPointer(ref: string, file: ResolverFile): InternalTarget
   if (parts.length !== 2) return null;
 
   const [section, name] = parts;
+  if (!section || !name) return null;
+
   if (section === 'sets' && file.sets?.[name]) {
     return { kind: 'set', name, value: file.sets[name] };
   }

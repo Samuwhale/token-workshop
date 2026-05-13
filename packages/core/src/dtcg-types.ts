@@ -86,8 +86,9 @@ export function isFormula(value: unknown): value is string {
  */
 export function parseReference(ref: string): string {
   const match = ref.match(REFERENCE_REGEX);
-  if (!match) throw new Error(`Invalid reference: ${ref}`);
-  return match[1];
+  const path = match?.[1];
+  if (!path) throw new Error(`Invalid reference: ${ref}`);
+  return path;
 }
 
 /**
@@ -104,7 +105,8 @@ export function extractReferencePaths(value: unknown): string[] {
   const paths: string[] = [];
   let match: RegExpExecArray | null;
   while ((match = regex.exec(value)) !== null) {
-    paths.push(match[1]);
+    const path = match[1];
+    if (path) paths.push(path);
   }
   return paths;
 }

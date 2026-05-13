@@ -12,27 +12,45 @@ export function evalExpr(expr: string): number {
 
   // Tokenize into numbers and operators
   while (i < src.length) {
-    if (/\d/.test(src[i]) || (src[i] === '.' && i + 1 < src.length && /\d/.test(src[i + 1]))) {
+    const char = src[i];
+    if (char === undefined) {
+      throw new Error('Unexpected end of expression');
+    }
+
+    if (/\d/.test(char) || (char === '.' && i + 1 < src.length && /\d/.test(src[i + 1] ?? ''))) {
       let num = '';
-      while (i < src.length && /[\d.]/.test(src[i])) num += src[i++];
+      while (i < src.length) {
+        const digit = src[i];
+        if (!digit || !/[\d.]/.test(digit)) break;
+        num += digit;
+        i++;
+      }
       tokens.push(num);
-    } else if (src[i] === '*' && src[i + 1] === '*') {
+    } else if (char === '*' && src[i + 1] === '*') {
       tokens.push('**');
       i += 2;
-    } else if (src[i] === '^') {
+    } else if (char === '^') {
       tokens.push('**');
       i++;
-    } else if ('+-*/()'.includes(src[i])) {
-      tokens.push(src[i++]);
+    } else if ('+-*/()'.includes(char)) {
+      tokens.push(char);
+      i++;
     } else {
-      throw new Error(`Unexpected character in formula: ${src[i]}`);
+      throw new Error(`Unexpected character in formula: ${char}`);
     }
   }
 
   let pos = 0;
 
   function peek(): string | undefined { return tokens[pos]; }
-  function consume(): string { return tokens[pos++]; }
+  function consume(): string {
+    const token = tokens[pos];
+    if (token === undefined) {
+      throw new Error('Unexpected end of expression');
+    }
+    pos++;
+    return token;
+  }
 
   function parseExpr(): number { return parseAddSub(); }
 

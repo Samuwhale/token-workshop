@@ -1013,9 +1013,10 @@ function literalValue(
 ): GeneratorRuntimeValue {
   const type = String(node.data.type ?? 'string') as TokenGeneratorPortType;
   const refs = readTokenRefMap(node);
+  const valueRef = refs.value;
   const hasTokenRef = Object.prototype.hasOwnProperty.call(refs, 'value');
   const resolvedRef = hasTokenRef
-    ? resolveGeneratorTokenRef(refs.value, modeName, targetCollection, tokensByCollection, 'value')
+    ? resolveGeneratorTokenRef(valueRef ?? '', modeName, targetCollection, tokensByCollection, 'value')
     : undefined;
   if (resolvedRef !== undefined) {
     if (type === 'number') {
@@ -1757,7 +1758,8 @@ function materializeOutputs({
   existingTokens: Record<string, Token>;
   diagnostics: TokenGeneratorDiagnostic[];
 }): TokenGeneratorPreviewOutput[] {
-  const firstModeValue = valuesByMode[modeNames[0]];
+  const firstModeName = modeNames[0];
+  const firstModeValue = firstModeName ? valuesByMode[firstModeName] : undefined;
   const path = String(node.data.path ?? '').trim();
   const pathPrefix = String(node.data.pathPrefix ?? path).trim();
   if (!firstModeValue) {
@@ -1839,7 +1841,13 @@ function materializeOutputs({
       const modeValues = Object.fromEntries(
         modeNames.map((modeName) => {
           const modeValue = listValuesByMode.get(modeName)!;
-          return [modeName, modeValue.values[itemIndex].value];
+          const modeItem = modeValue.values[itemIndex];
+          if (!modeItem) {
+            throw new Error(
+              `${node.label}: ${modeName} is missing output item ${itemIndex + 1} after length validation.`,
+            );
+          }
+          return [modeName, modeItem.value];
         }),
       ) as Record<string, TokenValue | TokenReference>;
       const outputPath = `${pathPrefix}.${item.key}`;

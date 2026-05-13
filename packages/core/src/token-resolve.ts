@@ -357,6 +357,10 @@ export function resolveTokenAncestors({
       }
 
       const nextPath = refs[0];
+      if (!nextPath) {
+        break;
+      }
+
       const resolution = resolveCollectionIdForPath({
         path: nextPath,
         pathToCollectionId,
