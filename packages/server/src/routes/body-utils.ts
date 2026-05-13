@@ -6,6 +6,14 @@ export type RequiredStringFieldResult =
   | { ok: true; value: string }
   | { ok: false; error: string };
 
+export type BooleanFieldResult =
+  | { ok: true; value: boolean | undefined }
+  | { ok: false; error: string };
+
+export type StringArrayFieldResult =
+  | { ok: true; value: string[] | undefined }
+  | { ok: false; error: string };
+
 export function isRequestBodyObject(
   body: unknown,
 ): body is Record<string, unknown> {
@@ -45,4 +53,35 @@ export function readRequiredTrimmedStringField(
     return { ok: false, error: `${label} must be a non-empty string` };
   }
   return { ok: true, value: body[field].trim() };
+}
+
+export function readOptionalBooleanField(
+  body: Record<string, unknown> | undefined,
+  field: string,
+  label: string,
+): BooleanFieldResult {
+  if (!body || !hasBodyField(body, field) || body[field] == null) {
+    return { ok: true, value: undefined };
+  }
+  if (typeof body[field] !== "boolean") {
+    return { ok: false, error: `${label} must be a boolean` };
+  }
+  return { ok: true, value: body[field] };
+}
+
+export function readOptionalStringArrayField(
+  body: Record<string, unknown> | undefined,
+  field: string,
+  label: string,
+): StringArrayFieldResult {
+  if (!body || !hasBodyField(body, field) || body[field] == null) {
+    return { ok: true, value: undefined };
+  }
+  if (
+    !Array.isArray(body[field]) ||
+    body[field].some((item) => typeof item !== "string")
+  ) {
+    return { ok: false, error: `${label} must be an array of strings` };
+  }
+  return { ok: true, value: body[field] };
 }

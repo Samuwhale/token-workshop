@@ -13,7 +13,10 @@ import type { GitTokenChange as TokenChange } from "../services/git-sync.js";
 import {
   hasBodyField,
   isRequestBodyObject,
+  readOptionalBooleanField,
+  readOptionalStringArrayField,
   readOptionalTrimmedStringField,
+  readRequiredTrimmedStringField,
 } from "./body-utils.js";
 import { readPagination } from "./pagination.js";
 
@@ -228,13 +231,27 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: { message: string; files?: string[] } }>(
     "/sync/commit",
     async (request, reply) => {
-      const { message, files } = request.body || {};
-      if (!message) {
-        return reply.status(400).send({ error: "Commit message is required" });
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const messageResult = readRequiredTrimmedStringField(
+        body,
+        "message",
+        "Commit message",
+      );
+      if (!messageResult.ok) {
+        return reply.status(400).send({ error: messageResult.error });
+      }
+      const message = messageResult.value;
+      const filesResult = readOptionalStringArrayField(
+        body,
+        "files",
+        "files",
+      );
+      if (!filesResult.ok) {
+        return reply.status(400).send({ error: filesResult.error });
       }
 
       try {
-        const commitHash = await fastify.gitSync.commit(message, files);
+        const commitHash = await fastify.gitSync.commit(message, filesResult.value);
         return { ok: true, commit: commitHash, message };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to commit");
@@ -596,12 +613,17 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: { url: string } }>(
     "/sync/remote",
     async (request, reply) => {
-      const { url } = request.body || {};
-      if (!url || typeof url !== "string") {
-        return reply.status(400).send({ error: "Remote URL is required" });
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const urlResult = readRequiredTrimmedStringField(
+        body,
+        "url",
+        "Remote URL",
+      );
+      if (!urlResult.ok) {
+        return reply.status(400).send({ error: urlResult.error });
       }
 
-      const trimmed = url.trim();
+      const trimmed = urlResult.value;
       // Accept HTTPS, SSH (git@host:path), git://, and file:// remote URLs
       const validPatterns = [
         /^https?:\/\/.+/, // https://github.com/user/repo.git
@@ -641,18 +663,28 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: { branch: string; create?: boolean } }>(
     "/sync/checkout",
     async (request, reply) => {
-      const { branch, create } = request.body || {};
-      if (!branch) {
-        return reply.status(400).send({ error: "Branch name is required" });
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const branchResult = readRequiredTrimmedStringField(
+        body,
+        "branch",
+        "Branch name",
+      );
+      if (!branchResult.ok) {
+        return reply.status(400).send({ error: branchResult.error });
+      }
+      const branch = branchResult.value;
+      const createResult = readOptionalBooleanField(body, "create", "create");
+      if (!createResult.ok) {
+        return reply.status(400).send({ error: createResult.error });
       }
 
       try {
-        if (create) {
+        if (createResult.value) {
           await fastify.gitSync.createBranch(branch);
         } else {
           await fastify.gitSync.checkout(branch);
         }
-        return { ok: true, branch, created: !!create };
+        return { ok: true, branch, created: createResult.value === true };
       } catch (err) {
         return handleRouteError(reply, err, "Failed to checkout branch");
       }

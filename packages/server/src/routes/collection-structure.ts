@@ -21,9 +21,23 @@ import type { CollectionStructuralOperation } from "../services/collection-servi
 import {
   hasBodyField,
   isRequestBodyObject,
+  readOptionalBooleanField,
   readOptionalTrimmedStringField,
   readRequiredTrimmedStringField,
 } from "./body-utils.js";
+
+function isMergeResolutionMap(
+  value: unknown,
+): value is Record<string, "source" | "target"> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.values(value).every(
+      (resolution) => resolution === "source" || resolution === "target",
+    )
+  );
+}
 
 function buildCollectionsRollbackStep(state: CollectionState): RollbackStep {
   return {
@@ -298,8 +312,8 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
   fastify.post<{ Body: { order: string[] } }>(
     "/collections/reorder",
     async (request, reply) => {
-      const body = isRequestBodyObject(request.body) ? request.body : {};
-      const { order } = body;
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const order = body?.order;
       if (!Array.isArray(order)) {
         return reply
           .status(400)
@@ -764,9 +778,22 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
     };
   }>("/collections/:id/merge", async (request, reply) => {
     const { id } = request.params;
-    const { targetCollection, resolutions = {} } = request.body || {};
-    if (!targetCollection) {
-      return reply.status(400).send({ error: "targetCollection is required" });
+    const body = isRequestBodyObject(request.body) ? request.body : undefined;
+    const targetCollectionResult = readRequiredTrimmedStringField(
+      body,
+      "targetCollection",
+      "targetCollection",
+    );
+    if (!targetCollectionResult.ok) {
+      return reply.status(400).send({ error: targetCollectionResult.error });
+    }
+    const targetCollection = targetCollectionResult.value;
+    const resolutions =
+      body?.resolutions === undefined ? {} : body.resolutions;
+    if (!isMergeResolutionMap(resolutions)) {
+      return reply.status(400).send({
+        error: 'resolutions must map token paths to "source" or "target"',
+      });
     }
     if (targetCollection === id) {
       return reply.status(400).send({
@@ -848,7 +875,16 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
     Body: { deleteOriginal?: boolean };
   }>("/collections/:id/split", async (request, reply) => {
     const { id } = request.params;
-    const { deleteOriginal = false } = request.body || {};
+    const body = isRequestBodyObject(request.body) ? request.body : undefined;
+    const deleteOriginalResult = readOptionalBooleanField(
+      body,
+      "deleteOriginal",
+      "deleteOriginal",
+    );
+    if (!deleteOriginalResult.ok) {
+      return reply.status(400).send({ error: deleteOriginalResult.error });
+    }
+    const deleteOriginal = deleteOriginalResult.value === true;
 
     let mutation: Awaited<
       ReturnType<typeof fastify.collectionService.splitCollection>
@@ -935,8 +971,8 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
     };
   }>("/collections/:id/preflight", async (request, reply) => {
     const { id } = request.params;
-    const { operation, targetCollection, deleteOriginal = false } =
-      request.body || {};
+    const body = isRequestBodyObject(request.body) ? request.body : undefined;
+    const operation = body?.operation;
     if (
       operation !== "delete" &&
       operation !== "merge" &&
@@ -946,12 +982,28 @@ export const collectionStructureRoutes: FastifyPluginAsync = async (fastify) => 
         .status(400)
         .send({ error: 'operation must be "delete", "merge", or "split"' });
     }
+    const deleteOriginalResult = readOptionalBooleanField(
+      body,
+      "deleteOriginal",
+      "deleteOriginal",
+    );
+    if (!deleteOriginalResult.ok) {
+      return reply.status(400).send({ error: deleteOriginalResult.error });
+    }
+    const deleteOriginal = deleteOriginalResult.value === true;
+    let targetCollection: string | undefined;
     if (operation === "merge") {
-      if (!targetCollection) {
+      const targetCollectionResult = readRequiredTrimmedStringField(
+        body,
+        "targetCollection",
+        "targetCollection",
+      );
+      if (!targetCollectionResult.ok) {
         return reply
           .status(400)
           .send({ error: "targetCollection is required for merge preflight" });
       }
+      targetCollection = targetCollectionResult.value;
       if (targetCollection === id) {
         return reply.status(400).send({
           error: "targetCollection must differ from the source collection",

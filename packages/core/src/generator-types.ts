@@ -253,6 +253,31 @@ export function validateStepName(stepName: string): void {
       `Invalid step name "${s}": contains a slash`,
     );
   }
+  if (/\s/.test(s)) {
+    throw new Error(
+      `Invalid step name "${s}": contains whitespace`,
+    );
+  }
+}
+
+/**
+ * Validate a dot-separated generator output path.
+ *
+ * Generator outputs become authored token paths. Validate them in core so API
+ * callers and the UI share the same rules before anything reaches token-store
+ * mutation code.
+ */
+export function validateGeneratorOutputPath(path: string): string | null {
+  const text = path.trim();
+  if (!text) return 'Path is required.';
+  for (const segment of text.split('.')) {
+    try {
+      validateStepName(segment);
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------

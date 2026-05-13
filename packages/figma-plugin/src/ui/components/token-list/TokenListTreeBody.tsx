@@ -995,8 +995,8 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             title="This collection is empty"
             description={
               hasSelection
-                ? "Create a token, import tokens, or extract selected layer values."
-                : "Create a token, import tokens, or add a group."
+                ? "Add a token, import tokens, or extract selected layer values."
+                : "Add a token or import tokens."
             }
             actions={emptyCollectionActions}
           />

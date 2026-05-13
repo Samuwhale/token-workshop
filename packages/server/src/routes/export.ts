@@ -3,8 +3,17 @@ import type { TokenGroup } from '@token-workshop/core';
 import type { CssExportOptions, ExportPlatform } from '../services/exporters/index.js';
 import { handleRouteError } from '../errors.js';
 import { exportTokens } from '../services/style-dict.js';
+import {
+  isRequestBodyObject,
+  readOptionalStringArrayField,
+  readOptionalTrimmedStringField,
+} from './body-utils.js';
 
 const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json', 'scss', 'less', 'typescript', 'tailwind', 'css-in-js'];
+
+function isExportPlatform(value: string): value is ExportPlatform {
+  return (VALID_PLATFORMS as string[]).includes(value);
+}
 
 /**
  * Recursively filter a token group, keeping only tokens whose resolved $type
@@ -111,23 +120,62 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: { platforms: ExportPlatform[]; collections?: string[]; group?: string[]; types?: string[]; pathPrefix?: string; cssSelector?: string; changedPaths?: string[] } }>(
     '/export',
     async (request, reply) => {
-      const { platforms, collections, group, types, pathPrefix, cssSelector, changedPaths } = request.body || {};
-
-      if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+      const body = isRequestBodyObject(request.body) ? request.body : undefined;
+      const platformsResult = readOptionalStringArrayField(body, 'platforms', 'platforms');
+      if (!platformsResult.ok) {
+        return reply.status(400).send({
+          error: platformsResult.error,
+          validPlatforms: VALID_PLATFORMS,
+        });
+      }
+      const platformNames = platformsResult.value;
+      if (!platformNames || platformNames.length === 0) {
         return reply.status(400).send({
           error: 'At least one platform is required',
           validPlatforms: VALID_PLATFORMS,
         });
       }
 
-      // Validate platforms
-      const invalid = platforms.filter(p => !VALID_PLATFORMS.includes(p));
+      const invalid = platformNames.filter(p => !isExportPlatform(p));
       if (invalid.length > 0) {
         return reply.status(400).send({
           error: `Invalid platform(s): ${invalid.join(', ')}`,
           validPlatforms: VALID_PLATFORMS,
         });
       }
+      const platforms = platformNames.filter(isExportPlatform);
+
+      const collectionsResult = readOptionalStringArrayField(body, 'collections', 'collections');
+      if (!collectionsResult.ok) {
+        return reply.status(400).send({ error: collectionsResult.error });
+      }
+      const groupResult = readOptionalStringArrayField(body, 'group', 'group');
+      if (!groupResult.ok) {
+        return reply.status(400).send({ error: groupResult.error });
+      }
+      const typesResult = readOptionalStringArrayField(body, 'types', 'types');
+      if (!typesResult.ok) {
+        return reply.status(400).send({ error: typesResult.error });
+      }
+      const changedPathsResult = readOptionalStringArrayField(body, 'changedPaths', 'changedPaths');
+      if (!changedPathsResult.ok) {
+        return reply.status(400).send({ error: changedPathsResult.error });
+      }
+      const pathPrefixResult = readOptionalTrimmedStringField(body ?? {}, 'pathPrefix', 'pathPrefix');
+      if (!pathPrefixResult.ok) {
+        return reply.status(400).send({ error: pathPrefixResult.error });
+      }
+      const cssSelectorResult = readOptionalTrimmedStringField(body ?? {}, 'cssSelector', 'cssSelector');
+      if (!cssSelectorResult.ok) {
+        return reply.status(400).send({ error: cssSelectorResult.error });
+      }
+
+      const collections = collectionsResult.value;
+      const group = groupResult.value;
+      const types = typesResult.value;
+      const changedPaths = changedPathsResult.value;
+      const pathPrefix = pathPrefixResult.value;
+      const cssSelector = cssSelectorResult.value;
 
       try {
         const collectionIds = await fastify.collectionService.listCollectionIds();
@@ -177,8 +225,8 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         // Filter by path prefix (dot-separated, e.g. "color.brand")
-        if (pathPrefix && pathPrefix.trim()) {
-          const segments = pathPrefix.trim().split('.');
+        if (pathPrefix) {
+          const segments = pathPrefix.split('.');
           const filtered: Record<string, TokenGroup> = {};
           for (const [collectionId, tokens] of Object.entries(tokenData)) {
             let current: TokenGroup | undefined = tokens;

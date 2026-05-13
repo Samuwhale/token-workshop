@@ -23,7 +23,7 @@ type StartHereBranchCopy = {
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
     title: "Start your token library",
-    description: "Create a collection, import Figma variables, or extract values from selected layers.",
+    description: "Create a collection to organize tokens and modes.",
   },
   "start-new": {
     title: "Create your first collection",
@@ -192,7 +192,7 @@ export function WelcomePrompt({
         title={hasCollections ? "Add to this library" : "Create your first collection"}
         description={
           hasCollections
-            ? "Create tokens, import a system, or extract values from the canvas."
+            ? "Create tokens, import tokens, or extract values from the canvas."
             : "Group related tokens and define their modes."
         }
         onClick={() => setBranch("start-new")}

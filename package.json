@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "typecheck": "turbo typecheck",
     "test": "turbo test",
     "lint": "eslint packages/core/src packages/figma-plugin/src packages/server/src packages/server/bin",
     "server": "pnpm --filter token-workshop exec tsx watch bin/cli.ts --dir ../../demo/tokens --port 9400",

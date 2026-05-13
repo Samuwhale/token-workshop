@@ -25,6 +25,7 @@
     "build": "tsc --noEmit && node build.mjs",
     "dev": "tsx watch bin/cli.ts",
     "start": "node dist/bin/cli.js",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
   },

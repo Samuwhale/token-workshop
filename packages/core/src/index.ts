@@ -274,6 +274,7 @@ export type {
 } from './generator-types.js';
 export {
   validateStepName,
+  validateGeneratorOutputPath,
 } from './generator-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,

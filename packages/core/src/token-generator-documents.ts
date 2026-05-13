@@ -42,6 +42,8 @@ import {
   type SpacingScaleConfig,
   type TypeScaleConfig,
   type ZIndexScaleConfig,
+  validateGeneratorOutputPath,
+  validateStepName,
 } from './generator-types.js';
 import { stableStringify } from './stable-stringify.js';
 import { isReference, parseReference } from './dtcg-types.js';
@@ -1795,12 +1797,13 @@ function materializeOutputs({
   if (node.kind === 'groupOutput') {
     const firstListValue = firstModeValue.kind === 'list' ? firstModeValue : null;
     if (!firstListValue) return [];
-    if (!pathPrefix) {
+    const pathPrefixError = validateGeneratorOutputPath(pathPrefix);
+    if (pathPrefixError) {
       diagnostics.push({
         id: `${node.id}-missing-prefix`,
         severity: 'error',
         nodeId: node.id,
-        message: `${node.label}: choose an output group.`,
+        message: `${node.label}: ${pathPrefixError}`,
       });
       return [];
     }
@@ -1837,6 +1840,11 @@ function materializeOutputs({
       listValuesByMode.set(modeName, modeValue);
     }
     if (listValuesByMode.size !== modeNames.length) return [];
+    const outputKeyError = validateOutputKeysByMode(node, modeNames, listValuesByMode);
+    if (outputKeyError) {
+      diagnostics.push(outputKeyError);
+      return [];
+    }
     return firstListValue.values.map((item, itemIndex) => {
       const modeValues = Object.fromEntries(
         modeNames.map((modeName) => {
@@ -1867,12 +1875,13 @@ function materializeOutputs({
   const firstScalarValue = firstModeValue.kind === 'scalar' ? firstModeValue : null;
   if (!firstScalarValue) return [];
 
-  if (!path) {
+  const pathError = validateGeneratorOutputPath(path);
+  if (pathError) {
     diagnostics.push({
       id: `${node.id}-missing-path`,
       severity: 'error',
       nodeId: node.id,
-      message: `${node.label}: choose an output token path.`,
+      message: `${node.label}: ${pathError}`,
     });
     return [];
   }
@@ -1920,6 +1929,51 @@ function materializeOutputs({
       existingTokens,
     }),
   ];
+}
+
+function validateOutputKeysByMode(
+  node: TokenGeneratorNode,
+  modeNames: string[],
+  listValuesByMode: Map<string, Extract<GeneratorRuntimeValue, { kind: 'list' }>>,
+): TokenGeneratorDiagnostic | null {
+  const expectedKeys = listValuesByMode.get(modeNames[0] ?? '')?.values.map((item) => item.key) ?? [];
+  for (const modeName of modeNames) {
+    const listValue = listValuesByMode.get(modeName);
+    if (!listValue) continue;
+    const seen = new Set<string>();
+    for (let itemIndex = 0; itemIndex < listValue.values.length; itemIndex += 1) {
+      const item = listValue.values[itemIndex]!;
+      try {
+        validateStepName(item.key);
+      } catch (error) {
+        return {
+          id: `${node.id}-invalid-output-key-${modeName}-${item.key || 'empty'}`,
+          severity: 'error',
+          nodeId: node.id,
+          message: `${node.label}: ${modeName} output item "${item.label}" ${error instanceof Error ? error.message : String(error)}`,
+        };
+      }
+      if (seen.has(item.key)) {
+        return {
+          id: `${node.id}-duplicate-output-key-${modeName}-${item.key}`,
+          severity: 'error',
+          nodeId: node.id,
+          message: `${node.label}: ${modeName} output item "${item.label}" uses a duplicate path segment.`,
+        };
+      }
+      const expectedKey = expectedKeys[itemIndex];
+      if (expectedKey !== undefined && item.key !== expectedKey) {
+        return {
+          id: `${node.id}-mismatched-output-key-${modeName}-${item.key}`,
+          severity: 'error',
+          nodeId: node.id,
+          message: `${node.label}: ${modeName} output item "${item.label}" uses "${item.key}" but the first mode uses "${expectedKey}".`,
+        };
+      }
+      seen.add(item.key);
+    }
+  }
+  return null;
 }
 
 function makeOutput({

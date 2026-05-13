@@ -107,9 +107,6 @@ function getModeFieldLabel(index: number, hasMultipleModes: boolean): string {
   if (!hasMultipleModes) {
     return "Mode name";
   }
-  if (index === 0) {
-    return "First mode";
-  }
   return `Mode ${index + 1}`;
 }
 
