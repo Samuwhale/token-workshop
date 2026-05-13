@@ -7,7 +7,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "turbo test",
-    "lint": "eslint packages/*/src/",
+    "lint": "eslint packages/core/src packages/figma-plugin/src packages/server/src packages/server/bin",
     "server": "pnpm --filter token-workshop exec tsx watch bin/cli.ts --dir ../../demo/tokens --port 9400",
     "plugin:build": "pnpm --filter @token-workshop/figma-plugin build",
     "plugin:release": "pnpm --filter @token-workshop/figma-plugin release",

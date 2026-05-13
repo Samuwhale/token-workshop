@@ -13,6 +13,7 @@ import {
   stableStringify,
   type IconFigmaLink,
   type IconRegistryFile,
+  type IconStatus,
   type ManagedIcon,
 } from "@token-workshop/core";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
@@ -64,6 +65,11 @@ export interface IconFigmaLinkUpdateResult {
 export interface IconFigmaLinkBatchUpdateResult {
   registry: IconRegistryFile;
   icons: ManagedIcon[];
+}
+
+export interface IconStatusUpdateResult {
+  icon: ManagedIcon;
+  registry: IconRegistryFile;
 }
 
 export interface IconAttributionManifestIcon {
@@ -352,6 +358,45 @@ export class IconStore {
       return {
         registry: structuredClone(normalizedRegistry),
         icons: normalizedRegistry.icons.filter((icon) => requestIds.has(icon.id)),
+      };
+    });
+  }
+
+  async updateIconStatus(
+    iconId: string,
+    input: unknown,
+  ): Promise<IconStatusUpdateResult> {
+    return this.lock.withLock(async () => {
+      const nextStatus = readIconStatusUpdate(input);
+      await this.reloadFromDiskUnlocked();
+
+      const registry = structuredClone(this.registry);
+      const index = registry.icons.findIndex((icon) => icon.id === iconId);
+      if (index < 0) {
+        throw new NotFoundError(`Icon "${iconId}" was not found.`);
+      }
+
+      const icon = registry.icons[index];
+      assertIconStatusIsAllowed(icon, nextStatus);
+      registry.icons[index] = {
+        ...icon,
+        status: nextStatus,
+      };
+
+      const normalizedRegistry = normalizeIconRegistryFile(registry);
+      await this.persistRegistry(normalizedRegistry);
+      this.setRegistry(normalizedRegistry);
+
+      const persistedIcon = normalizedRegistry.icons.find(
+        (candidate) => candidate.id === iconId,
+      );
+      if (!persistedIcon) {
+        throw new ConflictError(`Icon "${iconId}" was not persisted.`);
+      }
+
+      return {
+        icon: persistedIcon,
+        registry: structuredClone(normalizedRegistry),
       };
     });
   }
@@ -815,6 +860,34 @@ function statusForImportRequest(
   return "draft";
 }
 
+function assertIconStatusIsAllowed(icon: ManagedIcon, status: IconStatus): void {
+  if (status === "blocked" || status === "deprecated") {
+    return;
+  }
+
+  if (icon.quality.state === "blocked") {
+    throw new ConflictError(
+      `Icon "${icon.id}" has blocked quality issues and cannot be restored until its source is fixed.`,
+    );
+  }
+
+  if (status === "draft") {
+    return;
+  }
+
+  if (!icon.figma.componentId && !icon.figma.componentKey) {
+    throw new ConflictError(
+      `Icon "${icon.id}" cannot be marked published until it is published to Figma.`,
+    );
+  }
+
+  if (icon.figma.lastSyncedHash !== icon.svg.hash) {
+    throw new ConflictError(
+      `Icon "${icon.id}" cannot be marked published until its Figma component is synced to the current SVG.`,
+    );
+  }
+}
+
 function buildIconAttributionManifest(
   icons: ManagedIcon[],
 ): IconAttributionManifest {
@@ -1048,6 +1121,29 @@ function readIconIdsRequest(input: unknown): string[] {
     readRequiredNonEmptyString(id, `ids[${index}]`),
   );
   return Array.from(new Set(ids));
+}
+
+function readIconStatusUpdate(input: unknown): IconStatus {
+  if (!isRecord(input)) {
+    throw new BadRequestError("Icon status update body must be a JSON object.");
+  }
+  rejectUnsupportedFields(input, new Set(["status"]));
+  const status = readRequiredNonEmptyString(input.status, "status");
+  if (!isIconStatus(status)) {
+    throw new BadRequestError(
+      "status must be one of draft, published, deprecated, or blocked.",
+    );
+  }
+  return status;
+}
+
+function isIconStatus(value: string): value is IconStatus {
+  return (
+    value === "draft" ||
+    value === "published" ||
+    value === "deprecated" ||
+    value === "blocked"
+  );
 }
 
 function readFigmaLinkUpdate(input: unknown): {

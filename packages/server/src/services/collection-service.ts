@@ -1226,14 +1226,21 @@ export class CollectionService {
       throw new ConflictError(`Collection "${collectionId}" already exists`);
     }
 
+    const modes = definition?.modes?.map((mode) => ({ name: mode.name })) ?? [];
+    if (modes.length === 0) {
+      throw new BadRequestError(
+        `Collection "${collectionId}" must define at least one mode`,
+      );
+    }
+
     const tokensBefore = await this.captureWorkspaceTokensForState(stateBefore);
     await this.restoreCollectionWorkspaceWithinLock({
       state: {
         collections: [
           ...stateBefore.collections,
           {
-            modes: [],
             ...(definition ? structuredClone(definition) : {}),
+            modes,
             id: collectionId,
           },
         ],

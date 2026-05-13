@@ -66,6 +66,12 @@ function validateCollectionState(state: CollectionState): CollectionState {
       collectionIdSet.add(collection.id);
     }
 
+    if (collection.modes.length === 0) {
+      throw new ConflictError(
+        `Collection "${collection.id}" must define at least one mode`,
+      );
+    }
+
     const modeNames = new Set<string>();
     const duplicateModeNames = new Set<string>();
     for (const mode of collection.modes) {

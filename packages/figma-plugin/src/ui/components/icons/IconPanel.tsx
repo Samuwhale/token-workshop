@@ -103,6 +103,12 @@ interface IconFigmaLinksResponse {
   registry: IconRegistryFile;
 }
 
+interface IconStatusUpdateResponse {
+  ok: true;
+  icon: ManagedIcon;
+  registry: IconRegistryFile;
+}
+
 const SVG_FRAME_EPSILON = 1e-6;
 
 const STATUS_FILTERS: Array<{ value: IconStatusFilter; label: string }> = [
@@ -347,6 +353,26 @@ function iconCanExport(icon: ManagedIcon): boolean {
     icon.status !== "blocked" &&
     icon.quality.state !== "blocked"
   );
+}
+
+function restoredIconStatus(icon: ManagedIcon): IconStatus {
+  return icon.figma.lastSyncedHash === icon.svg.hash &&
+    Boolean(icon.figma.componentId || icon.figma.componentKey)
+    ? "published"
+    : "draft";
+}
+
+function iconStatusVerb(status: IconStatus): string {
+  switch (status) {
+    case "draft":
+      return "restored to draft";
+    case "published":
+      return "restored to published";
+    case "deprecated":
+      return "marked deprecated";
+    case "blocked":
+      return "blocked";
+  }
 }
 
 function getIconHealthSummary(
@@ -922,10 +948,12 @@ function IconInspector({
   iconSlotSetupActions,
   defaultIconSize,
   canvasActionBusy,
+  statusActionBusy,
   onInsert,
   onReplaceSelection,
   onSetIconSlot,
   onCreateIconSlot,
+  onUpdateStatus,
 }: {
   icon: ManagedIcon;
   content?: string;
@@ -934,12 +962,16 @@ function IconInspector({
   iconSlotSetupActions: IconSlotSetupAction[];
   defaultIconSize: number;
   canvasActionBusy: boolean;
+  statusActionBusy: boolean;
   onInsert: () => void;
   onReplaceSelection: () => void;
   onSetIconSlot: (action: IconSlotAction) => void;
   onCreateIconSlot: (action: IconSlotSetupAction) => void;
+  onUpdateStatus: (status: IconStatus) => void;
 }) {
   const publicSource = icon.source.kind === "public-library" ? icon.source : null;
+  const restoreStatus = restoredIconStatus(icon);
+  const canRestore = icon.quality.state !== "blocked";
   const rows: Array<[string, string]> = [
     ["Component", icon.componentName],
     ["Export", icon.code.exportName],
@@ -991,6 +1023,48 @@ function IconInspector({
       </div>
 
       <IconStatusPill status={icon.status} />
+
+      <div className="flex flex-wrap gap-1.5">
+        {icon.status === "deprecated" || icon.status === "blocked" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => onUpdateStatus(restoreStatus)}
+            disabled={statusActionBusy || !canRestore}
+            title={
+              canRestore
+                ? `Restore this icon as ${restoreStatus}`
+                : "Fix blocked quality issues before restoring this icon"
+            }
+          >
+            <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+            Restore
+          </Button>
+        ) : null}
+        {icon.status !== "deprecated" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => onUpdateStatus("deprecated")}
+            disabled={statusActionBusy}
+          >
+            Deprecate
+          </Button>
+        ) : null}
+        {icon.status !== "blocked" ? (
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            onClick={() => onUpdateStatus("blocked")}
+            disabled={statusActionBusy}
+          >
+            Block
+          </Button>
+        ) : null}
+      </div>
 
       <div className="grid grid-cols-2 gap-2">
         <Button
@@ -1197,6 +1271,7 @@ export function IconPanel() {
   const [publishing, setPublishing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [canvasActionBusy, setCanvasActionBusy] = useState(false);
+  const [statusActionBusy, setStatusActionBusy] = useState(false);
   const [auditScope, setAuditScope] = useState<IconUsageAuditScope>("selection");
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditResult, setAuditResult] = useState<IconUsageAuditResultMessage | null>(null);
@@ -1500,6 +1575,37 @@ export function IconPanel() {
       setExporting(false);
     }
   }, [exportableIconCount, exporting, serverUrl]);
+
+  const handleUpdateIconStatus = useCallback(async (status: IconStatus) => {
+    if (!selectedIcon || statusActionBusy) {
+      return;
+    }
+
+    setStatusActionBusy(true);
+    setError(null);
+    try {
+      const result = await apiFetch<IconStatusUpdateResponse>(
+        `${serverUrl}/api/icons/${encodeURIComponent(selectedIcon.id)}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
+      setRegistry(result.registry);
+      setSelectedIconId(result.icon.id);
+      dispatchToast(
+        `${selectedIcon.name} ${iconStatusVerb(result.icon.status)}.`,
+        "success",
+      );
+    } catch (err) {
+      const message = getErrorMessage(err, "Failed to update icon status.");
+      setError(message);
+      dispatchToast(message, "error");
+    } finally {
+      setStatusActionBusy(false);
+    }
+  }, [selectedIcon, serverUrl, statusActionBusy]);
 
   const handleInsert = useCallback(async () => {
     if (!selectedIcon || canvasActionBusy || !iconCanUseOnCanvas(selectedIcon)) {
@@ -1911,10 +2017,12 @@ export function IconPanel() {
               iconSlotSetupActions={iconSlotSetupActions}
               defaultIconSize={defaultIconSize}
               canvasActionBusy={canvasActionBusy}
+              statusActionBusy={statusActionBusy}
               onInsert={handleInsert}
               onReplaceSelection={handleReplaceSelection}
               onSetIconSlot={handleSetIconSlot}
               onCreateIconSlot={handleCreateIconSlot}
+              onUpdateStatus={handleUpdateIconStatus}
             />
           ) : null}
         </div>

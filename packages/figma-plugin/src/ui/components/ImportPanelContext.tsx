@@ -132,6 +132,18 @@ type CollectionImportPlan = {
   primaryModeName: string | null;
 };
 
+function getImportPlanModeNames(plan: CollectionImportPlan): [string, ...string[]] {
+  const modeNames = plan.primaryModeName
+    ? [plan.primaryModeName, ...plan.secondaryModeNames]
+    : plan.secondaryModeNames;
+  const uniqueModeNames = [
+    ...new Set(modeNames.map((modeName) => modeName.trim()).filter(Boolean)),
+  ];
+  return uniqueModeNames.length > 0
+    ? [uniqueModeNames[0], ...uniqueModeNames.slice(1)]
+    : [DEFAULT_FLAT_IMPORT_MODE_NAME];
+}
+
 export interface ImportSourceContextValue {
   loading: boolean;
   error: string | null;
@@ -1166,22 +1178,25 @@ export function ImportPanelProvider({
         const orderedPlans = sortPlansByAliasDependencies(collectionImportPlans);
         for (const plan of orderedPlans) {
           try {
+            const modeNamesToCreate = getImportPlanModeNames(plan);
+            const [initialModeName, ...additionalModeNames] = modeNamesToCreate;
+
             // Create/ensure collection exists
             try {
               await apiFetch(`${serverUrl}/api/collections`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: plan.collectionId }),
+                body: JSON.stringify({
+                  id: plan.collectionId,
+                  modes: [{ name: initialModeName }],
+                }),
               });
             } catch (err) {
               if (!(err instanceof ApiError && err.status === 409)) throw err;
             }
 
             // Create all modes on the collection (must exist before token import)
-            const modeNamesToCreate = plan.primaryModeName
-              ? [plan.primaryModeName, ...plan.secondaryModeNames]
-              : plan.secondaryModeNames;
-            for (const modeName of modeNamesToCreate) {
+            for (const modeName of additionalModeNames) {
               await apiFetch(
                 `${serverUrl}/api/collections/${encodeURIComponent(plan.collectionId)}/modes`,
                 {

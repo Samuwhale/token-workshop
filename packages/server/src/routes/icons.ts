@@ -138,6 +138,21 @@ export const iconRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   fastify.patch<{ Params: { iconId: string }; Body: unknown }>(
+    "/icons/:iconId/status",
+    async (request, reply) => {
+      try {
+        const result = await fastify.iconStore.updateIconStatus(
+          request.params.iconId,
+          request.body,
+        );
+        return reply.send({ ok: true, ...result });
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to update icon status");
+      }
+    },
+  );
+
+  fastify.patch<{ Params: { iconId: string }; Body: unknown }>(
     "/icons/:iconId/figma",
     async (request, reply) => {
       try {

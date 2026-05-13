@@ -338,6 +338,10 @@ export function useTableCreate({
 
   const handleCreateAll = useCallback(async () => {
     if (!connected || busy) return;
+    if (!collectionId) {
+      setCreateAllError('Choose a collection before creating tokens');
+      return;
+    }
 
     const rowsToCreate = tableRows.filter(r => r.name.trim());
     if (rowsToCreate.length === 0) {
@@ -389,7 +393,6 @@ export function useTableCreate({
 
     const preparedTokens: PreparedTableCreateToken[] = [];
     const parseErrors: Record<string, string> = {};
-    const effectiveCollectionId = collectionId || 'default';
 
     for (const row of rowsToCreate) {
       const g = tableGroup.trim();
@@ -435,7 +438,7 @@ export function useTableCreate({
               ? {
                   tokenworkshop: {
                     modes: {
-                      [effectiveCollectionId]: secondaryModeValues,
+                      [collectionId]: secondaryModeValues,
                     },
                   },
                 }
@@ -456,7 +459,7 @@ export function useTableCreate({
     try {
       const result = await batchCreateTokens(
         serverUrl,
-        effectiveCollectionId,
+        collectionId,
         preparedTokens,
       );
       const changedPaths = new Set(result.changedPaths ?? preparedTokens.map((token) => token.path));
@@ -470,7 +473,7 @@ export function useTableCreate({
       if (onPushUndo && created.length > 0) {
         onPushUndo(makeBatchCreateUndoSlot({
           serverUrl,
-          collectionId: effectiveCollectionId,
+          collectionId,
           createdTokens: created,
           preparedTokens,
           operationId: result.operationId,
