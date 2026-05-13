@@ -264,7 +264,7 @@ function QuickApplyCandidateRow({
   const { colorSwatch, valueDisplay } = getCandidatePresentation(candidate);
   const disabled = isCurrent || Boolean(candidate.resolutionError);
   const statusLabel = candidate.resolutionError
-    ? "Reference not found"
+    ? "Broken reference"
     : isCurrent
       ? "current"
       : null;
@@ -274,6 +274,7 @@ function QuickApplyCandidateRow({
       type="button"
       data-qa-item
       role="option"
+      tabIndex={-1}
       aria-selected={isSelected}
       aria-disabled={disabled}
       disabled={disabled}

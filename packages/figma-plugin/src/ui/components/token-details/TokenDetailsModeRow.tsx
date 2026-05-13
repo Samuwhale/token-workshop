@@ -396,7 +396,7 @@ export function TokenDetailsModeRow({
                   role="menuitem"
                   onClick={() => {
                     action.onClick();
-                    copyMenu.close({ restoreFocus: false });
+                    copyMenu.close();
                   }}
                   className={FLOATING_MENU_ITEM_CLASS}
                 >
@@ -544,7 +544,7 @@ export function TokenDetailsModeRow({
               {hasInheritedValue ? (
                 <div className="tm-token-mode-row__inherited-preview">
                   <span className="tm-token-mode-row__inherited-label">
-                    Source value
+                    From reused token
                   </span>
                   <span
                     className="tm-token-mode-row__inherited-value"
@@ -578,7 +578,7 @@ export function TokenDetailsModeRow({
                 aria-label={`Add ${modeName} value`}
                 title={
                   hasInheritedValue
-                    ? `Use source value for ${modeName}`
+                    ? `Use value from reused token for ${modeName}`
                     : `Add ${defaultModeValueLabel} for ${modeName}`
                 }
                 className={joinClasses(
@@ -586,7 +586,7 @@ export function TokenDetailsModeRow({
                   !emptyModeCopyAction && "tm-token-mode-row__empty-action--primary",
                 )}
               >
-                {hasInheritedValue ? "Use source value" : "Add value"}
+                {hasInheritedValue ? "Use token value" : "Add value"}
               </button>
               <button
                 type="button"
@@ -655,7 +655,7 @@ export function TokenDetailsModeRow({
                     {readOnly.isUnresolvedAlias
                       ? readOnly.isAmbiguousAlias
                         ? "Reference matches multiple collections"
-                        : "Reference not found"
+                        : "Broken reference"
                       : readOnly.displayValue}
                   </div>
                 </div>

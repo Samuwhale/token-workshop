@@ -172,19 +172,19 @@ export function TokenListToolbar({
   const runMenuAction = useCallback(
     (action: () => void) => {
       action();
-      actionsMenu.close({ restoreFocus: false });
+      actionsMenu.close();
     },
     [actionsMenu],
   );
   const runCreateAction = useCallback(
     (action: () => void) => {
       action();
-      createMenu.close({ restoreFocus: false });
+      createMenu.close();
     },
     [createMenu],
   );
   const closeViewMenu = useCallback(() => {
-    viewMenu.close({ restoreFocus: false });
+    viewMenu.close();
   }, [viewMenu]);
 
   const searchScope: "collection" | "all" =
@@ -232,7 +232,7 @@ export function TokenListToolbar({
   const showOverflow = hasOverflowActions;
   const showCreate = viewMode === "tree";
   const showPrimaryCreateAction = onCreateToken !== undefined;
-  const showCreateMenu = viewMode === "tree" && Boolean(onCreateGenerator);
+  const showCreateMenu = viewMode === "tree";
   const groupToggleAction =
     overflowMenuProps?.allGroupsExpanded === true
       ? overflowMenuProps.onCollapseAll
@@ -683,38 +683,6 @@ export function TokenListToolbar({
                     </Button>
                   ) : null}
 
-                  <Button
-                    type="button"
-                    onClick={handleOpenNewGroupDialog}
-                    disabled={!connected}
-                    title="New group"
-                    aria-label="New group"
-                    variant="secondary"
-                    size="sm"
-                    wrap
-                    className="tm-token-toolbar__group-button justify-start"
-                  >
-                    <span className="tm-toolbar-action__label tm-token-toolbar__button-label">
-                      New group
-                    </span>
-                  </Button>
-
-                  <Button
-                    type="button"
-                    onClick={openTableCreate}
-                    disabled={!connected}
-                    title="Bulk add tokens"
-                    aria-label="Bulk add tokens"
-                    variant="secondary"
-                    size="sm"
-                    wrap
-                    className="justify-start"
-                  >
-                    <span className="tm-toolbar-action__label tm-token-toolbar__button-label">
-                      Bulk add
-                    </span>
-                  </Button>
-
                   {showCreateMenu ? (
                     <Button
                       ref={createMenu.triggerRef}
@@ -746,20 +714,41 @@ export function TokenListToolbar({
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runCreateAction(handleOpenNewGroupDialog)}
+                      disabled={!connected}
+                      className={FLOATING_MENU_ITEM_CLASS}
+                    >
+                      New group
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runCreateAction(openTableCreate)}
+                      disabled={!connected}
+                      className={FLOATING_MENU_ITEM_CLASS}
+                    >
+                      Bulk add
+                    </button>
                     {onCreateGenerator ? (
-                      <button
-                        type="button"
-                        role="menuitem"
-                        onClick={() =>
-                          runCreateAction(() =>
-                            onCreateGenerator(zoomRootPath ?? undefined),
-                          )
-                        }
-                        disabled={!connected}
-                        className={FLOATING_MENU_ITEM_CLASS}
-                      >
-                        Create generator
-                      </button>
+                      <>
+                        <div className="h-1.5" aria-hidden />
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() =>
+                            runCreateAction(() =>
+                              onCreateGenerator(zoomRootPath ?? undefined),
+                            )
+                          }
+                          disabled={!connected}
+                          className={FLOATING_MENU_ITEM_CLASS}
+                        >
+                          Create generator
+                        </button>
+                      </>
                     ) : null}
                   </div>
                 ) : null}

@@ -417,7 +417,7 @@ export function TokenDetails({
   const runDetailsMenuAction = useCallback(
     (action: () => void) => {
       action();
-      closeDetailsMenu({ restoreFocus: false });
+      closeDetailsMenu();
     },
     [closeDetailsMenu],
   );
@@ -1277,7 +1277,7 @@ export function TokenDetails({
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
   const footerNote =
     isGeneratorLocked
-      ? "Managed by generator. Detach before editing directly."
+      ? "Managed by generator. Detach to edit."
       : saveBlockReason;
   const showFooterMeta = Boolean(
     footerNote || (isCreateMode && onSaveAndCreateAnother),
@@ -1550,7 +1550,7 @@ export function TokenDetails({
     !valueIsAlias && COMPOSITE_TOKEN_TYPES.has(tokenType) ? (
       <div className="flex flex-col gap-1">
         <label className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          Reuse properties from
+          Reuse properties from token
         </label>
         {extendsPath ? (
           <div className="flex items-center gap-1.5">
@@ -1570,8 +1570,8 @@ export function TokenDetails({
               <button
                 type="button"
                 onClick={() => setExtendsPath("")}
-                title="Remove source token"
-                aria-label="Remove source token"
+                title="Stop reusing properties"
+                aria-label="Stop reusing properties"
                 className="shrink-0 rounded p-0.5 text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
               >
                 <X size={10} strokeWidth={1.5} aria-hidden />
@@ -1589,7 +1589,7 @@ export function TokenDetails({
           />
         ) : (
           <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-            No source token
+            Not reusing another token
           </p>
         )}
         {extendsPath &&
@@ -1602,21 +1602,20 @@ export function TokenDetails({
                     ambiguousExtendsCollectionIds,
                     collectionDisplayNames,
                   )}
-                  . Pick a token path that belongs to one collection before
-                  inheriting from it.
+                  . Pick a token path that belongs to one collection.
                 </p>
               );
             }
             if (!extendsTokenEntry) {
               return (
                 <p className="text-secondary text-[color:var(--color-figma-text-error)]">
-                  Source token not found
+                  Reused token not found
                 </p>
               );
             }
             return (
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                Properties are combined from this referenced token.
+                Empty properties use values from this token.
               </p>
             );
           })()}

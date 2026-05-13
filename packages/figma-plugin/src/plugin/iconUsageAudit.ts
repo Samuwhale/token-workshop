@@ -9,6 +9,9 @@ import { getErrorMessage } from '../shared/utils.js';
 import { readManagedIconPluginData } from './iconPluginData.js';
 import {
   findNearestMainComponent,
+  getIconSlotPropertyOwner,
+  ICON_SLOT_ALL_GOVERNED_ICONS_POLICY,
+  ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
   isIconSlotCandidateNode,
   looksLikeIconLayerName,
 } from './iconSlotUtils.js';
@@ -21,6 +24,8 @@ interface IconUsageIndex {
   byComponentId: Map<string, IconUsageAuditInput>;
   byComponentKey: Map<string, IconUsageAuditInput>;
   componentIds: Map<string, string[]>;
+  iconByPreferredValueKey: Map<string, IconUsageAuditInput>;
+  activePreferredValueKeys: Set<string>;
 }
 
 export async function scanIconUsage(options: {
@@ -29,7 +34,7 @@ export async function scanIconUsage(options: {
   correlationId?: string;
 }): Promise<void> {
   try {
-    const index = createIconUsageIndex(options.icons);
+    const index = await createIconUsageIndex(options.icons);
     const nodes = collectAuditNodes(options.scope);
     const findings: IconUsageAuditFinding[] = [];
     const usageCounts = new Map<string, number>();
@@ -76,11 +81,13 @@ export async function scanIconUsage(options: {
   }
 }
 
-function createIconUsageIndex(icons: IconUsageAuditInput[]): IconUsageIndex {
+async function createIconUsageIndex(icons: IconUsageAuditInput[]): Promise<IconUsageIndex> {
   const byId = new Map<string, IconUsageAuditInput>();
   const byComponentId = new Map<string, IconUsageAuditInput>();
   const byComponentKey = new Map<string, IconUsageAuditInput>();
   const componentIds = new Map<string, string[]>();
+  const iconByPreferredValueKey = new Map<string, IconUsageAuditInput>();
+  const activePreferredValueKeys = new Set<string>();
 
   for (const icon of icons) {
     byId.set(icon.id, icon);
@@ -93,9 +100,24 @@ function createIconUsageIndex(icons: IconUsageAuditInput[]): IconUsageIndex {
     if (icon.componentKey) {
       byComponentKey.set(icon.componentKey, icon);
     }
+
+    const preferredValueKey = await resolveIconPreferredValueKey(icon);
+    if (preferredValueKey) {
+      iconByPreferredValueKey.set(preferredValueKey, icon);
+      if (iconCanUseAsSlotPreference(icon)) {
+        activePreferredValueKeys.add(preferredValueKey);
+      }
+    }
   }
 
-  return { byId, byComponentId, byComponentKey, componentIds };
+  return {
+    byId,
+    byComponentId,
+    byComponentKey,
+    componentIds,
+    iconByPreferredValueKey,
+    activePreferredValueKeys,
+  };
 }
 
 function collectAuditNodes(scope: IconUsageAuditScope): AuditNode[] {
@@ -309,6 +331,7 @@ async function collectInstanceFindings(
   collectManagedIconFrameFinding(instance, findings, icon);
   collectManagedIconColorFinding(instance, findings, icon);
   collectUnpromotedIconSlotFinding(instance, findings, icon);
+  collectStalePreferredValuesFinding(instance, index, findings, icon);
 
   if (data?.hash && data.hash !== icon.svgHash) {
     findings.push({
@@ -462,6 +485,90 @@ function collectUnpromotedIconSlotFinding(
   });
 }
 
+function collectStalePreferredValuesFinding(
+  instance: InstanceNode,
+  index: IconUsageIndex,
+  findings: IconUsageAuditFinding[],
+  icon: IconUsageAuditInput,
+): void {
+  if (
+    instance.getSharedPluginData(
+      PLUGIN_DATA_NAMESPACE,
+      ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
+    ) !== ICON_SLOT_ALL_GOVERNED_ICONS_POLICY
+  ) {
+    return;
+  }
+
+  const propertyName = instance.componentPropertyReferences?.mainComponent;
+  if (!propertyName) {
+    return;
+  }
+
+  const ownerComponent = findNearestMainComponent(instance);
+  if (!ownerComponent) {
+    return;
+  }
+
+  const propertyOwner = getIconSlotPropertyOwner(ownerComponent);
+  const definition = propertyOwner.componentPropertyDefinitions[propertyName];
+  if (!definition || definition.type !== 'INSTANCE_SWAP') {
+    return;
+  }
+
+  const preferredKeys = new Set(
+    (definition.preferredValues ?? [])
+      .filter((value) => value.type === 'COMPONENT')
+      .map((value) => value.key),
+  );
+  const missingKeys = Array.from(index.activePreferredValueKeys).filter(
+    (key) => !preferredKeys.has(key),
+  );
+  const inactiveGovernedKeys = Array.from(preferredKeys).filter((key) => {
+    const preferredIcon = index.iconByPreferredValueKey.get(key);
+    return preferredIcon ? !iconCanUseAsSlotPreference(preferredIcon) : false;
+  });
+
+  if (missingKeys.length === 0 && inactiveGovernedKeys.length === 0) {
+    return;
+  }
+
+  const missingIconNames = missingKeys
+    .map((key) => index.iconByPreferredValueKey.get(key)?.name)
+    .filter((name): name is string => Boolean(name));
+  const inactiveIconNames = inactiveGovernedKeys
+    .map((key) => index.iconByPreferredValueKey.get(key)?.name)
+    .filter((name): name is string => Boolean(name));
+  const details = [
+    missingIconNames.length > 0
+      ? `${formatListSummary(missingIconNames)} missing`
+      : null,
+    inactiveIconNames.length > 0
+      ? `${formatListSummary(inactiveIconNames)} inactive`
+      : null,
+  ].filter(Boolean).join('; ');
+
+  const id = findingId('stale-preferred-values', propertyOwner.id, propertyName);
+  if (findings.some((finding) => finding.id === id)) {
+    return;
+  }
+
+  findings.push({
+    id,
+    type: 'stale-preferred-values',
+    action: 'repair',
+    severity: 'info',
+    iconId: icon.id,
+    iconName: icon.name,
+    iconPath: icon.path,
+    nodeId: instance.id,
+    nodeName: instance.name,
+    nodeType: instance.type,
+    pageName: pageNameForNode(instance),
+    message: `${stripComponentPropertyId(propertyName)} on ${propertyOwner.name} needs refreshed governed icon preferred values${details ? `: ${details}` : '.'}`,
+  });
+}
+
 function collectDuplicateComponentFindings(
   index: IconUsageIndex,
   findings: IconUsageAuditFinding[],
@@ -539,6 +646,7 @@ function summarizeIconUsageFindings(
     rawIconLayers: countFindings(findings, 'raw-icon-layer'),
     frameIssues: countFindings(findings, 'icon-frame-mismatch'),
     colorIssues: countFindings(findings, 'hardcoded-icon-color'),
+    preferredValueIssues: countFindings(findings, 'stale-preferred-values'),
     deprecatedUsages: countFindings(findings, 'deprecated-usage'),
     blockedUsages: countFindings(findings, 'blocked-icon-usage'),
     unusedIcons: countFindings(findings, 'unused-icon'),
@@ -555,6 +663,7 @@ function emptyIconUsageSummary(): IconUsageAuditSummary {
     rawIconLayers: 0,
     frameIssues: 0,
     colorIssues: 0,
+    preferredValueIssues: 0,
     deprecatedUsages: 0,
     blockedUsages: 0,
     unusedIcons: 0,
@@ -582,6 +691,29 @@ function appendComponentOccurrence(
 
 function isRawIconCandidate(node: SceneNode): boolean {
   return isIconSlotCandidateNode(node);
+}
+
+async function resolveIconPreferredValueKey(
+  icon: IconUsageAuditInput,
+): Promise<string | null> {
+  if (icon.componentKey) {
+    return icon.componentKey;
+  }
+  if (!icon.componentId) {
+    return null;
+  }
+
+  const node = await figma.getNodeByIdAsync(icon.componentId);
+  return node?.type === 'COMPONENT' ? node.key : null;
+}
+
+function iconCanUseAsSlotPreference(icon: IconUsageAuditInput): boolean {
+  return (
+    icon.status !== 'deprecated' &&
+    icon.status !== 'blocked' &&
+    icon.qualityState !== 'blocked' &&
+    Boolean(icon.componentId || icon.componentKey)
+  );
 }
 
 function hasTokenAlignedIconPaint(node: SceneNode): boolean {
@@ -652,4 +784,16 @@ function formatDimension(value: number): string {
   return Number.isInteger(value)
     ? String(value)
     : value.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+function stripComponentPropertyId(propertyName: string): string {
+  return propertyName.replace(/#[^#]*$/, '');
+}
+
+function formatListSummary(values: string[]): string {
+  const uniqueValues = Array.from(new Set(values));
+  if (uniqueValues.length <= 3) {
+    return uniqueValues.join(', ');
+  }
+  return `${uniqueValues.slice(0, 3).join(', ')} and ${uniqueValues.length - 3} more`;
 }

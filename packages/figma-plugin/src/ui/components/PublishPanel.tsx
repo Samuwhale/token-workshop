@@ -457,7 +457,7 @@ export function PublishPanel({
     savedCollectionName || DEFAULT_VARIABLE_COLLECTION_NAME;
   const resolvedModeName = standardPublishUsesAllModes
     ? `${currentCollectionModeNames.length} modes`
-    : savedModeName || currentCollectionModeNames[0] || 'First mode in Figma';
+    : savedModeName || currentCollectionModeNames[0] || 'Default Figma mode';
   const standardCollectionSuggestions = useMemo(
     () =>
       uniqueTextSuggestions([
@@ -1603,7 +1603,7 @@ function StandardPublishRoutingCard({
             label="Figma mode"
             value={draft.modeName ?? ''}
             onChange={(value) => onFieldChange('modeName', value)}
-            placeholder="First mode in Figma"
+            placeholder="Default Figma mode"
             disabled={saving}
             suggestions={modeSuggestions}
           />
@@ -1617,7 +1617,7 @@ function StandardPublishRoutingCard({
         </span>
         {usesAllModes
           ? '. Mode names come from this collection.'
-          : '. Leave the mode blank to target the first mode in that Figma collection.'}
+          : ". Leave the mode blank to use Figma's default mode for that collection."}
       </div>
 
       {dirty ? (

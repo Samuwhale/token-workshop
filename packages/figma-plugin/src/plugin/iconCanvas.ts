@@ -1,5 +1,15 @@
 import type { IconCanvasItem } from '../shared/types.js';
-import { findNearestMainComponent, iconSlotLabelFromNodeName, isIconSlotCandidateNode } from './iconSlotUtils.js';
+import {
+  findNearestMainComponent,
+  getIconSlotPropertyOwner,
+  ICON_SLOT_ALL_GOVERNED_ICONS_POLICY,
+  ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
+  iconSlotLabelFromNodeName,
+  iconSlotVisibilityLabel,
+  isIconSlotCandidateNode,
+  type IconSlotPropertyOwner,
+} from './iconSlotUtils.js';
+import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 
 type ReplaceIconResult = {
   count: number;
@@ -10,6 +20,16 @@ type ReplaceIconResult = {
 type IconReplacement =
   | { replacement: InstanceNode; skippedReason?: never }
   | { replacement?: never; skippedReason: string };
+
+interface IconSlotPropertyPair {
+  swapPropertyName: string;
+  visibilityPropertyName: string;
+}
+
+interface IconSlotPromotionContext {
+  preferredValues: InstanceSwapPreferredValue[];
+  propertiesByOwnerAndLabel: Map<string, IconSlotPropertyPair>;
+}
 
 export async function insertIconInstance(icon: IconCanvasItem): Promise<number> {
   const component = await resolveIconComponent(icon);
@@ -145,11 +165,16 @@ export async function setSelectionIconSwapProperty(
 
 export async function createSelectionIconSlots(
   icon: IconCanvasItem,
+  preferredIcons: IconCanvasItem[],
   targetNodeIds: string[],
 ): Promise<ReplaceIconResult> {
   const selectedIds = new Set(figma.currentPage.selection.map((node) => node.id));
   const targetIds = new Set(targetNodeIds);
   const component = await resolveIconComponent(icon);
+  const context: IconSlotPromotionContext = {
+    preferredValues: await resolveIconPreferredValues(icon, preferredIcons),
+    propertiesByOwnerAndLabel: new Map(),
+  };
   const replacements: InstanceNode[] = [];
   let skipped = 0;
   const skippedReasons: string[] = [];
@@ -169,7 +194,7 @@ export async function createSelectionIconSlots(
     }
 
     try {
-      replacements.push(promoteNodeToIconSlot(node, component, icon));
+      replacements.push(promoteNodeToIconSlot(node, component, icon, context));
     } catch (error) {
       console.debug('[iconCanvas] skipped icon slot creation:', node.id, error);
       skipped += 1;
@@ -268,6 +293,7 @@ function promoteNodeToIconSlot(
   node: SceneNode,
   iconComponent: ComponentNode,
   icon: IconCanvasItem,
+  context: IconSlotPromotionContext,
 ): InstanceNode {
   if (node.id === iconComponent.id || isAncestorOf(node, iconComponent)) {
     throw new Error('The managed icon source component cannot become its own slot.');
@@ -278,8 +304,9 @@ function promoteNodeToIconSlot(
 
   const ownerComponent = findNearestMainComponent(node);
   if (!ownerComponent) {
-    throw new Error('Select a layer inside a main component, not an instance or variant set.');
+    throw new Error('Select a layer inside a main component or component variant.');
   }
+  const propertyOwner = getIconSlotPropertyOwner(ownerComponent);
 
   const parent = node.parent;
   if (!parent || !canMutateChildren(parent)) {
@@ -288,33 +315,162 @@ function promoteNodeToIconSlot(
 
   const index = parent.children.indexOf(node);
   const replacement = iconComponent.createInstance();
-  let propertyName: string | null = null;
+  const slotLabel = iconSlotLabelFromNodeName(node.name);
+  const contextKey = iconSlotPropertyContextKey(propertyOwner, slotLabel);
+  const createdPropertyNames: string[] = [];
 
   parent.insertChild(index >= 0 ? index : parent.children.length, replacement);
   try {
     replacement.name = node.name || icon.componentName;
     copyReplaceableLayout(node, replacement);
-    const createdPropertyName = ownerComponent.addComponentProperty(
-      uniqueComponentPropertyLabel(ownerComponent, iconSlotLabelFromNodeName(node.name)),
-      'INSTANCE_SWAP',
-      iconComponent.id,
+    const propertyPair = getOrCreateIconSlotProperties(
+      propertyOwner,
+      slotLabel,
+      iconComponent,
+      context,
+      createdPropertyNames,
     );
-    propertyName = createdPropertyName;
     replacement.componentPropertyReferences = {
       ...(replacement.componentPropertyReferences ?? {}),
-      mainComponent: createdPropertyName,
+      mainComponent: propertyPair.swapPropertyName,
+      visible: propertyPair.visibilityPropertyName,
     };
+    replacement.isExposedInstance = true;
+    replacement.setSharedPluginData(
+      PLUGIN_DATA_NAMESPACE,
+      ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
+      ICON_SLOT_ALL_GOVERNED_ICONS_POLICY,
+    );
     node.remove();
     return replacement;
   } catch (error) {
-    if (propertyName) {
-      ownerComponent.deleteComponentProperty(propertyName);
+    for (const propertyName of createdPropertyNames.reverse()) {
+      propertyOwner.deleteComponentProperty(propertyName);
+    }
+    if (createdPropertyNames.length > 0) {
+      context.propertiesByOwnerAndLabel.delete(contextKey);
     }
     if (!replacement.removed) {
       replacement.remove();
     }
     throw error;
   }
+}
+
+async function resolveIconPreferredValues(
+  selectedIcon: IconCanvasItem,
+  preferredIcons: IconCanvasItem[],
+): Promise<InstanceSwapPreferredValue[]> {
+  const values = new Map<string, InstanceSwapPreferredValue>();
+  for (const icon of [selectedIcon, ...preferredIcons]) {
+    const key = await resolveIconComponentKey(icon);
+    if (key) {
+      values.set(key, { type: 'COMPONENT', key });
+    }
+  }
+  return Array.from(values.values());
+}
+
+async function resolveIconComponentKey(
+  icon: IconCanvasItem,
+): Promise<string | null> {
+  if (icon.componentKey) {
+    return icon.componentKey;
+  }
+  if (!icon.componentId) {
+    return null;
+  }
+
+  const localNode = await figma.getNodeByIdAsync(icon.componentId);
+  return localNode?.type === 'COMPONENT' ? localNode.key : null;
+}
+
+function getOrCreateIconSlotProperties(
+  propertyOwner: IconSlotPropertyOwner,
+  slotLabel: string,
+  iconComponent: ComponentNode,
+  context: IconSlotPromotionContext,
+  createdPropertyNames: string[],
+): IconSlotPropertyPair {
+  const contextKey = iconSlotPropertyContextKey(propertyOwner, slotLabel);
+  const existingPair = context.propertiesByOwnerAndLabel.get(contextKey);
+  if (existingPair) {
+    return existingPair;
+  }
+
+  const swapPropertyName = getOrCreateComponentProperty({
+    owner: propertyOwner,
+    preferredLabel: slotLabel,
+    type: 'INSTANCE_SWAP',
+    defaultValue: iconComponent.id,
+    preferredValues: context.preferredValues,
+    createdPropertyNames,
+  });
+  const visibilityPropertyName = getOrCreateComponentProperty({
+    owner: propertyOwner,
+    preferredLabel: iconSlotVisibilityLabel(slotLabel),
+    type: 'BOOLEAN',
+    defaultValue: true,
+    createdPropertyNames,
+  });
+  const propertyPair = { swapPropertyName, visibilityPropertyName };
+  context.propertiesByOwnerAndLabel.set(contextKey, propertyPair);
+  return propertyPair;
+}
+
+function iconSlotPropertyContextKey(
+  propertyOwner: IconSlotPropertyOwner,
+  slotLabel: string,
+): string {
+  return `${propertyOwner.id}:${slotLabel}`;
+}
+
+function getOrCreateComponentProperty(params: {
+  owner: IconSlotPropertyOwner;
+  preferredLabel: string;
+  type: 'INSTANCE_SWAP' | 'BOOLEAN';
+  defaultValue: string | boolean;
+  preferredValues?: InstanceSwapPreferredValue[];
+  createdPropertyNames: string[];
+}): string {
+  const existingName = findComponentPropertyByLabel(
+    params.owner,
+    params.preferredLabel,
+    params.type,
+  );
+  if (existingName) {
+    if (params.type === 'INSTANCE_SWAP' && params.preferredValues) {
+      params.owner.editComponentProperty(existingName, {
+        defaultValue: String(params.defaultValue),
+        preferredValues: params.preferredValues,
+      });
+    }
+    return existingName;
+  }
+
+  const propertyName = params.owner.addComponentProperty(
+    uniqueComponentPropertyLabel(params.owner, params.preferredLabel),
+    params.type,
+    params.defaultValue,
+    params.type === 'INSTANCE_SWAP'
+      ? { preferredValues: params.preferredValues ?? [] }
+      : undefined,
+  );
+  params.createdPropertyNames.push(propertyName);
+  return propertyName;
+}
+
+function findComponentPropertyByLabel(
+  owner: IconSlotPropertyOwner,
+  label: string,
+  type: 'INSTANCE_SWAP' | 'BOOLEAN',
+): string | null {
+  for (const [propertyName, definition] of Object.entries(owner.componentPropertyDefinitions)) {
+    if (definition.type === type && stripComponentPropertyId(propertyName) === label) {
+      return propertyName;
+    }
+  }
+  return null;
 }
 
 function getIconInsertionTarget(selectedNode: SceneNode | undefined): {
@@ -381,7 +537,7 @@ function hasSelectedAncestor(nodeId: string, selectedIds: Set<string>): boolean 
 }
 
 function uniqueComponentPropertyLabel(
-  component: ComponentNode,
+  component: IconSlotPropertyOwner,
   preferredLabel: string,
 ): string {
   const existingLabels = new Set(

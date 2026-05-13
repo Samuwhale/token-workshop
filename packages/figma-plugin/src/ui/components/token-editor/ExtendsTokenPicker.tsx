@@ -23,7 +23,6 @@ function readCollectionLabel(
   );
 }
 
-/** Compact picker for selecting a token whose composite properties should be reused. */
 export function ExtendsTokenPicker({
   tokenType,
   allTokensFlat,
@@ -83,7 +82,7 @@ export function ExtendsTokenPicker({
         }}
         className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-secondary text-[color:var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[color:var(--color-figma-text-accent)] transition-colors text-left"
       >
-        Reuse properties from token…
+        Choose token to reuse…
       </button>
     );
   }
@@ -150,7 +149,7 @@ export function ExtendsTokenPicker({
       </div>
       {filtered.length > 0 ? (
         <p className="px-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Only tokens with unique paths can be used as property sources.
+          Choose a unique path so Token Workshop knows which collection to use.
         </p>
       ) : null}
     </div>

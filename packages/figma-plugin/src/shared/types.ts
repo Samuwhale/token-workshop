@@ -236,6 +236,9 @@ export interface IconSlotCandidate {
   nodeType: string;
   componentId: string;
   componentName: string;
+  propertyOwnerId: string;
+  propertyOwnerName: string;
+  propertyOwnerType: 'COMPONENT' | 'COMPONENT_SET';
   label: string;
 }
 
@@ -795,6 +798,7 @@ export interface SetIconSwapPropertyMessage {
 export interface CreateIconSlotMessage {
   type: 'create-icon-slot';
   icon: IconCanvasItem;
+  preferredIcons: IconCanvasItem[];
   targetNodeIds: string[];
   correlationId?: string;
 }
@@ -857,6 +861,7 @@ export type IconUsageAuditFindingType =
   | 'raw-icon-layer'
   | 'icon-frame-mismatch'
   | 'hardcoded-icon-color'
+  | 'stale-preferred-values'
   | 'unknown-managed-component';
 
 export interface IconUsageAuditFinding {
@@ -881,6 +886,7 @@ export interface IconUsageAuditSummary {
   rawIconLayers: number;
   frameIssues: number;
   colorIssues: number;
+  preferredValueIssues: number;
   deprecatedUsages: number;
   blockedUsages: number;
   unusedIcons: number;

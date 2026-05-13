@@ -156,7 +156,7 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'insert-icon':                [['icon', 'object']],
   'replace-selection-with-icon': [['icon', 'object']],
   'set-icon-swap-property':     [['icon', 'object'], ['propertyName', 'string'], ['targetNodeIds', 'array']],
-  'create-icon-slot':           [['icon', 'object'], ['targetNodeIds', 'array']],
+  'create-icon-slot':           [['icon', 'object'], ['preferredIcons', 'array'], ['targetNodeIds', 'array']],
   'scan-icon-usage':            [['scope', 'string'], ['icons', 'array']],
   'cancel-scan':                [],
 };
@@ -606,6 +606,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       try {
         const result = await createSelectionIconSlots(
           msg.icon,
+          msg.preferredIcons,
           msg.targetNodeIds,
         );
         figma.ui.postMessage({

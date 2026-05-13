@@ -60,8 +60,9 @@ interface IconSlotAction {
 
 interface IconSlotSetupAction {
   label: string;
-  componentId: string;
-  componentName: string;
+  propertyOwnerId: string;
+  propertyOwnerName: string;
+  propertyOwnerType: "COMPONENT" | "COMPONENT_SET";
   targetNodeIds: string[];
 }
 
@@ -329,6 +330,10 @@ function iconCanUseOnCanvas(icon: ManagedIcon): boolean {
   );
 }
 
+function iconCanUseAsSlotPreference(icon: ManagedIcon): boolean {
+  return iconCanUseOnCanvas(icon) && icon.status !== "deprecated";
+}
+
 function iconCanExport(icon: ManagedIcon): boolean {
   return (
     icon.status !== "deprecated" &&
@@ -533,7 +538,7 @@ function getIconSlotSetupActions(selectedNodes: SelectionNodeInfo[]): IconSlotSe
     }
 
     for (const candidate of node.iconSlotCandidates ?? []) {
-      const key = `${candidate.componentId}:${candidate.label}`;
+      const key = `${candidate.propertyOwnerId}:${candidate.label}`;
       const existing = grouped.get(key);
       if (existing) {
         if (!existing.targetNodeIds.includes(candidate.nodeId)) {
@@ -542,8 +547,9 @@ function getIconSlotSetupActions(selectedNodes: SelectionNodeInfo[]): IconSlotSe
       } else {
         grouped.set(key, {
           label: candidate.label,
-          componentId: candidate.componentId,
-          componentName: candidate.componentName,
+          propertyOwnerId: candidate.propertyOwnerId,
+          propertyOwnerName: candidate.propertyOwnerName,
+          propertyOwnerType: candidate.propertyOwnerType,
           targetNodeIds: [candidate.nodeId],
         });
       }
@@ -551,7 +557,7 @@ function getIconSlotSetupActions(selectedNodes: SelectionNodeInfo[]): IconSlotSe
   }
 
   return Array.from(grouped.values()).sort((a, b) =>
-    `${a.componentName} ${a.label}`.localeCompare(`${b.componentName} ${b.label}`),
+    `${a.propertyOwnerName} ${a.label}`.localeCompare(`${b.propertyOwnerName} ${b.label}`),
   );
 }
 
@@ -829,6 +835,7 @@ function IconUsageAuditPanel({
             <span>{formatHealthCount(result.summary.rawIconLayers, "raw layer")}</span>
             <span>{formatHealthCount(result.summary.frameIssues, "size issue")}</span>
             <span>{formatHealthCount(result.summary.colorIssues, "color issue")}</span>
+            <span>{formatHealthCount(result.summary.preferredValueIssues, "preferred value issue")}</span>
             <span>{formatHealthCount(result.summary.blockedUsages, "blocked use")}</span>
             <span>{formatHealthCount(result.summary.unusedIcons, "unused icon")}</span>
             <span>{formatHealthCount(result.summary.staleComponents, "stale sync")}</span>
@@ -1029,7 +1036,7 @@ function IconInspector({
           </div>
           {iconSlotSetupActions.map((action) => (
             <Button
-              key={`${action.componentId}:${action.label}`}
+              key={`${action.propertyOwnerId}:${action.label}`}
               type="button"
               variant="secondary"
               size="sm"
@@ -1037,7 +1044,7 @@ function IconInspector({
               disabled={!canUseOnCanvas || canvasActionBusy}
               title={
                 canUseOnCanvas
-                  ? `Create ${action.label} on ${action.componentName}`
+                  ? `Create ${action.label} on ${action.propertyOwnerName}`
                   : "Publish this icon before creating component slots"
               }
             >
@@ -1313,6 +1320,10 @@ export function IconPanel() {
     () => getIconSlotSetupActions(selectedNodes),
     [selectedNodes],
   );
+  const slotPreferredIcons = useMemo(
+    () => icons.filter(iconCanUseAsSlotPreference).map(iconCanvasItem),
+    [icons],
+  );
 
   const iconsToPublish = useMemo(
     () => icons.filter(iconNeedsPublish),
@@ -1566,6 +1577,7 @@ export function IconPanel() {
       const result = await runIconCanvasAction({
         type: "create-icon-slot",
         icon: iconCanvasItem(selectedIcon),
+        preferredIcons: slotPreferredIcons,
         targetNodeIds: action.targetNodeIds,
       });
       if (result.error) {
@@ -1581,7 +1593,7 @@ export function IconPanel() {
     } finally {
       setCanvasActionBusy(false);
     }
-  }, [canvasActionBusy, selectedIcon]);
+  }, [canvasActionBusy, selectedIcon, slotPreferredIcons]);
 
   const handleAuditUsage = useCallback(async () => {
     if (auditLoading) {
@@ -1618,6 +1630,7 @@ export function IconPanel() {
           rawIconLayers: 0,
           frameIssues: 0,
           colorIssues: 0,
+          preferredValueIssues: 0,
           deprecatedUsages: 0,
           blockedUsages: 0,
           unusedIcons: 0,

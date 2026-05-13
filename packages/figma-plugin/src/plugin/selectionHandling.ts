@@ -6,7 +6,7 @@ import { coerceBooleanValue, getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { parseColor, rgbToHex, shadowTokenToEffects } from './colorUtils.js';
 import { resolveFontStyle, fontStyleToWeight } from './fontLoading.js';
-import { findNearestMainComponent, iconSlotLabelFromNodeName, isIconSlotCandidateNode } from './iconSlotUtils.js';
+import { findNearestMainComponent, getIconSlotPropertyOwner, iconSlotLabelFromNodeName, isIconSlotCandidateNode } from './iconSlotUtils.js';
 import { walkNodes } from './walkNodes.js';
 
 let selectionDeepInspectEnabled = false;
@@ -492,12 +492,24 @@ function readIconSwapProperties(node: SceneNode): SelectionNodeInfo['iconSwapPro
 }
 
 function readIconSlotCandidates(node: SceneNode): SelectionNodeInfo['iconSlotCandidates'] {
-  const candidates =
-    node.type === 'COMPONENT'
-      ? collectIconSlotCandidates(node)
-      : iconSlotCandidateForNode(node);
+  let candidates: NonNullable<SelectionNodeInfo['iconSlotCandidates']>;
+  if (node.type === 'COMPONENT_SET') {
+    candidates = collectIconSlotCandidatesFromComponentSet(node);
+  } else if (node.type === 'COMPONENT') {
+    candidates = collectIconSlotCandidates(node);
+  } else {
+    candidates = iconSlotCandidateForNode(node);
+  }
 
   return candidates.length > 0 ? candidates : undefined;
+}
+
+function collectIconSlotCandidatesFromComponentSet(
+  componentSet: ComponentSetNode,
+): NonNullable<SelectionNodeInfo['iconSlotCandidates']> {
+  return componentSet.children.flatMap((variant) =>
+    variant.type === 'COMPONENT' ? collectIconSlotCandidates(variant) : [],
+  );
 }
 
 function collectIconSlotCandidates(component: ComponentNode): NonNullable<SelectionNodeInfo['iconSlotCandidates']> {
@@ -540,7 +552,7 @@ function iconSlotCandidateForNode(
   }
 
   const component = knownComponent ?? findNearestMainComponent(node);
-  if (!component || component.id === node.id || component.parent?.type === 'COMPONENT_SET') {
+  if (!component || component.id === node.id) {
     return [];
   }
 
@@ -548,12 +560,17 @@ function iconSlotCandidateForNode(
     return [];
   }
 
+  const propertyOwner = getIconSlotPropertyOwner(component);
+
   return [{
     nodeId: node.id,
     nodeName: node.name,
     nodeType: node.type,
     componentId: component.id,
     componentName: component.name,
+    propertyOwnerId: propertyOwner.id,
+    propertyOwnerName: propertyOwner.name,
+    propertyOwnerType: propertyOwner.type,
     label: iconSlotLabelFromNodeName(node.name),
   }];
 }

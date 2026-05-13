@@ -425,10 +425,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             className="tm-token-table__header-action tm-token-table__add-mode text-[color:var(--color-figma-text-secondary)]"
             title={
               connected
-                ? "Add a mode to this collection"
+                ? "Add mode"
                 : "Connect to the token library before adding modes"
             }
-            aria-label="Add mode to this collection"
+            aria-label="Add mode"
             aria-controls={
               addModeMenuOpen ? "token-table-add-mode-dialog" : undefined
             }
@@ -450,10 +450,10 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
               className="tm-token-table__header-action text-[color:var(--color-figma-text-secondary)]"
               title={
                 connected
-                  ? "Manage collection modes"
+                  ? "Edit modes"
                   : "Connect to the token library before managing modes"
               }
-              aria-label="Manage collection modes"
+              aria-label="Edit modes"
             >
               <Settings2 size={12} strokeWidth={1.5} aria-hidden />
             </Button>
@@ -737,7 +737,7 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
       <FeedbackPlaceholder
         variant="empty"
         size="section"
-        title="Search across all collections"
+        title="Search all collections"
         description="Search by name, value, type, or filter."
       />
     );

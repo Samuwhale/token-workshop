@@ -72,6 +72,9 @@ export function ValueCell({
     : null;
   const isResolvedAlias = resolvedAliasPath != null;
   const isDerivation = hasDerivationExtension(value);
+  const hasAliasNavigationAction = Boolean(
+    value && isResolvedAlias && !isDerivation && onNavigateToAlias,
+  );
   const derivationSourcePath = isDerivation
     ? extractAliasPath(value?.reference ?? value?.$value)
     : null;
@@ -84,6 +87,12 @@ export function ValueCell({
     !!targetCollectionId &&
     !!onRequestQuickEdit;
   const canActivateValue = canQuickEdit || !!onEdit;
+  const canActivateWrapper = Boolean(
+    value && canActivateValue && !hasAliasNavigationAction,
+  );
+  const canActivateText = Boolean(
+    value && canActivateValue && hasAliasNavigationAction,
+  );
   const canCreate =
     !value && !!tokenType && !!targetCollectionId && !!onRequestQuickEdit;
   const canAddValue = !value && (canCreate || !!onEdit);
@@ -156,6 +165,23 @@ export function ValueCell({
     }
     onEdit?.();
   };
+  const handleWrapperClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!canActivateWrapper) {
+      return;
+    }
+    event.stopPropagation();
+    activateValue();
+  };
+  const handleWrapperKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!canActivateWrapper) {
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      event.stopPropagation();
+      activateValue();
+    }
+  };
 
   const renderValueText = (
     primary: string,
@@ -198,26 +224,33 @@ export function ValueCell({
       </>
     );
 
-    if (!canActivateValue) {
-      return <div className={`tm-value-cell__text ${interactiveTextClass}`}>{content}</div>;
+    if (canActivateText) {
+      return (
+        <button
+          type="button"
+          className={`tm-value-cell__text tm-value-cell__text--buttonlike tm-value-cell__text--button border-0 bg-transparent p-0 text-left ${interactiveTextClass}`}
+          onClick={(event) => {
+            event.stopPropagation();
+            activateValue();
+          }}
+          aria-label={`Edit ${buttonLabel}`}
+          title={buttonLabel}
+        >
+          {content}
+        </button>
+      );
     }
 
     return (
-      <button
-        type="button"
-        className={`tm-value-cell__text tm-value-cell__text--button border-0 bg-transparent p-0 text-left outline-none focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] ${interactiveTextClass}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          activateValue();
-        }}
-        onKeyDown={(event) => {
-          event.stopPropagation();
-        }}
-        aria-label={`Edit ${buttonLabel}`}
+      <div
+        className={`tm-value-cell__text ${
+          canActivateWrapper ? "tm-value-cell__text--buttonlike" : ""
+        } ${interactiveTextClass}`}
+        aria-label={canActivateWrapper ? `Edit ${buttonLabel}` : undefined}
         title={buttonLabel}
       >
         {content}
-      </button>
+      </div>
     );
   };
 
@@ -231,6 +264,13 @@ export function ValueCell({
       data-unavailable={!value && !canAddValue ? "true" : undefined}
       className={`tm-value-cell ${wrapperClass}`}
       title={titleLines.join("\n")}
+      role={canActivateWrapper ? "button" : undefined}
+      tabIndex={canActivateWrapper ? 0 : undefined}
+      aria-label={
+        canActivateWrapper ? `Edit ${titleLines.join(". ")}` : undefined
+      }
+      onClick={handleWrapperClick}
+      onKeyDown={handleWrapperKeyDown}
     >
       {!value ? (
         canAddValue ? (
@@ -260,7 +300,7 @@ export function ValueCell({
           >
             <AlertTriangle size={10} strokeWidth={2} aria-hidden />
           </span>
-          {renderValueText(displayVal, "Reference not found", {
+          {renderValueText(displayVal, "Broken reference", {
             primaryMonospace: true,
             primaryClassName:
               "font-mono italic text-[color:var(--color-figma-text-warning)]",

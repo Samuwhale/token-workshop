@@ -47,6 +47,8 @@ Implemented:
 - Initial static geometry quality metadata for imported SVGs, including geometry bounds with explicit exact/estimated/unknown precision, configurable keyline padding, keyline overflow warnings, and off-center artwork warnings surfaced in library health and the inspector.
 - Initial token-aware icon usage audit checks for managed instances with non-standard icon frame sizes or component-authored monotone icon color without a Token Workshop token binding or Figma variable color binding.
 - Initial component icon slot setup from the Icons workspace: selected raw or unmanaged icon-like layers inside main components can be replaced with a managed icon instance and exposed as an instance-swap component property, with collision-safe property names and audit visibility for unpromoted icon slots.
+- Component icon slot setup now creates designer-facing boolean visibility properties, exposes the nested icon instance, attaches governed icon preferred values from the active published library, reuses matching existing slot properties, and handles component-set variants through the shared component-set property owner instead of duplicating per-variant slot properties.
+- Icon usage audit now detects stale governed preferred values on broad Token Workshop icon slots when new usable icons are missing from the slot menu or inactive governed icons remain listed.
 - Initial governed public icon browsing and import through Iconify-backed public libraries, including server-side search, SVG fetch/import through the registry quality path, source URL capture, required collection license metadata, attribution flags, and a Library import tab in the Icons workspace.
 - Public icon source governance now includes explicit provider discovery/search validation, selected-import license and attribution review, source links before import, UI request timeouts, and bounded server-side collection metadata caching.
 - Public icon attribution can be exported from the Icons workspace as a grouped JSON manifest for handoff, including provider, collection, license, source URL, status, and attribution-required summaries for every public-library icon.
@@ -61,7 +63,7 @@ Missing:
 - Token color guidance, broader canvas color audits, and guided hardcoded fill repair beyond initial publish normalization and component-authored unmanaged monotone color findings.
 - Richer geometry bounding-box and keyline checks beyond initial static SVG primitive/path bounds, including transformed geometry and stronger curve handling.
 - Richer replacement previews and multi-slot selection controls from the Icons workspace.
-- Richer component icon slot setup with boolean visibility, curated preferred values, component set support, exposed nested instances, and multi-slot previews.
+- Richer component icon slot setup with curated restricted preferred values, guided stale preferred-value repair, and multi-slot previews.
 - Richer icon usage audit, guided repair, configurable raw-icon heuristics, and full deprecation workflows beyond the initial selection/page/file audit, unused-icon lifecycle findings, node-backed finding navigation, and unpromoted-slot detection.
 - Richer icon exports beyond the initial SVG, React TypeScript, manifest, and attribution bundle, including platform-specific bundles and deeper token-aligned handoff.
 - Integration with review, publish, health, history, and git workflows.
