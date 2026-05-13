@@ -16,10 +16,7 @@ import type {
   SelectionNodeInfo,
   SetIconSwapPropertyMessage,
 } from "../../../shared/types";
-import {
-  getPluginMessageFromEvent,
-  postPluginMessage,
-} from "../../../shared/utils";
+import { requestPluginMessage } from "../../shared/pluginMessaging";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -47,6 +44,11 @@ type IconCanvasActionRequest =
   | Omit<ReplaceSelectionWithIconMessage, "correlationId">
   | Omit<SetIconSwapPropertyMessage, "correlationId">
   | Omit<CreateIconSlotMessage, "correlationId">;
+type IconCanvasActionMessage =
+  | InsertIconMessage
+  | ReplaceSelectionWithIconMessage
+  | SetIconSwapPropertyMessage
+  | CreateIconSlotMessage;
 type IconUsageAuditRequest = Omit<ScanIconUsageMessage, "correlationId">;
 
 interface IconSlotAction {
@@ -380,58 +382,29 @@ function svgDataUrl(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-function createCorrelationId(): string {
-  return `icons-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-}
-
 function publishIconsInFigma(
   message: Omit<PublishIconsMessage, "type" | "correlationId">,
   onProgress?: (current: number, total: number) => void,
 ): Promise<IconsPublishedMessage> {
-  const correlationId = createCorrelationId();
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      window.removeEventListener("message", handleMessage);
-      reject(new Error("Figma did not finish publishing icons."));
-    }, 60_000);
-
-    function cleanup() {
-      window.clearTimeout(timeout);
-      window.removeEventListener("message", handleMessage);
-    }
-
-    function handleMessage(event: MessageEvent) {
-      const pluginMessage = getPluginMessageFromEvent<
-        IconsPublishedMessage | IconPublishProgressMessage
-      >(event);
-      if (
-        pluginMessage?.type === "icons-publish-progress" &&
-        pluginMessage.correlationId === correlationId
-      ) {
-        onProgress?.(pluginMessage.current, pluginMessage.total);
-        return;
-      }
-      if (
-        pluginMessage?.type !== "icons-published" ||
-        pluginMessage.correlationId !== correlationId
-      ) {
-        return;
-      }
-      cleanup();
-      resolve(pluginMessage);
-    }
-
-    window.addEventListener("message", handleMessage);
-    const sent = postPluginMessage({
+  return requestPluginMessage<
+    PublishIconsMessage,
+    IconsPublishedMessage,
+    IconPublishProgressMessage
+  >(
+    {
       type: "publish-icons",
-      correlationId,
       ...message,
-    });
-    if (!sent) {
-      cleanup();
-      reject(new Error("Open the plugin in Figma to publish icons."));
-    }
-  });
+    },
+    {
+      idPrefix: "icons",
+      responseType: "icons-published",
+      progressType: "icons-publish-progress",
+      timeoutMs: 60_000,
+      timeoutMessage: "Figma did not finish publishing icons.",
+      unavailableMessage: "Open the plugin in Figma to publish icons.",
+      onProgress: (progress) => onProgress?.(progress.current, progress.total),
+    },
+  );
 }
 
 function iconCanvasItem(icon: ManagedIcon): IconCanvasItem {
@@ -447,75 +420,31 @@ function iconCanvasItem(icon: ManagedIcon): IconCanvasItem {
 function runIconCanvasAction(
   message: IconCanvasActionRequest,
 ): Promise<IconCanvasActionResultMessage> {
-  const correlationId = createCorrelationId();
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      window.removeEventListener("message", handleMessage);
-      reject(new Error("Figma did not finish the icon action."));
-    }, 15_000);
-
-    function cleanup() {
-      window.clearTimeout(timeout);
-      window.removeEventListener("message", handleMessage);
-    }
-
-    function handleMessage(event: MessageEvent) {
-      const pluginMessage =
-        getPluginMessageFromEvent<IconCanvasActionResultMessage>(event);
-      if (
-        pluginMessage?.type !== "icon-canvas-action-result" ||
-        pluginMessage.correlationId !== correlationId
-      ) {
-        return;
-      }
-      cleanup();
-      resolve(pluginMessage);
-    }
-
-    window.addEventListener("message", handleMessage);
-    const sent = postPluginMessage({ ...message, correlationId });
-    if (!sent) {
-      cleanup();
-      reject(new Error("Open the plugin in Figma to use icons on the canvas."));
-    }
-  });
+  return requestPluginMessage<IconCanvasActionMessage, IconCanvasActionResultMessage>(
+    message,
+    {
+      idPrefix: "icon-canvas",
+      responseType: "icon-canvas-action-result",
+      timeoutMs: 15_000,
+      timeoutMessage: "Figma did not finish the icon action.",
+      unavailableMessage: "Open the plugin in Figma to use icons on the canvas.",
+    },
+  );
 }
 
 function runIconUsageAudit(
   message: IconUsageAuditRequest,
 ): Promise<IconUsageAuditResultMessage> {
-  const correlationId = createCorrelationId();
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      window.removeEventListener("message", handleMessage);
-      reject(new Error("Figma did not finish auditing icon usage."));
-    }, 30_000);
-
-    function cleanup() {
-      window.clearTimeout(timeout);
-      window.removeEventListener("message", handleMessage);
-    }
-
-    function handleMessage(event: MessageEvent) {
-      const pluginMessage =
-        getPluginMessageFromEvent<IconUsageAuditResultMessage>(event);
-      if (
-        pluginMessage?.type !== "icon-usage-audit-result" ||
-        pluginMessage.correlationId !== correlationId
-      ) {
-        return;
-      }
-      cleanup();
-      resolve(pluginMessage);
-    }
-
-    window.addEventListener("message", handleMessage);
-    const sent = postPluginMessage({ ...message, correlationId });
-    if (!sent) {
-      cleanup();
-      reject(new Error("Open the plugin in Figma to audit icon usage."));
-    }
-  });
+  return requestPluginMessage<ScanIconUsageMessage, IconUsageAuditResultMessage>(
+    message,
+    {
+      idPrefix: "icon-audit",
+      responseType: "icon-usage-audit-result",
+      timeoutMs: 30_000,
+      timeoutMessage: "Figma did not finish auditing icon usage.",
+      unavailableMessage: "Open the plugin in Figma to audit icon usage.",
+    },
+  );
 }
 
 async function readIconExportError(response: Response): Promise<string> {

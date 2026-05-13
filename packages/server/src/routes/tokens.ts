@@ -26,6 +26,7 @@ import {
 } from '@token-workshop/core';
 import { BadRequestError, ConflictError, handleRouteError } from '../errors.js';
 import type { SnapshotEntry } from '../services/operation-log.js';
+import { requireCollection } from '../services/collection-store.js';
 import {
   listChangedSnapshotKeys,
   listChangedSnapshotTokenPaths,
@@ -285,13 +286,6 @@ function validateCollectionScopedModeValues(
 }
 
 type TokenDefinitionEntry = { collectionId: string; token: Token };
-
-function findCollectionDefinition(
-  collections: TokenCollection[],
-  collectionId: string,
-): TokenCollection | undefined {
-  return collections.find((collection) => collection.id === collectionId);
-}
 
 function normalizeTokenModesForCollectionWrite<T extends Pick<Token, '$extensions'>>(
   token: T,
@@ -585,11 +579,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     collectionId: string,
   ): Promise<TokenCollection> {
     const state = await fastify.collectionService.loadState();
-    const collection = findCollectionDefinition(state.collections, collectionId);
-    if (!collection) {
-      throw new Error(`Collection "${collectionId}" not found`);
-    }
-    return collection;
+    return requireCollection(state, collectionId);
   }
 
   async function validateTokenModesForCollectionWrite(
@@ -1290,7 +1280,12 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           await loadCollectionDefinition(primitiveCollectionId);
         collectionDefinitions.set(primitiveCollectionId, primitiveCollection);
 
-        const resolvedSources: Array<{ collectionId: string; path: string; token: Token }> = [];
+        const resolvedSources: Array<{
+          collection: TokenCollection;
+          collectionId: string;
+          path: string;
+          token: Token;
+        }> = [];
         let canonicalModeValues: Record<string, unknown> | null = null;
         let canonicalType: Token["$type"] | undefined = undefined;
         let canonicalSerialized: string | null = null;
@@ -1335,6 +1330,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           }
 
           resolvedSources.push({
+            collection: sourceCollection,
             collectionId: sourceToken.collectionId,
             path: sourceToken.path,
             token,
@@ -1390,17 +1386,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
         const sourceTokensByCollection = new Map<string, Array<{ path: string; patch: Record<string, unknown> }>>();
         for (const sourceToken of resolvedSources) {
-          const sourceCollection = collectionDefinitions.get(sourceToken.collectionId);
-          if (!sourceCollection) {
-            throw new Error(`Collection "${sourceToken.collectionId}" not found`);
-          }
           const aliasModeValues = Object.fromEntries(
-            sourceCollection.modes.map((mode) => [mode.name, `{${primitivePath}}`]),
+            sourceToken.collection.modes.map((mode) => [mode.name, `{${primitivePath}}`]),
           );
           const nextSourceToken = structuredClone(sourceToken.token);
           writeTokenModeValuesForCollection(
             nextSourceToken,
-            sourceCollection,
+            sourceToken.collection,
             aliasModeValues,
           );
           const patches = sourceTokensByCollection.get(sourceToken.collectionId) ?? [];

@@ -7,13 +7,10 @@ import {
 } from "@token-workshop/core";
 import type {
   IconSelectionImportItem,
+  ReadIconSelectionMessage,
   IconSelectionReadMessage,
 } from "../../../shared/types";
 import { FileUp, MousePointer2 } from "lucide-react";
-import {
-  getPluginMessageFromEvent,
-  postPluginMessage,
-} from "../../../shared/utils";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { Button, Field, SegmentedControl, TextInput } from "../../primitives";
 import {
@@ -23,6 +20,7 @@ import {
 } from "../../shared/controlClasses";
 import { apiFetch, createFetchSignal } from "../../shared/apiFetch";
 import { getErrorMessage, isAbortError } from "../../shared/utils";
+import { requestPluginMessage } from "../../shared/pluginMessaging";
 
 type ImportMode = "library" | "files" | "selection" | "paste" | "workspace";
 
@@ -208,46 +206,19 @@ function iconPathKey(path: string): string {
   }
 }
 
-function createCorrelationId(): string {
-  return `icon-import-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-}
-
 function readIconSelectionFromFigma(): Promise<IconSelectionReadMessage> {
-  const correlationId = createCorrelationId();
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      window.removeEventListener("message", handleMessage);
-      reject(new Error("Figma did not finish reading the selection."));
-    }, 15_000);
-
-    function cleanup() {
-      window.clearTimeout(timeout);
-      window.removeEventListener("message", handleMessage);
-    }
-
-    function handleMessage(event: MessageEvent) {
-      const pluginMessage =
-        getPluginMessageFromEvent<IconSelectionReadMessage>(event);
-      if (
-        pluginMessage?.type !== "icon-selection-read" ||
-        pluginMessage.correlationId !== correlationId
-      ) {
-        return;
-      }
-      cleanup();
-      resolve(pluginMessage);
-    }
-
-    window.addEventListener("message", handleMessage);
-    const sent = postPluginMessage({
+  return requestPluginMessage<ReadIconSelectionMessage, IconSelectionReadMessage>(
+    {
       type: "read-icon-selection",
-      correlationId,
-    });
-    if (!sent) {
-      cleanup();
-      reject(new Error("Open the plugin in Figma to import from selection."));
-    }
-  });
+    },
+    {
+      idPrefix: "icon-import",
+      responseType: "icon-selection-read",
+      timeoutMs: 15_000,
+      timeoutMessage: "Figma did not finish reading the selection.",
+      unavailableMessage: "Open the plugin in Figma to import from selection.",
+    },
+  );
 }
 
 function editableSelectionIcons(
