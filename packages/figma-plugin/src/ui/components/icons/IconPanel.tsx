@@ -41,6 +41,11 @@ import { apiFetch, createFetchSignal } from "../../shared/apiFetch";
 import { dispatchToast } from "../../shared/toastBus";
 import { downloadBlob, getErrorMessage, isAbortError } from "../../shared/utils";
 import { IconImportDialog } from "./IconImportDialog";
+import {
+  formatIconDimension,
+  iconFrameDimensionMatches,
+  svgDataUrl,
+} from "./iconUiUtils";
 
 type IconStatusFilter = "all" | IconStatus;
 type IconHealthFilter = "all" | "publish" | "blocked" | "quality" | "frame" | "color";
@@ -135,8 +140,6 @@ interface IconSourceUpdateReport {
     message: string;
   }>;
 }
-
-const SVG_FRAME_EPSILON = 1e-6;
 
 const STATUS_FILTERS: Array<{ value: IconStatusFilter; label: string }> = [
   { value: "all", label: "All" },
@@ -307,12 +310,6 @@ function iconGeometryLabel(icon: ManagedIcon): string {
   ].join(" / ");
 }
 
-function formatIconDimension(value: number): string {
-  return Number.isInteger(value)
-    ? String(value)
-    : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
-}
-
 function iconFrameMismatchNote(
   icon: ManagedIcon,
   defaultIconSize: number,
@@ -343,10 +340,6 @@ function iconHasFrameIssue(icon: ManagedIcon, defaultIconSize: number): boolean 
       issue.kind === "off-center",
     )
   );
-}
-
-function iconFrameDimensionMatches(left: number, right: number): boolean {
-  return Math.abs(left - right) <= SVG_FRAME_EPSILON;
 }
 
 function iconNeedsPublish(icon: ManagedIcon): boolean {
@@ -457,10 +450,6 @@ function iconMatchesHealthFilter(
     case "color":
       return iconNeedsColorReview(icon);
   }
-}
-
-function svgDataUrl(svg: string): string {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 function publishIconsInFigma(

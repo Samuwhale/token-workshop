@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
-import {
-  normalizeIconPath,
-  type IconRegistryFile,
-  type ManagedIcon,
-} from "@token-workshop/core";
+import type { IconRegistryFile, ManagedIcon } from "@token-workshop/core";
 import type {
   IconSelectionImportItem,
   ReadIconSelectionMessage,
@@ -21,6 +17,14 @@ import {
 import { apiFetch, createFetchSignal } from "../../shared/apiFetch";
 import { getErrorMessage, isAbortError } from "../../shared/utils";
 import { requestPluginMessage } from "../../shared/pluginMessaging";
+import {
+  displayNameFromIconPath,
+  formatIconDimension,
+  formatIconFrame,
+  iconFrameDimensionMatches,
+  iconPathKey,
+  svgDataUrl,
+} from "./iconUiUtils";
 
 type ImportMode = "library" | "files" | "selection" | "paste" | "workspace";
 type PublicIconSourceId =
@@ -140,8 +144,6 @@ type SelectionImportIssue = {
   message: string;
 };
 
-const SVG_FRAME_EPSILON = 1e-6;
-
 interface IconImportDialogProps {
   serverUrl: string;
   existingIconPaths: Set<string>;
@@ -203,10 +205,6 @@ function readSvgFile(file: File): Promise<string> {
   return file.text();
 }
 
-function svgDataUrl(svg: string): string {
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
 function summarizePublicIconLicenses(
   icons: PublicIconSearchResult[],
 ): PublicIconLicenseSummary[] {
@@ -259,28 +257,6 @@ function attributionSummaryLabel(required: boolean): string {
   return required ? "attribution required" : "no attribution required";
 }
 
-function formatIconDimension(value: number): string {
-  return Number.isInteger(value)
-    ? String(value)
-    : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
-}
-
-function formatIconFrame(width: number, height: number): string {
-  return `${formatIconDimension(width)}x${formatIconDimension(height)}`;
-}
-
-function iconFrameDimensionMatches(left: number, right: number): boolean {
-  return Math.abs(left - right) <= SVG_FRAME_EPSILON;
-}
-
-function iconPathKey(path: string): string {
-  try {
-    return normalizeIconPath(path);
-  } catch {
-    return "";
-  }
-}
-
 function readIconSelectionFromFigma(): Promise<IconSelectionReadMessage> {
   return requestPluginMessage<ReadIconSelectionMessage, IconSelectionReadMessage>(
     {
@@ -324,18 +300,6 @@ function prefixedIconPath(prefix: string, path: string): string {
   return cleanPath.startsWith(`${cleanPrefix}.`)
     ? cleanPath
     : `${cleanPrefix}.${cleanPath}`;
-}
-
-function displayNameFromIconPath(path: string): string {
-  const lastSegment = normalizePathDraft(path).split(".").filter(Boolean).pop();
-  if (!lastSegment) {
-    return "";
-  }
-  return lastSegment
-    .split(/[-_]+/g)
-    .filter(Boolean)
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
 }
 
 function isPublicIconCollectionBrowseResponse(
@@ -992,6 +956,7 @@ export function IconImportDialog({
   const currentPublicCollection = isPublicIconCollectionBrowseResponse(libraryResults)
     ? libraryResults.collection
     : (libraryResults?.icons[0]?.collection ?? null);
+  const selectedPublicIconCount = selectedPublicIcons.length;
 
   const publicCollectionCategories = isPublicIconCollectionBrowseResponse(libraryResults)
     ? libraryResults.categories
@@ -1005,7 +970,8 @@ export function IconImportDialog({
   const publicIconsCanLoadMore = Boolean(
     libraryResults &&
       libraryResults.icons.length < libraryResults.total &&
-      libraryQuery.trim() === libraryResultsQuery,
+      libraryQuery.trim() === libraryResultsQuery &&
+      currentPublicCollection?.id === libraryCollection.trim(),
   );
   const catalogCanLoadMore = Boolean(
     catalogResults &&
@@ -1016,7 +982,7 @@ export function IconImportDialog({
   const confirmDisabled =
     busy ||
     (mode === "files" && files.length === 0) ||
-    (mode === "library" && selectedPublicIconIds.size === 0) ||
+    (mode === "library" && selectedPublicIconCount === 0) ||
     (mode === "selection" &&
       (selectionIcons.length === 0 ||
         selectionHasErrors)) ||
@@ -1284,6 +1250,7 @@ export function IconImportDialog({
     setLibraryCollection(value);
     setLibraryCategory("");
     setLibraryQuery("");
+    setLibraryResults(null);
     setSelectedPublicIconIds(new Set());
     setError("");
   };
@@ -1950,7 +1917,7 @@ export function IconImportDialog({
         <div className="tm-modal-footer tm-modal-footer--confirm">
           {mode === "library" ? (
             <PublicSelectionSummary
-              selectedIconCount={selectedPublicIconIds.size}
+              selectedIconCount={selectedPublicIconCount}
               updateCount={selectedPublicIconUpdateCount}
               licenseSummaries={selectedPublicIconLicenseSummaries}
               selectedIcons={selectedPublicIcons}
@@ -1973,7 +1940,7 @@ export function IconImportDialog({
             data-modal-primary="true"
           >
             {mode === "library"
-              ? publicIconImportLabel(selectedPublicIconIds.size, busy)
+              ? publicIconImportLabel(selectedPublicIconCount, busy)
               : busy
                 ? "Importing..."
                 : "Import"}
