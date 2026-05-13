@@ -18,6 +18,7 @@ const PUBLIC_ICON_IMPORT_LIMIT_MAX = 64;
 const PUBLIC_ICON_IMPORT_CONCURRENCY = 8;
 const ICONIFY_REQUEST_TIMEOUT_MS = 10_000;
 const ICONIFY_COLLECTION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const ICONIFY_COLLECTION_CACHE_MAX_ENTRIES = 256;
 
 const LICENSES_WITHOUT_ATTRIBUTION = new Set([
   "0BSD",
@@ -216,6 +217,9 @@ async function readIconifyCollection(
   if (cached && cached.expiresAt > Date.now()) {
     return cached.collection;
   }
+  if (cached) {
+    iconifyCollectionCache.delete(prefix);
+  }
 
   const url = new URL("/collections", ICONIFY_API_BASE_URL);
   url.searchParams.set("prefixes", prefix);
@@ -226,11 +230,26 @@ async function readIconifyCollection(
   if (!collection) {
     throw new BadRequestError(`Iconify collection "${prefix}" was not found.`);
   }
+  cacheIconifyCollection(prefix, collection);
+  return collection;
+}
+
+function cacheIconifyCollection(
+  prefix: string,
+  collection: PublicIconCollection,
+): void {
   iconifyCollectionCache.set(prefix, {
     collection,
     expiresAt: Date.now() + ICONIFY_COLLECTION_CACHE_TTL_MS,
   });
-  return collection;
+
+  while (iconifyCollectionCache.size > ICONIFY_COLLECTION_CACHE_MAX_ENTRIES) {
+    const oldestKey = iconifyCollectionCache.keys().next().value;
+    if (!oldestKey) {
+      return;
+    }
+    iconifyCollectionCache.delete(oldestKey);
+  }
 }
 
 function normalizeIconifyCollections(
@@ -363,18 +382,24 @@ function isAbortError(err: unknown): boolean {
 }
 
 function readPublicIconSearchRequest(input: unknown): {
+  provider: string;
   query: string;
   collection?: string;
   limit: number;
   start: number;
 } {
   const params = isRecord(input) ? input : {};
+  const provider = readOptionalString(params.provider, "provider") ?? ICONIFY_PROVIDER_ID;
+  if (provider !== ICONIFY_PROVIDER_ID) {
+    throw new BadRequestError(`Public icon provider "${provider}" is not supported.`);
+  }
   const query = readRequiredString(params.query, "query");
   const collection = readOptionalString(params.collection, "collection");
   if (collection) {
     assertIconifyPathSegment(collection, "collection");
   }
   return {
+    provider,
     query,
     ...(collection ? { collection } : {}),
     limit: readOptionalInteger(params.limit, 32, 1, PUBLIC_ICON_SEARCH_LIMIT_MAX, "limit"),

@@ -44,12 +44,14 @@ Implemented:
 - Initial icon usage audit from the Icons workspace for current selection or current page, grouped by repair action and covering managed usage counts, missing linked components, duplicate managed components, stale component hashes, renamed icon components, deprecated icon usage, unmanaged icon-like components, raw icon-layer candidates, and unknown managed component metadata.
 - Initial component icon slot setup from the Icons workspace: selected raw or unmanaged icon-like layers inside main components can be replaced with a managed icon instance and exposed as an instance-swap component property, with collision-safe property names and audit visibility for unpromoted icon slots.
 - Initial governed public icon browsing and import through Iconify-backed public libraries, including server-side search, SVG fetch/import through the registry quality path, source URL capture, required collection license metadata, attribution flags, and a Library import tab in the Icons workspace.
+- Public icon source governance now includes explicit provider discovery/search validation, selected-import license and attribution review, source links before import, UI request timeouts, and bounded server-side collection metadata caching.
+- Public icon attribution can be exported from the Icons workspace as a grouped JSON manifest for handoff, including provider, collection, license, source URL, status, and attribution-required summaries for every public-library icon.
 
 Missing:
 
 - Rich publish review and richer component reconciliation for substantial SVG structure changes.
 - Richer selected-layer quality gates and normalization guidance for raw canvas vectors beyond initial frame, layer-type, visibility, mask, effect, stroke, and image-fill checks.
-- Broader public source governance beyond the initial Iconify browser, including provider configuration, richer license review, attribution export, and source update checks.
+- Broader public source governance beyond the initial Iconify browser, including multi-provider configuration and source update checks.
 - Near-duplicate geometry review beyond exact SVG hash matches.
 - Token color guidance, canvas color audits, and guided hardcoded fill repair beyond initial publish normalization.
 - True geometry bounding-box and keyline checks beyond reliable SVG feature and viewBox quality metadata.

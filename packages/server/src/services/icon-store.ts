@@ -61,6 +61,57 @@ export interface IconFigmaLinkBatchUpdateResult {
   icons: ManagedIcon[];
 }
 
+export interface IconAttributionManifestIcon {
+  id: string;
+  name: string;
+  path: string;
+  status: ManagedIcon["status"];
+  provider: string;
+  providerName: string;
+  collectionId: string;
+  collectionName: string;
+  iconId: string;
+  iconName: string;
+  sourceUrl: string;
+  license: {
+    name: string;
+    url: string;
+    attributionRequired: boolean;
+  };
+}
+
+export interface IconAttributionManifestSource {
+  provider: string;
+  providerName: string;
+  collectionId: string;
+  collectionName: string;
+  license: {
+    name: string;
+    url: string;
+    attributionRequired: boolean;
+  };
+  iconCount: number;
+  icons: Array<{
+    id: string;
+    name: string;
+    path: string;
+    sourceUrl: string;
+  }>;
+}
+
+export interface IconAttributionManifest {
+  generatedAt: string;
+  summary: {
+    iconCount: number;
+    publicIconCount: number;
+    attributionRequiredIconCount: number;
+    sourceCount: number;
+    attributionRequiredSourceCount: number;
+  };
+  sources: IconAttributionManifestSource[];
+  icons: IconAttributionManifestIcon[];
+}
+
 type IconImportRequest = {
   source: ManagedIcon["source"];
   svg: ManagedIcon["svg"];
@@ -69,6 +120,10 @@ type IconImportRequest = {
   path: string;
   name?: string;
   tags?: string[];
+};
+
+type PublicLibraryIcon = ManagedIcon & {
+  source: Extract<ManagedIcon["source"], { kind: "public-library" }>;
 };
 
 export class IconStore {
@@ -352,6 +407,13 @@ export class IconStore {
 
   getRegistry(): IconRegistryFile {
     return structuredClone(this.registry);
+  }
+
+  async getAttributionManifest(): Promise<IconAttributionManifest> {
+    return this.lock.withLock(async () => {
+      await this.reloadFromDiskUnlocked();
+      return buildIconAttributionManifest(this.registry.icons);
+    });
   }
 
   private findIconById(iconId: string): ManagedIcon {
@@ -731,6 +793,102 @@ function statusForImportRequest(
     return existing.status;
   }
   return "draft";
+}
+
+function buildIconAttributionManifest(
+  icons: ManagedIcon[],
+): IconAttributionManifest {
+  const publicIcons = icons
+    .filter((icon): icon is PublicLibraryIcon => icon.source.kind === "public-library")
+    .map((icon): IconAttributionManifestIcon => {
+      return {
+        id: icon.id,
+        name: icon.name,
+        path: icon.path,
+        status: icon.status,
+        provider: icon.source.provider,
+        providerName: icon.source.providerName,
+        collectionId: icon.source.collectionId,
+        collectionName: icon.source.collectionName,
+        iconId: icon.source.iconId,
+        iconName: icon.source.iconName,
+        sourceUrl: icon.source.sourceUrl,
+        license: {
+          name: icon.source.license.name,
+          url: icon.source.license.url,
+          attributionRequired: icon.source.license.attributionRequired,
+        },
+      };
+    })
+    .sort((left, right) => left.path.localeCompare(right.path));
+
+  const sources = new Map<string, IconAttributionManifestSource>();
+  for (const icon of publicIcons) {
+    const key = JSON.stringify([
+      icon.provider,
+      icon.collectionId,
+      icon.license.name,
+      icon.license.url,
+      icon.license.attributionRequired ? "attribution" : "no-attribution",
+    ]);
+    const existing = sources.get(key);
+    if (existing) {
+      existing.iconCount += 1;
+      existing.icons.push({
+        id: icon.id,
+        name: icon.name,
+        path: icon.path,
+        sourceUrl: icon.sourceUrl,
+      });
+      continue;
+    }
+    sources.set(key, {
+      provider: icon.provider,
+      providerName: icon.providerName,
+      collectionId: icon.collectionId,
+      collectionName: icon.collectionName,
+      license: icon.license,
+      iconCount: 1,
+      icons: [
+        {
+          id: icon.id,
+          name: icon.name,
+          path: icon.path,
+          sourceUrl: icon.sourceUrl,
+        },
+      ],
+    });
+  }
+
+  const sourceList = Array.from(sources.values()).sort((left, right) =>
+    [
+      left.providerName,
+      left.collectionName,
+      left.license.name,
+    ].join(" ").localeCompare(
+      [right.providerName, right.collectionName, right.license.name].join(" "),
+    ),
+  );
+  for (const source of sourceList) {
+    source.icons.sort((left, right) => left.path.localeCompare(right.path));
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    summary: {
+      iconCount: icons.length,
+      publicIconCount: publicIcons.length,
+      attributionRequiredIconCount: publicIcons.filter(
+        (icon) => icon.license.attributionRequired,
+      ).length,
+      sourceCount: sourceList.length,
+      attributionRequiredSourceCount: sourceList.filter(
+        (source) => source.license.attributionRequired,
+      ).length,
+    },
+    sources: sourceList,
+    icons: publicIcons,
+  };
 }
 
 function parseSvgMetadata(

@@ -1881,6 +1881,11 @@ button.tm-status-row:not(:disabled):hover {
   overflow: hidden;
 }
 
+.tm-collection-toolbar__summary-meta {
+  margin-block-start: 1px;
+  line-height: 1.15;
+}
+
 .tm-collection-toolbar__trigger,
 .tm-collection-toolbar__action {
   min-inline-size: 0;
@@ -1943,6 +1948,10 @@ button.tm-status-row:not(:disabled):hover {
   .tm-collection-toolbar__scope {
     flex-basis: 96px;
     max-inline-size: min(34%, 96px);
+  }
+
+  .tm-collection-toolbar__summary-meta {
+    display: none;
   }
 
   .tm-collection-toolbar__row {

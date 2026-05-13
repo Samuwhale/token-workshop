@@ -23,6 +23,7 @@ import {
 import {
   AlertTriangle,
   CheckCircle2,
+  Download,
   MousePointer2,
   RefreshCw,
   Replace,
@@ -36,7 +37,7 @@ import { PanelContentHeader } from "../PanelContentHeader";
 import { Button, SearchField, SegmentedControl } from "../../primitives";
 import { apiFetch, createFetchSignal } from "../../shared/apiFetch";
 import { dispatchToast } from "../../shared/toastBus";
-import { getErrorMessage, isAbortError } from "../../shared/utils";
+import { downloadBlob, getErrorMessage, isAbortError } from "../../shared/utils";
 import { IconImportDialog } from "./IconImportDialog";
 
 type IconStatusFilter = "all" | IconStatus;
@@ -93,6 +94,34 @@ interface IconFigmaLinksResponse {
   ok: true;
   icons: ManagedIcon[];
   registry: IconRegistryFile;
+}
+
+interface IconAttributionManifest {
+  generatedAt: string;
+  summary: {
+    publicIconCount: number;
+    attributionRequiredIconCount: number;
+    sourceCount: number;
+    attributionRequiredSourceCount: number;
+  };
+  sources: Array<{
+    provider: string;
+    providerName: string;
+    collectionId: string;
+    collectionName: string;
+    license: {
+      name: string;
+      url: string;
+      attributionRequired: boolean;
+    };
+    iconCount: number;
+  }>;
+  icons: Array<{
+    id: string;
+    name: string;
+    path: string;
+    sourceUrl: string;
+  }>;
 }
 
 const SVG_FRAME_EPSILON = 1e-6;
@@ -349,7 +378,7 @@ function iconMatchesHealthFilter(
 }
 
 function svgDataUrl(svg: string): string {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 function createCorrelationId(): string {
@@ -1132,6 +1161,7 @@ export function IconPanel() {
   const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [attributionExporting, setAttributionExporting] = useState(false);
   const [canvasActionBusy, setCanvasActionBusy] = useState(false);
   const [auditScope, setAuditScope] = useState<IconUsageAuditScope>("selection");
   const [auditLoading, setAuditLoading] = useState(false);
@@ -1286,6 +1316,10 @@ export function IconPanel() {
     () => icons.filter(iconNeedsPublish),
     [icons],
   );
+  const publicIconCount = useMemo(
+    () => icons.filter((icon) => icon.source.kind === "public-library").length,
+    [icons],
+  );
 
   useEffect(() => {
     if (selectedIcon?.id && selectedIcon.id !== selectedIconId) {
@@ -1396,6 +1430,36 @@ export function IconPanel() {
       setPublishProgress(null);
     }
   }, [iconsToPublish, publishing, registry, serverUrl]);
+
+  const handleExportAttribution = useCallback(async () => {
+    if (attributionExporting) {
+      return;
+    }
+
+    setAttributionExporting(true);
+    setError(null);
+    try {
+      const manifest = await apiFetch<IconAttributionManifest>(
+        `${serverUrl}/api/icons/attribution`,
+        { signal: createFetchSignal(undefined, 10_000) },
+      );
+      const payload = JSON.stringify(manifest, null, 2);
+      downloadBlob(
+        new Blob([payload], { type: "application/json" }),
+        "icon-attribution.json",
+      );
+      dispatchToast(
+        `Exported attribution for ${formatIconCount(manifest.summary.publicIconCount)}.`,
+        "success",
+      );
+    } catch (err) {
+      const message = getErrorMessage(err, "Failed to export icon attribution.");
+      setError(message);
+      dispatchToast(message, "error");
+    } finally {
+      setAttributionExporting(false);
+    }
+  }, [attributionExporting, serverUrl]);
 
   const handleInsert = useCallback(async () => {
     if (!selectedIcon || canvasActionBusy || !iconCanUseOnCanvas(selectedIcon)) {
@@ -1613,6 +1677,21 @@ export function IconPanel() {
               : publishing
                 ? "Publishing"
                 : "Publish"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => void handleExportAttribution()}
+            disabled={attributionExporting || publicIconCount === 0}
+            title={
+              publicIconCount > 0
+                ? "Export public icon source and license metadata"
+                : "Import public library icons before exporting attribution"
+            }
+          >
+            <Download size={13} strokeWidth={1.5} aria-hidden />
+            {attributionExporting ? "Exporting" : "Attribution"}
           </Button>
           <Button
             type="button"

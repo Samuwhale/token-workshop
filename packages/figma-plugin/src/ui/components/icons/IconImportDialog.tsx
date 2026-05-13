@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
 import {
   normalizeIconPath,
@@ -16,9 +16,13 @@ import {
 } from "../../../shared/utils";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { Button, Field, SegmentedControl, TextInput } from "../../primitives";
-import { CONTROL_INPUT_BASE_CLASSES, CONTROL_INPUT_DEFAULT_STATE_CLASSES, CONTROL_INPUT_DISABLED_CLASSES } from "../../shared/controlClasses";
-import { apiFetch } from "../../shared/apiFetch";
-import { getErrorMessage } from "../../shared/utils";
+import {
+  CONTROL_INPUT_BASE_CLASSES,
+  CONTROL_INPUT_DEFAULT_STATE_CLASSES,
+  CONTROL_INPUT_DISABLED_CLASSES,
+} from "../../shared/controlClasses";
+import { apiFetch, createFetchSignal } from "../../shared/apiFetch";
+import { getErrorMessage, isAbortError } from "../../shared/utils";
 
 type ImportMode = "library" | "files" | "selection" | "paste" | "workspace";
 
@@ -34,6 +38,16 @@ interface IconImportBatchResponse {
   icons: ManagedIcon[];
   registry: IconRegistryFile;
   created: boolean[];
+}
+
+interface PublicIconProvider {
+  id: string;
+  name: string;
+  description: string;
+}
+
+interface PublicIconProvidersResponse {
+  providers: PublicIconProvider[];
 }
 
 interface PublicIconCollection {
@@ -61,12 +75,23 @@ interface PublicIconSearchResult {
 }
 
 interface PublicIconSearchResponse {
+  provider: PublicIconProvider;
   query: string;
   total: number;
   limit: number;
   start: number;
   icons: PublicIconSearchResult[];
   collections: PublicIconCollection[];
+}
+
+interface PublicIconLicenseSummary {
+  key: string;
+  providerName: string;
+  collectionName: string;
+  licenseName: string;
+  licenseUrl: string;
+  attributionRequired: boolean;
+  iconCount: number;
 }
 
 interface EditableSelectionIcon extends IconSelectionImportItem {
@@ -124,7 +149,41 @@ function readSvgFile(file: File): Promise<string> {
 }
 
 function svgDataUrl(svg: string): string {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function summarizePublicIconLicenses(
+  icons: PublicIconSearchResult[],
+): PublicIconLicenseSummary[] {
+  const summaries = new Map<string, PublicIconLicenseSummary>();
+  for (const icon of icons) {
+    const key = [
+      icon.provider,
+      icon.collection.id,
+      icon.collection.license.name,
+      icon.collection.license.url,
+      icon.collection.license.attributionRequired ? "attribution" : "no-attribution",
+    ].join(":");
+    const existing = summaries.get(key);
+    if (existing) {
+      existing.iconCount += 1;
+      continue;
+    }
+    summaries.set(key, {
+      key,
+      providerName: icon.providerName,
+      collectionName: icon.collection.name,
+      licenseName: icon.collection.license.name,
+      licenseUrl: icon.collection.license.url,
+      attributionRequired: icon.collection.license.attributionRequired,
+      iconCount: 1,
+    });
+  }
+  return Array.from(summaries.values()).sort((left, right) =>
+    `${left.providerName} ${left.collectionName} ${left.licenseName}`.localeCompare(
+      `${right.providerName} ${right.collectionName} ${right.licenseName}`,
+    ),
+  );
 }
 
 function formatIconDimension(value: number): string {
@@ -217,6 +276,10 @@ export function IconImportDialog({
   const [files, setFiles] = useState<File[]>([]);
   const [libraryQuery, setLibraryQuery] = useState("home");
   const [libraryCollection, setLibraryCollection] = useState("lucide");
+  const [publicProviders, setPublicProviders] = useState<PublicIconProvider[]>(
+    [],
+  );
+  const [publicProviderError, setPublicProviderError] = useState("");
   const [libraryResults, setLibraryResults] =
     useState<PublicIconSearchResponse | null>(null);
   const [selectedPublicIconIds, setSelectedPublicIconIds] = useState<Set<string>>(
@@ -243,6 +306,31 @@ export function IconImportDialog({
           ? workspacePathRef
           : undefined,
   });
+
+  useEffect(() => {
+    if (mode !== "library" || publicProviders.length > 0) {
+      return;
+    }
+
+    const controller = new AbortController();
+    void apiFetch<PublicIconProvidersResponse>(
+      `${serverUrl}/api/icons/public/providers`,
+      { signal: createFetchSignal(controller.signal, 10_000) },
+    )
+      .then((response) => {
+        setPublicProviders(response.providers);
+        setPublicProviderError("");
+      })
+      .catch((err) => {
+        if (!isAbortError(err)) {
+          setPublicProviderError(
+            getErrorMessage(err, "Failed to load public icon sources."),
+          );
+        }
+      });
+
+    return () => controller.abort();
+  }, [mode, publicProviders.length, serverUrl]);
 
   const selectedFileSummary = useMemo(() => {
     if (files.length === 0) {
@@ -365,6 +453,16 @@ export function IconImportDialog({
     [existingIconPaths, selectedPublicIcons],
   );
 
+  const selectedPublicIconLicenseSummaries = useMemo(
+    () => summarizePublicIconLicenses(selectedPublicIcons),
+    [selectedPublicIcons],
+  );
+
+  const activePublicProvider =
+    publicProviders.find((provider) => provider.id === "iconify") ??
+    libraryResults?.provider ??
+    null;
+
   const confirmDisabled =
     busy ||
     (mode === "files" && files.length === 0) ||
@@ -446,6 +544,7 @@ export function IconImportDialog({
     setSelectedPublicIconIds(new Set());
     try {
       const params = new URLSearchParams({
+        provider: activePublicProvider?.id ?? "iconify",
         query: libraryQuery.trim(),
         limit: "48",
       });
@@ -454,6 +553,7 @@ export function IconImportDialog({
       }
       const result = await apiFetch<PublicIconSearchResponse>(
         `${serverUrl}/api/icons/public/search?${params.toString()}`,
+        { signal: createFetchSignal(undefined, 15_000) },
       );
       setLibraryResults(result);
       if (result.icons.length === 0) {
@@ -552,6 +652,7 @@ export function IconImportDialog({
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            signal: createFetchSignal(undefined, 90_000),
             body: JSON.stringify({
               icons: selectedPublicIcons.map((icon) => ({
                 id: icon.id,
@@ -645,6 +746,22 @@ export function IconImportDialog({
 
           {mode === "library" ? (
             <div className="flex min-w-0 flex-col gap-3">
+              {activePublicProvider ? (
+                <div className="flex min-w-0 flex-col gap-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  <span className="font-medium text-[color:var(--color-figma-text)]">
+                    {activePublicProvider.name}
+                  </span>
+                  <span>{activePublicProvider.description}</span>
+                </div>
+              ) : null}
+              {publicProviderError ? (
+                <p
+                  role="alert"
+                  className="m-0 text-secondary text-[color:var(--color-figma-text-error)]"
+                >
+                  {publicProviderError}
+                </p>
+              ) : null}
               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_116px_auto] gap-2">
                 <Field label="Search">
                   <TextInput
@@ -727,6 +844,9 @@ export function IconImportDialog({
                             {icon.collection.license.name}
                             {icon.collection.license.attributionRequired ? " - attribution" : ""}
                           </span>
+                          <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                            {icon.providerName} source
+                          </span>
                           {updatesExisting ? (
                             <span className="text-secondary text-[color:var(--color-figma-text-warning)]">
                               Updates existing icon
@@ -736,6 +856,53 @@ export function IconImportDialog({
                       );
                     })}
                   </div>
+                  {selectedPublicIconLicenseSummaries.length > 0 ? (
+                    <div className="flex min-w-0 flex-col gap-1.5 pt-1 text-secondary">
+                      <div className="font-medium text-[color:var(--color-figma-text)]">
+                        Import review
+                      </div>
+                      {selectedPublicIconLicenseSummaries.map((summary) => (
+                        <div
+                          key={summary.key}
+                          className="min-w-0 text-[color:var(--color-figma-text-secondary)]"
+                        >
+                          <span className="font-medium text-[color:var(--color-figma-text)]">
+                            {summary.iconCount} icon{summary.iconCount === 1 ? "" : "s"}
+                          </span>{" "}
+                          from {summary.collectionName} via {summary.providerName}:{" "}
+                          <a
+                            href={summary.licenseUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[color:var(--color-figma-text-accent)] underline"
+                          >
+                            {summary.licenseName}
+                          </a>
+                          {summary.attributionRequired
+                            ? " requires attribution in handoff and exports."
+                            : " has no attribution requirement in the provider metadata."}
+                        </div>
+                      ))}
+                      <div className="flex min-w-0 flex-col gap-1 pt-1">
+                        {selectedPublicIcons.slice(0, 3).map((icon) => (
+                          <a
+                            key={icon.id}
+                            href={icon.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="truncate text-[color:var(--color-figma-text-accent)] underline"
+                          >
+                            View {icon.name} source
+                          </a>
+                        ))}
+                        {selectedPublicIcons.length > 3 ? (
+                          <span className="text-[color:var(--color-figma-text-tertiary)]">
+                            {selectedPublicIcons.length - 3} more source links are stored after import.
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">

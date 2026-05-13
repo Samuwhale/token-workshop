@@ -480,6 +480,11 @@ export function CollectionTabs({
                   <span className="tm-collection-toolbar__summary-title block truncate text-body font-medium">
                     {visibleTitle}
                   </span>
+                  {visibleMeta ? (
+                    <span className="tm-collection-toolbar__summary-meta block truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                      {visibleMeta}
+                    </span>
+                  ) : null}
                 </span>
                 <ChevronDown
                   size={12}
@@ -546,14 +551,14 @@ export function CollectionTabs({
                   }
                   aria-label={
                     activeCollectionSettings?.open === true
-                      ? "Hide collection details"
-                      : "Show collection details"
+                      ? "Hide collection and modes"
+                      : "Show collection and modes"
                   }
                   aria-pressed={activeCollectionSettings?.open === true}
                   title={
                     activeCollectionSettings?.open === true
-                      ? "Hide collection details"
-                      : "Show collection details"
+                      ? "Hide collection and modes"
+                      : "Show collection and modes"
                   }
                   variant="secondary"
                   size="sm"
@@ -562,7 +567,7 @@ export function CollectionTabs({
                 >
                   <Settings2 size={12} strokeWidth={1.5} aria-hidden />
                   <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                    Details
+                    Collection
                   </span>
                 </Button>
               ) : null}

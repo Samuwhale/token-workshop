@@ -103,6 +103,14 @@ export const iconRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  fastify.get("/icons/attribution", async (_request, reply) => {
+    try {
+      return await fastify.iconStore.getAttributionManifest();
+    } catch (err) {
+      return handleRouteError(reply, err, "Failed to export icon attribution");
+    }
+  });
+
   fastify.patch<{ Params: { iconId: string }; Body: unknown }>(
     "/icons/:iconId/figma",
     async (request, reply) => {
