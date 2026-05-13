@@ -2052,14 +2052,14 @@ button.tm-status-row:not(:disabled):hover {
 
 .tm-token-toolbar__row {
   flex-wrap: nowrap;
-  gap: 4px 6px;
+  gap: 6px 8px;
 }
 
 .tm-token-toolbar .tm-responsive-toolbar__leading {
   flex: 1 1 280px;
   flex-wrap: nowrap;
   min-inline-size: 0;
-  gap: 6px;
+  gap: 8px;
 }
 
 .tm-token-toolbar .tm-responsive-toolbar__search {
@@ -2071,7 +2071,7 @@ button.tm-status-row:not(:disabled):hover {
   display: flex;
   min-inline-size: 0;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .tm-token-toolbar__search-control [role="radiogroup"] {
@@ -2087,7 +2087,7 @@ button.tm-status-row:not(:disabled):hover {
   flex: 0 1 auto;
   flex-wrap: nowrap;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 8px;
   margin-left: 0;
 }
 
@@ -2102,7 +2102,7 @@ button.tm-status-row:not(:disabled):hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 6px;
 }
 
 .tm-token-toolbar__secondary > * {
@@ -2146,8 +2146,12 @@ button.tm-status-row:not(:disabled):hover {
   display: flex;
   min-inline-size: 0;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.tm-token-toolbar__create-group > * {
+  min-inline-size: 0;
 }
 
 @container (max-width: 720px) {
@@ -2237,10 +2241,10 @@ button.tm-status-row:not(:disabled):hover {
 @container (max-width: 480px) {
   .tm-token-toolbar__secondary {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 124px), 1fr));
     min-inline-size: 0;
     align-items: stretch;
-    gap: 4px;
+    gap: 6px;
   }
 
   .tm-token-toolbar__secondary > * {
@@ -2300,22 +2304,15 @@ button.tm-status-row:not(:disabled):hover {
   }
 
   .tm-token-toolbar__create-group > * {
+    flex: 1 1 100%;
     min-inline-size: 0;
-  }
-
-  .tm-token-toolbar__create-group > button {
-    inline-size: 100%;
   }
 }
 
 @container (max-width: 360px) {
   .tm-token-toolbar__create-group > button {
-    justify-content: center;
+    justify-content: flex-start;
     padding-inline: 8px;
-  }
-
-  .tm-token-toolbar__create-group .tm-token-toolbar__button-label {
-    display: none;
   }
 }
 
@@ -2595,12 +2592,13 @@ button.tm-status-row:not(:disabled):hover {
 
 .tm-value-cell__wrapper--interactive {
   cursor: pointer;
-  border-color: color-mix(in srgb, var(--workspace-library) 16%, transparent);
+  border-color: color-mix(in srgb, var(--workspace-library) 22%, transparent);
+  background: color-mix(in srgb, var(--workspace-library) 4%, transparent);
 }
 
 .tm-value-cell__wrapper[data-empty="true"][data-interactive="true"] {
   border-style: dashed;
-  background: color-mix(in srgb, var(--workspace-library) 8%, transparent);
+  background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
 }
 
 .tm-value-cell__wrapper[data-broken="true"] {
@@ -2614,14 +2612,14 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-value-cell__wrapper--interactive:hover {
-  background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
-  border-color: color-mix(in srgb, var(--workspace-library) 36%, transparent);
+  background: color-mix(in srgb, var(--workspace-library) 11%, transparent);
+  border-color: color-mix(in srgb, var(--workspace-library) 38%, transparent);
 }
 
 .tm-value-cell__wrapper--interactive:focus-visible,
 .tm-value-cell__wrapper--interactive:focus-within {
   background: var(--surface-accent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--workspace-library) 28%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--workspace-library) 30%, transparent);
   border-color: color-mix(in srgb, var(--workspace-library) 44%, transparent);
   outline: 1.5px solid var(--color-figma-accent);
   outline-offset: 0;
@@ -2649,6 +2647,7 @@ button.tm-status-row:not(:disabled):hover {
 
 .tm-value-cell__text--button {
   border-radius: var(--radius-sm);
+  inline-size: 100%;
   transition:
     background-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard);
@@ -4897,7 +4896,7 @@ button.tm-token-details__text-button:disabled:hover {
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 4px 6px;
+  gap: 6px;
   margin-left: auto;
 }
 
@@ -4912,65 +4911,22 @@ button.tm-token-details__text-button:disabled:hover {
 }
 
 .tm-token-mode-row__action-button {
-  display: inline-flex;
-  min-inline-size: var(--control-size-compact);
+  min-inline-size: 0;
   max-inline-size: 100%;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-block-size: var(--control-size-compact);
-  padding-inline: 7px;
-  border: 1px solid var(--border-muted);
-  border-radius: var(--radius-md);
-  background: var(--surface-group-quiet);
-  outline: none;
-  font-size: var(--font-size-sm);
-  color: var(--color-figma-text-secondary);
-  transition:
-    opacity 150ms ease,
-    color 150ms ease,
-    background-color 150ms ease,
-    border-color 150ms ease;
 }
 
-.tm-token-mode-row__action-button:hover {
-  background: var(--color-figma-bg-hover);
-  border-color: color-mix(
-    in srgb,
-    var(--color-figma-text-tertiary) 48%,
-    transparent
-  );
-  color: var(--color-figma-text);
+.tm-token-mode-row__menu-trigger {
+  min-inline-size: 0;
+  max-inline-size: 100%;
 }
 
-.tm-token-mode-row__action-button:focus-visible {
-  border-color: color-mix(
-    in srgb,
-    var(--workspace-library) 52%,
-    transparent
-  );
-  background: var(--surface-accent);
-  color: var(--color-figma-text);
-}
-
-.tm-token-mode-row__action-button--active {
-  border-color: color-mix(
-    in srgb,
-    var(--workspace-library) 45%,
-    transparent
-  );
-  background: var(--surface-accent);
-  color: var(--color-figma-text-accent);
+.tm-token-mode-row__menu-trigger > .tm-token-mode-row__action-button {
+  inline-size: 100%;
 }
 
 .tm-token-mode-row__action-button-label {
   min-inline-size: 0;
-  white-space: nowrap;
   display: block;
-}
-
-.tm-token-mode-row__action-button--menu {
-  gap: 2px;
 }
 
 .tm-token-mode-row__body {
@@ -5080,6 +5036,7 @@ button.tm-token-details__text-button:disabled:hover {
   display: flex;
   min-inline-size: 0;
   flex-wrap: wrap;
+  align-items: stretch;
   gap: 6px;
 }
 
@@ -5107,43 +5064,6 @@ button.tm-token-details__text-button:disabled:hover {
   line-height: var(--leading-body);
   color: var(--color-figma-text);
   overflow-wrap: anywhere;
-}
-
-.tm-token-mode-row__empty-action {
-  display: inline-flex;
-  min-inline-size: 0;
-  min-block-size: 32px;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 0 10px;
-  border: 1px dashed var(--color-figma-border);
-  border-radius: var(--radius-md);
-  background: transparent;
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-figma-text-secondary);
-  transition:
-    background-color var(--motion-fast) var(--ease-standard),
-    border-color var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) var(--ease-standard);
-}
-
-.tm-token-mode-row__empty-action:hover {
-  border-color: color-mix(in srgb, var(--workspace-library) 42%, transparent);
-  background: var(--surface-hover);
-  color: var(--color-figma-text);
-}
-
-.tm-token-mode-row__empty-action:focus-visible {
-  outline: 1.5px solid var(--color-figma-accent);
-  outline-offset: 1px;
-}
-
-.tm-token-mode-row__empty-action--primary {
-  border-color: color-mix(in srgb, var(--workspace-library) 38%, var(--color-figma-border));
-  background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
-  color: var(--color-figma-text-accent);
 }
 
 .tm-token-mode-row__typography {
@@ -5400,17 +5320,11 @@ button.tm-token-details__text-button:disabled:hover {
   }
 
   .tm-token-mode-row__action-button {
-    min-inline-size: var(--control-size-compact);
-    justify-content: flex-start;
-    padding-inline: 6px;
+    flex: 1 1 100%;
   }
 
-  .tm-token-mode-row__action-button-label {
-    display: block;
-  }
-
-  .tm-token-mode-row__action-button--menu {
-    gap: 2px;
+  .tm-token-mode-row__menu-trigger {
+    flex: 1 1 100%;
   }
 }
 
@@ -5433,6 +5347,10 @@ button.tm-token-details__text-button:disabled:hover {
 @container authoring-surface (max-width: 520px) {
   .tm-token-mode-row__empty-actions {
     flex-direction: column;
+  }
+
+  .tm-token-mode-row__empty-actions > * {
+    inline-size: 100%;
   }
 
   .tm-token-mode-row__action-button-label {

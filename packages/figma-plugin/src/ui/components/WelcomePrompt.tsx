@@ -34,11 +34,18 @@ const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
 function getStartHereBranchCopy(
   branch: StartHereBranch,
   connected: boolean,
+  hasCollections: boolean,
 ): StartHereBranchCopy {
   if (branch === "start-new" && !connected) {
     return {
       title: "Connect to your token library",
       description: "Start the shared token library, then continue with collections and modes.",
+    };
+  }
+  if (branch === "start-new" && hasCollections) {
+    return {
+      title: "Add to your library",
+      description: "Create a token, import a system, or extract values from selected layers.",
     };
   }
   return START_HERE_BRANCH_COPY[branch];
@@ -178,11 +185,16 @@ export function WelcomePrompt({
     }
     handleAction(onStartFromSelection);
   };
+  const hasCollections = collectionIds.length > 0;
   const renderRoot = () => (
     <div>
       <ActionRow
-        title="Create your first collection"
-        description="Group related tokens and define their modes."
+        title={hasCollections ? "Add to this library" : "Create your first collection"}
+        description={
+          hasCollections
+            ? "Create tokens, import a system, or extract values from the canvas."
+            : "Group related tokens and define their modes."
+        }
         onClick={() => setBranch("start-new")}
         emphasized
         icon={<Plus size={14} strokeWidth={1.75} aria-hidden />}
@@ -212,7 +224,7 @@ export function WelcomePrompt({
   );
 
   const showBack = branch !== "root";
-  const branchCopy = getStartHereBranchCopy(branch, connected);
+  const branchCopy = getStartHereBranchCopy(branch, connected, hasCollections);
   const branchTitle = branchCopy.title;
 
   return (

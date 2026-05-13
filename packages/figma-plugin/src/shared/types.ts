@@ -803,10 +803,22 @@ export interface CreateIconSlotMessage {
   correlationId?: string;
 }
 
+export interface RefreshIconSlotPreferredValuesMessage {
+  type: 'refresh-icon-slot-preferred-values';
+  preferredIcons: IconCanvasItem[];
+  targetNodeIds: string[];
+  correlationId?: string;
+}
+
 export interface IconCanvasActionResultMessage {
   type: 'icon-canvas-action-result';
-  action: 'insert' | 'replace' | 'set-slot' | 'create-slot';
-  iconId: string;
+  action:
+    | 'insert'
+    | 'replace'
+    | 'set-slot'
+    | 'create-slot'
+    | 'refresh-slot-preferences';
+  iconId?: string;
   count: number;
   skipped: number;
   skippedReason?: string;
@@ -1311,6 +1323,7 @@ export type PluginMessage =
   | ReplaceSelectionWithIconMessage
   | SetIconSwapPropertyMessage
   | CreateIconSlotMessage
+  | RefreshIconSlotPreferredValuesMessage
   | ScanIconUsageMessage
   | RevertVariablesMessage
   | RevertStylesMessage;

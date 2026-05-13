@@ -12,6 +12,7 @@ import type {
   InsertIconMessage,
   PublishIconsMessage,
   ReplaceSelectionWithIconMessage,
+  RefreshIconSlotPreferredValuesMessage,
   ScanIconUsageMessage,
   SelectNodeMessage,
   SelectionNodeInfo,
@@ -44,12 +45,14 @@ type IconCanvasActionRequest =
   | Omit<InsertIconMessage, "correlationId">
   | Omit<ReplaceSelectionWithIconMessage, "correlationId">
   | Omit<SetIconSwapPropertyMessage, "correlationId">
-  | Omit<CreateIconSlotMessage, "correlationId">;
+  | Omit<CreateIconSlotMessage, "correlationId">
+  | Omit<RefreshIconSlotPreferredValuesMessage, "correlationId">;
 type IconCanvasActionMessage =
   | InsertIconMessage
   | ReplaceSelectionWithIconMessage
   | SetIconSwapPropertyMessage
-  | CreateIconSlotMessage;
+  | CreateIconSlotMessage
+  | RefreshIconSlotPreferredValuesMessage;
 type IconUsageAuditRequest = Omit<ScanIconUsageMessage, "correlationId">;
 
 interface IconSlotAction {
@@ -125,6 +128,10 @@ const AUDIT_SCOPE_OPTIONS: Array<{ value: IconUsageAuditScope; label: string }> 
 
 function formatIconCount(count: number): string {
   return `${count} ${count === 1 ? "icon" : "icons"}`;
+}
+
+function formatSlotCount(count: number): string {
+  return `${count} ${count === 1 ? "slot" : "slots"}`;
 }
 
 function formatSkippedSuffix(
@@ -775,6 +782,8 @@ function IconUsageAuditPanel({
   onScopeChange,
   onRun,
   onFocusFinding,
+  onRefreshPreferredValues,
+  repairBusy,
 }: {
   scope: IconUsageAuditScope;
   loading: boolean;
@@ -782,6 +791,8 @@ function IconUsageAuditPanel({
   onScopeChange: (scope: IconUsageAuditScope) => void;
   onRun: () => void;
   onFocusFinding: (finding: IconUsageAuditFinding) => void;
+  onRefreshPreferredValues: (finding: IconUsageAuditFinding) => void;
+  repairBusy: boolean;
 }) {
   const [findingLimit, setFindingLimit] = useState(8);
   const findings = result?.findings ?? [];
@@ -870,6 +881,20 @@ function IconUsageAuditPanel({
                 <span className="min-w-0 text-[color:var(--color-figma-text-secondary)]">
                   {finding.message}
                 </span>
+                {finding.type === "stale-preferred-values" && finding.nodeId ? (
+                  <div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRefreshPreferredValues(finding)}
+                      disabled={repairBusy}
+                    >
+                      <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+                      Refresh values
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </div>
           ))}
@@ -1646,6 +1671,34 @@ export function IconPanel() {
     }
   }, [auditLoading, auditScope, defaultIconSize, icons]);
 
+  const handleRefreshPreferredValues = useCallback(async (finding: IconUsageAuditFinding) => {
+    if (!finding.nodeId || canvasActionBusy) {
+      return;
+    }
+
+    setCanvasActionBusy(true);
+    try {
+      const result = await runIconCanvasAction({
+        type: "refresh-icon-slot-preferred-values",
+        preferredIcons: slotPreferredIcons,
+        targetNodeIds: [finding.nodeId],
+      });
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      dispatchToast(
+        `Refreshed preferred values on ${formatSlotCount(result.count)}.${formatSkippedSuffix(result)}`,
+        result.skipped > 0 ? "warning" : "success",
+      );
+      void handleAuditUsage();
+    } catch (err) {
+      dispatchToast(getErrorMessage(err, "Failed to refresh preferred values."), "error");
+    } finally {
+      setCanvasActionBusy(false);
+    }
+  }, [canvasActionBusy, handleAuditUsage, slotPreferredIcons]);
+
   const handleFocusAuditFinding = useCallback((finding: IconUsageAuditFinding) => {
     if (!finding.nodeId) {
       dispatchToast("This finding is not attached to a canvas layer.", "warning");
@@ -1753,6 +1806,8 @@ export function IconPanel() {
           }}
           onRun={() => void handleAuditUsage()}
           onFocusFinding={handleFocusAuditFinding}
+          onRefreshPreferredValues={handleRefreshPreferredValues}
+          repairBusy={canvasActionBusy}
         />
         {selectedIcon ? (
           <div className="flex min-w-0 items-center gap-2 min-[560px]:hidden">

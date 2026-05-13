@@ -220,6 +220,81 @@ export async function createSelectionIconSlots(
   };
 }
 
+export async function refreshIconSlotPreferredValues(
+  preferredIcons: IconCanvasItem[],
+  targetNodeIds: string[],
+): Promise<ReplaceIconResult> {
+  const preferredValues = await resolveIconPreferredValuesForIcons(preferredIcons);
+  if (preferredValues.length === 0) {
+    throw new Error('Publish at least one ready icon before refreshing slot preferred values.');
+  }
+
+  const refreshedProperties = new Set<string>();
+  let count = 0;
+  let skipped = 0;
+  const skippedReasons: string[] = [];
+
+  for (const nodeId of new Set(targetNodeIds)) {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (node?.type !== 'INSTANCE') {
+      skipped += 1;
+      skippedReasons.push('Only icon slot instances can refresh preferred values.');
+      continue;
+    }
+
+    if (
+      node.getSharedPluginData(
+        PLUGIN_DATA_NAMESPACE,
+        ICON_SLOT_PREFERRED_VALUE_POLICY_KEY,
+      ) !== ICON_SLOT_ALL_GOVERNED_ICONS_POLICY
+    ) {
+      skipped += 1;
+      skippedReasons.push('This icon slot does not use the governed icon library policy.');
+      continue;
+    }
+
+    const propertyName = node.componentPropertyReferences?.mainComponent;
+    if (!propertyName) {
+      skipped += 1;
+      skippedReasons.push('This icon slot is no longer exposed as an instance swap property.');
+      continue;
+    }
+
+    const ownerComponent = findNearestMainComponent(node);
+    if (!ownerComponent) {
+      skipped += 1;
+      skippedReasons.push('This icon slot is no longer inside a main component.');
+      continue;
+    }
+
+    const propertyOwner = getIconSlotPropertyOwner(ownerComponent);
+    const definition = propertyOwner.componentPropertyDefinitions[propertyName];
+    if (!definition || definition.type !== 'INSTANCE_SWAP') {
+      skipped += 1;
+      skippedReasons.push('This icon slot property is no longer an instance swap property.');
+      continue;
+    }
+
+    const propertyKey = `${propertyOwner.id}:${propertyName}`;
+    if (refreshedProperties.has(propertyKey)) {
+      continue;
+    }
+
+    propertyOwner.editComponentProperty(propertyName, { preferredValues });
+    refreshedProperties.add(propertyKey);
+    count += 1;
+  }
+
+  if (count === 0) {
+    throw new Error(
+      summarizeSkippedReasons(skippedReasons) ??
+        'No governed icon slot preferred values could be refreshed.',
+    );
+  }
+
+  return { count, skipped, skippedReason: summarizeSkippedReasons(skippedReasons) };
+}
+
 async function resolveIconComponent(
   icon: IconCanvasItem,
 ): Promise<ComponentNode> {
@@ -361,8 +436,14 @@ async function resolveIconPreferredValues(
   selectedIcon: IconCanvasItem,
   preferredIcons: IconCanvasItem[],
 ): Promise<InstanceSwapPreferredValue[]> {
+  return resolveIconPreferredValuesForIcons([selectedIcon, ...preferredIcons]);
+}
+
+async function resolveIconPreferredValuesForIcons(
+  icons: IconCanvasItem[],
+): Promise<InstanceSwapPreferredValue[]> {
   const values = new Map<string, InstanceSwapPreferredValue>();
-  for (const icon of [selectedIcon, ...preferredIcons]) {
+  for (const icon of icons) {
     const key = await resolveIconComponentKey(icon);
     if (key) {
       values.set(key, { type: 'COMPONENT', key });

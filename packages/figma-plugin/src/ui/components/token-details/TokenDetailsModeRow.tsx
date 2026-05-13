@@ -18,18 +18,13 @@ import {
   getTypographyPreviewValue,
 } from "../token-editor/tokenEditorHelpers";
 import { formatCollectionDisplayNameList } from "../../shared/libraryCollections";
-import {
-  CONTROL_INPUT_DISABLED_CLASSES,
-  CONTROL_INPUT_BASE_CLASSES,
-  CONTROL_INPUT_DEFAULT_STATE_CLASSES,
-  CONTROL_INPUT_INVALID_STATE_CLASSES,
-} from "../../shared/controlClasses";
 import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 import {
   FLOATING_MENU_CLASS,
   FLOATING_MENU_ITEM_CLASS,
 } from "../../shared/menuClasses";
+import { Button, TextInput } from "../../primitives";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -335,14 +330,13 @@ export function TokenDetailsModeRow({
         !showHeader && "tm-token-mode-row__controls--body",
       )}
     >
-      <button
-        type="button"
+      <Button
         onClick={handleAliasToggle}
         aria-pressed={aliasMode}
-        className={joinClasses(
-          "tm-token-mode-row__action-button",
-          aliasMode && "tm-token-mode-row__action-button--active",
-        )}
+        variant="secondary"
+        size="sm"
+        wrap
+        className="tm-token-mode-row__action-button justify-start"
         title={
           aliasMode
             ? `Use a direct value for ${modeName}`
@@ -358,29 +352,27 @@ export function TokenDetailsModeRow({
         <span className="tm-token-mode-row__action-button-label">
           Reference
         </span>
-      </button>
+      </Button>
       {copyActions.length > 0 ? (
-        <div className="relative">
-          <button
+        <div className="tm-token-mode-row__menu-trigger relative">
+          <Button
             ref={copyMenu.triggerRef}
-            type="button"
             onClick={copyMenu.toggle}
             aria-expanded={copyMenu.open}
             aria-haspopup="menu"
             aria-label={`Copy value actions for ${modeName}`}
             title={`Copy value actions for ${modeName}`}
-            className={joinClasses(
-              "tm-token-mode-row__action-button",
-              "tm-token-mode-row__action-button--menu",
-              copyMenu.open && "tm-token-mode-row__action-button--active",
-            )}
+            variant="secondary"
+            size="sm"
+            wrap
+            className="tm-token-mode-row__action-button justify-start"
           >
             <Copy size={12} strokeWidth={1.5} aria-hidden />
             <span className="tm-token-mode-row__action-button-label tm-token-mode-row__action-button-label--secondary">
               Copy
             </span>
             <ChevronDown size={11} strokeWidth={1.6} aria-hidden />
-          </button>
+          </Button>
 
           {copyMenu.open ? (
             <div
@@ -449,8 +441,7 @@ export function TokenDetailsModeRow({
         <div className="tm-token-mode-row__value">
           {editable && aliasMode ? (
             <div className="relative">
-              <input
-                type="text"
+              <TextInput
                 value={aliasQuery}
                 onChange={(event) => {
                   setAliasQuery(event.target.value);
@@ -472,19 +463,13 @@ export function TokenDetailsModeRow({
                 autoFocus={autoFocus}
                 placeholder="Reference a token"
                 aria-label={`${modeName} reference`}
-                aria-invalid={showAliasMissingState || showAliasAmbiguousState}
                 aria-describedby={
                   showAliasMissingState || showAliasAmbiguousState
                     ? aliasStatusId
                     : undefined
                 }
-                className={joinClasses(
-                  `tm-token-mode-row__alias-input min-h-8 w-full px-2 py-1 font-mono ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${
-                    showAliasMissingState || showAliasAmbiguousState
-                      ? CONTROL_INPUT_INVALID_STATE_CLASSES
-                      : CONTROL_INPUT_DEFAULT_STATE_CLASSES
-                  }`,
-                )}
+                invalid={showAliasMissingState || showAliasAmbiguousState}
+                className="tm-token-mode-row__alias-input font-mono"
               />
               {autocompleteOpen && (
                 <AliasAutocomplete
@@ -555,19 +540,20 @@ export function TokenDetailsModeRow({
                 </div>
               ) : null}
               {emptyModeCopyAction ? (
-                <button
-                  type="button"
+                <Button
                   onClick={emptyModeCopyAction.onClick}
                   aria-label={`${emptyModeCopyAction.label} into ${modeName}`}
                   title={`${emptyModeCopyAction.label} into ${modeName}`}
-                  className="tm-token-mode-row__empty-action tm-token-mode-row__empty-action--primary"
+                  variant="secondary"
+                  size="sm"
+                  wrap
+                  className="justify-start"
                 >
                   <Copy size={12} strokeWidth={1.5} aria-hidden />
                   <span>{emptyModeCopyAction.label}</span>
-                </button>
+                </Button>
               ) : null}
-              <button
-                type="button"
+              <Button
                 onClick={() =>
                   onChange?.(
                     hasInheritedValue
@@ -581,25 +567,27 @@ export function TokenDetailsModeRow({
                     ? `Use value from reused token for ${modeName}`
                     : `Add ${defaultModeValueLabel} for ${modeName}`
                 }
-                className={joinClasses(
-                  "tm-token-mode-row__empty-action",
-                  !emptyModeCopyAction && "tm-token-mode-row__empty-action--primary",
-                )}
+                variant={!emptyModeCopyAction ? "primary" : "secondary"}
+                size="sm"
+                wrap
+                className="justify-start"
               >
                 {hasInheritedValue ? "Use token value" : "Add value"}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={handleAliasToggle}
                 aria-label={`Reference another token for ${modeName}`}
                 title={`Reference another token for ${modeName}`}
-                className="tm-token-mode-row__action-button"
+                variant="secondary"
+                size="sm"
+                wrap
+                className="tm-token-mode-row__action-button justify-start"
               >
                 <Link2 size={12} strokeWidth={1.5} aria-hidden />
                 <span className="tm-token-mode-row__action-button-label">
                   Reference
                 </span>
-              </button>
+              </Button>
             </div>
           ) : editable ? (
             <ModeValueEditor

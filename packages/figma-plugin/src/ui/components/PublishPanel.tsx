@@ -1221,52 +1221,6 @@ export function PublishPanel({
             </div>
           )}
 
-          {!hasComparedAnything && !isSyncing && !isApplying && !hasIssues && preflightStage === 'idle' && !readinessError && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-body font-medium text-[color:var(--color-figma-text)]">
-                  Compare with Figma
-                </span>
-                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Review what will change before Token Workshop writes variables or styles.
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (standardRoutingDirty) {
-                    void saveStandardRouting();
-                    return;
-                  }
-                  if (canProceedToSync) {
-                    void compareAll();
-                    return;
-                  }
-                  void handleSync();
-                }}
-                disabled={readinessLoading || compareAllLoading || standardRoutingSaving}
-                title={standardRoutingDirty || readinessChecks.length > 0 ? compareLockedMessage : undefined}
-                className="shrink-0 rounded-md bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
-              >
-                {standardRoutingSaving
-                  ? 'Saving…'
-                  : standardRoutingDirty
-                  ? 'Save destination'
-                  : canProceedToSync
-                    ? 'Review changes'
-                    : 'Compare with Figma'}
-              </button>
-            </div>
-          )}
-
-          <CheckboxRow
-            checked={createStylesPref}
-            onChange={setCreateStylesPref}
-            title="Create Figma styles too"
-            description="Variables always update. Add styles for colors, typography, shadows, and gradients designers use from Figma pickers."
-            className="px-0"
-          />
-
           {/* ── Publish destination ──────────────────────────────────── */}
           <div ref={targetRef}>
             <DisclosureSection
@@ -1300,6 +1254,52 @@ export function PublishPanel({
               />
             </DisclosureSection>
           </div>
+
+          <CheckboxRow
+            checked={createStylesPref}
+            onChange={setCreateStylesPref}
+            title="Also create Figma styles"
+            description="Keep variables as the source. Add styles for Figma color, text, effect, and gradient pickers."
+            className="px-0"
+          />
+
+          {!hasComparedAnything && !isSyncing && !isApplying && !hasIssues && preflightStage === 'idle' && !readinessError && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-body font-medium text-[color:var(--color-figma-text)]">
+                  Compare with Figma
+                </span>
+                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  Review changes before Token Workshop updates variables or styles.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (standardRoutingDirty) {
+                    void saveStandardRouting();
+                    return;
+                  }
+                  if (canProceedToSync) {
+                    void compareAll();
+                    return;
+                  }
+                  void handleSync();
+                }}
+                disabled={readinessLoading || compareAllLoading || standardRoutingSaving}
+                title={standardRoutingDirty || readinessChecks.length > 0 ? compareLockedMessage : undefined}
+                className="shrink-0 rounded-md bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
+              >
+                {standardRoutingSaving
+                  ? 'Saving…'
+                  : standardRoutingDirty
+                    ? 'Save destination'
+                    : canProceedToSync
+                      ? 'Review changes'
+                      : 'Compare with Figma'}
+              </button>
+            </div>
+          )}
 
           {/*── Issues section (from preflight) ───────────────────────── */}
           {hasIssues && !isSyncing && (

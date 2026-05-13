@@ -7,7 +7,7 @@ import { applyStyles, readFigmaStyles, revertStyles } from './styleSync.js';
 import { getAvailableFontData, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode, setSelectionDeepInspectEnabled } from './selectionHandling.js';
 import { selectNode, selectNextSibling, batchBindHeatmapNodes } from './heatmapScanning.js';
-import { createSelectionIconSlots, insertIconInstance, replaceSelectionWithIcon, setSelectionIconSwapProperty } from './iconCanvas.js';
+import { createSelectionIconSlots, insertIconInstance, refreshIconSlotPreferredValues, replaceSelectionWithIcon, setSelectionIconSwapProperty } from './iconCanvas.js';
 import { readSelectedIconsForImport } from './iconSelectionImport.js';
 import { publishIcons } from './iconSync.js';
 import { scanIconUsage } from './iconUsageAudit.js';
@@ -157,6 +157,7 @@ const MESSAGE_SCHEMA: Record<string, Check[]> = {
   'replace-selection-with-icon': [['icon', 'object']],
   'set-icon-swap-property':     [['icon', 'object'], ['propertyName', 'string'], ['targetNodeIds', 'array']],
   'create-icon-slot':           [['icon', 'object'], ['preferredIcons', 'array'], ['targetNodeIds', 'array']],
+  'refresh-icon-slot-preferred-values': [['preferredIcons', 'array'], ['targetNodeIds', 'array']],
   'scan-icon-usage':            [['scope', 'string'], ['icons', 'array']],
   'cancel-scan':                [],
 };
@@ -625,6 +626,30 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           count: 0,
           skipped: 0,
           error: getErrorMessage(e, 'Failed to create icon slot.'),
+          correlationId: msg.correlationId,
+        });
+      }
+      break;
+    case 'refresh-icon-slot-preferred-values':
+      try {
+        const result = await refreshIconSlotPreferredValues(
+          msg.preferredIcons,
+          msg.targetNodeIds,
+        );
+        figma.ui.postMessage({
+          type: 'icon-canvas-action-result',
+          action: 'refresh-slot-preferences',
+          ...result,
+          correlationId: msg.correlationId,
+        });
+        await getSelection();
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'icon-canvas-action-result',
+          action: 'refresh-slot-preferences',
+          count: 0,
+          skipped: 0,
+          error: getErrorMessage(e, 'Failed to refresh icon slot preferred values.'),
           correlationId: msg.correlationId,
         });
       }

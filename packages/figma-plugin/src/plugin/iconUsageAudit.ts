@@ -528,8 +528,17 @@ function collectStalePreferredValuesFinding(
     const preferredIcon = index.iconByPreferredValueKey.get(key);
     return preferredIcon ? !iconCanUseAsSlotPreference(preferredIcon) : false;
   });
+  const unknownPreferredKeys = Array.from(preferredKeys).filter(
+    (key) =>
+      !index.activePreferredValueKeys.has(key) &&
+      !index.iconByPreferredValueKey.has(key),
+  );
 
-  if (missingKeys.length === 0 && inactiveGovernedKeys.length === 0) {
+  if (
+    missingKeys.length === 0 &&
+    inactiveGovernedKeys.length === 0 &&
+    unknownPreferredKeys.length === 0
+  ) {
     return;
   }
 
@@ -545,6 +554,9 @@ function collectStalePreferredValuesFinding(
       : null,
     inactiveIconNames.length > 0
       ? `${formatListSummary(inactiveIconNames)} inactive`
+      : null,
+    unknownPreferredKeys.length > 0
+      ? `${formatCount(unknownPreferredKeys.length, 'removed or unmanaged value')}`
       : null,
   ].filter(Boolean).join('; ');
 
@@ -796,4 +808,8 @@ function formatListSummary(values: string[]): string {
     return uniqueValues.join(', ');
   }
   return `${uniqueValues.slice(0, 3).join(', ')} and ${uniqueValues.length - 3} more`;
+}
+
+function formatCount(count: number, singular: string): string {
+  return `${count} ${count === 1 ? singular : `${singular}s`}`;
 }

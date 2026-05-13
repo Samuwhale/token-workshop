@@ -258,7 +258,7 @@ export function TokenListToolbar({
     searchScope === "all" ||
     sortOrder !== "default" ||
     overflowMenuProps?.searchResultPresentation === "flat";
-  const viewMenuLabel = "Options";
+  const viewMenuLabel = "View";
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
       <div className="tm-responsive-toolbar tm-token-toolbar px-2 py-1">
@@ -583,8 +583,8 @@ export function TokenListToolbar({
                       onClick={actionsMenu.toggle}
                       aria-expanded={actionsMenu.open}
                       aria-haspopup="menu"
-                      aria-label="More actions"
-                      title="More actions"
+                      aria-label="List actions"
+                      title="List actions"
                       variant="ghost"
                       size="sm"
                       wrap
@@ -596,7 +596,7 @@ export function TokenListToolbar({
                     >
                       <MoreHorizontal size={14} strokeWidth={1.5} aria-hidden />
                       <span className="tm-toolbar-action__label tm-token-toolbar__overflow-label">
-                        More
+                        Actions
                       </span>
                     </Button>
 
@@ -691,15 +691,15 @@ export function TokenListToolbar({
                       disabled={!connected}
                       aria-expanded={createMenu.open}
                       aria-haspopup="menu"
-                      aria-label="More create actions"
-                      title="More create actions"
+                      aria-label="More add actions"
+                      title="More add actions"
                       variant="secondary"
                       size="sm"
                       wrap
                       className={`${TOOLBAR_BUTTON_CLASS} justify-start disabled:opacity-40`}
                     >
                       <span className="tm-toolbar-action__label tm-token-toolbar__button-label">
-                        More
+                        Add
                       </span>
                       <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
                     </Button>
