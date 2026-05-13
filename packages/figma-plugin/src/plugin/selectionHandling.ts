@@ -969,11 +969,11 @@ async function restoreNodeProps(node: SceneNode, snap: Record<string, unknown>):
 }
 
 // Scan the current page and build a map of tokenPath → number of layers using it
-export async function scanTokenUsageMap(signal?: { aborted: boolean }) {
+export async function scanTokenUsageMap(signal?: { aborted: boolean }, requestId?: string) {
   const usageMap: Record<string, number> = {};
   for await (const node of walkNodes(figma.currentPage.children, { signal })) {
     if (signal?.aborted) {
-      figma.ui.postMessage({ type: 'token-usage-map-cancelled' });
+      figma.ui.postMessage({ type: 'token-usage-map-cancelled', requestId });
       return;
     }
     const seen = new Set<string>();
@@ -986,10 +986,10 @@ export async function scanTokenUsageMap(signal?: { aborted: boolean }) {
     }
   }
   if (signal?.aborted) {
-    figma.ui.postMessage({ type: 'token-usage-map-cancelled' });
+    figma.ui.postMessage({ type: 'token-usage-map-cancelled', requestId });
     return;
   }
-  figma.ui.postMessage({ type: 'token-usage-map', usageMap });
+  figma.ui.postMessage({ type: 'token-usage-map', usageMap, requestId });
 }
 
 // Sync all bindings on the page or selection with latest token values

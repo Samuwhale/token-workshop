@@ -583,6 +583,7 @@ export interface SelectNextSiblingMessage {
 
 export interface ScanTokenUsageMessage {
   type: 'scan-token-usage';
+  requestId?: string;
 }
 
 export type ScanScope = 'page' | 'selection' | 'all-pages';
@@ -1174,10 +1175,12 @@ export interface StyleSyncProgressMessage {
 export interface TokenUsageMapMessage {
   type: 'token-usage-map';
   usageMap: Record<string, number>;
+  requestId?: string;
 }
 
 export interface TokenUsageMapCancelledMessage {
   type: 'token-usage-map-cancelled';
+  requestId?: string;
 }
 
 /** Discriminated union of all Controller→UI (plugin sandbox → iframe) messages */

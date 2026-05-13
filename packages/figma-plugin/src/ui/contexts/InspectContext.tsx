@@ -127,11 +127,21 @@ function UsageProvider({ children }: { children: ReactNode }) {
   const [hasTokenUsageScanResult, setHasTokenUsageScanResult] = useState(false);
 
   const scanDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scanRequestSequenceRef = useRef(0);
+  const activeScanRequestIdRef = useRef<string | null>(null);
 
   const resetTokenUsageState = useCallback(() => {
     setTokenUsageCounts({});
     setHasTokenUsageScanResult(false);
   }, []);
+
+  const startTokenUsageScan = useCallback(() => {
+    scanRequestSequenceRef.current += 1;
+    const requestId = `usage-map-${scanRequestSequenceRef.current}`;
+    activeScanRequestIdRef.current = requestId;
+    resetTokenUsageState();
+    postPluginMessage({ type: "scan-token-usage", requestId });
+  }, [resetTokenUsageState]);
 
   // Listen for token-usage-map results; re-scan after apply/sync/remap changes.
   useEffect(() => {
@@ -140,9 +150,15 @@ function UsageProvider({ children }: { children: ReactNode }) {
         TokenUsageMapMessage | TokenUsageMapCancelledMessage | { type?: string }
       >(e);
       if (msg?.type === "token-usage-map") {
-        setTokenUsageCounts((msg as TokenUsageMapMessage).usageMap ?? {});
+        const result = msg as TokenUsageMapMessage;
+        if (result.requestId !== activeScanRequestIdRef.current) return;
+        activeScanRequestIdRef.current = null;
+        setTokenUsageCounts(result.usageMap ?? {});
         setHasTokenUsageScanResult(true);
       } else if (msg?.type === "token-usage-map-cancelled") {
+        const cancellation = msg as TokenUsageMapCancelledMessage;
+        if (cancellation.requestId !== activeScanRequestIdRef.current) return;
+        activeScanRequestIdRef.current = null;
         resetTokenUsageState();
       } else if (
         msg?.type === "applied-to-selection" ||
@@ -152,7 +168,7 @@ function UsageProvider({ children }: { children: ReactNode }) {
         resetTokenUsageState();
         if (scanDebounceRef.current) clearTimeout(scanDebounceRef.current);
         scanDebounceRef.current = setTimeout(() => {
-          postPluginMessage({ type: "scan-token-usage" });
+          startTokenUsageScan();
         }, 300);
       }
     };
@@ -161,12 +177,11 @@ function UsageProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("message", handler);
       if (scanDebounceRef.current) clearTimeout(scanDebounceRef.current);
     };
-  }, [resetTokenUsageState]);
+  }, [resetTokenUsageState, startTokenUsageScan]);
 
   const triggerUsageScan = useCallback(() => {
-    resetTokenUsageState();
-    postPluginMessage({ type: "scan-token-usage" });
-  }, [resetTokenUsageState]);
+    startTokenUsageScan();
+  }, [startTokenUsageScan]);
 
   const value = useMemo<UsageContextValue>(
     () => ({

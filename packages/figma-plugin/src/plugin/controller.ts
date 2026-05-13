@@ -639,9 +639,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       cancelActiveScan(msg.requestId);
       break;
     case 'scan-token-usage': {
-      const signal = createScanSignal('token-usage-map');
+      const signal = createScanSignal('token-usage-map', msg.requestId);
       try {
-        await scanTokenUsageMap(signal);
+        await scanTokenUsageMap(signal, msg.requestId);
       } catch (e) {
         reportError('scan-token-usage', e);
       } finally {
