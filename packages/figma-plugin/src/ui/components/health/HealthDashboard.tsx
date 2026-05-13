@@ -198,7 +198,7 @@ export function HealthDashboard({
     },
     {
       id: "alias-opportunities",
-      label: "Suggested aliases",
+      label: "Suggested references",
       description: "Promote repeated values into shared tokens.",
       count: aliasOpportunitiesCount,
       severity: sevFromCount(aliasOpportunitiesCount),

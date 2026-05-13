@@ -60,7 +60,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose, closeLabel }: {
           aria-expanded={showServerDetails}
           className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
         >
-          Developer setup
+          For developers: start the server
         </button>
         {showServerDetails ? (
           <div className="mt-2 flex flex-col gap-2">

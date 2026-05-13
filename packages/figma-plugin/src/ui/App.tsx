@@ -460,11 +460,11 @@ export function App() {
     setAliasNotFoundHandler((path, reason) => {
       if (reason === "ambiguous") {
         setErrorToast(
-          `Alias target is ambiguous across collections: ${path}`,
+          `Reference target is ambiguous across collections: ${path}`,
         );
         return;
       }
-      setErrorToast(`Alias target not found: ${path}`);
+      setErrorToast(`Reference target not found: ${path}`);
     });
   }, [setAliasNotFoundHandler, setErrorToast]);
   // Route all dispatchToast() calls from deeply-nested components/hooks into the in-plugin ToastStack
@@ -1555,7 +1555,7 @@ export function App() {
           return { ok: true };
         } catch (err) {
           const message = getErrorMessage(err);
-          setErrorToast(`Could not rewire alias: ${message}`);
+          setErrorToast(`Could not update references: ${message}`);
           return { ok: false, error: message };
         }
       },
@@ -1666,7 +1666,7 @@ export function App() {
           return { ok: true };
         } catch (err) {
           const message = getErrorMessage(err);
-          setErrorToast(`Could not detach alias: ${message}`);
+          setErrorToast(`Could not detach references: ${message}`);
           return { ok: false, error: message };
         }
       },

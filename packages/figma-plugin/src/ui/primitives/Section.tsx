@@ -17,8 +17,8 @@ const TITLE_SIZE: Record<NonNullable<SectionProps["emphasis"]>, string> = {
 
 const TOP_PADDING: Record<NonNullable<SectionProps["emphasis"]>, string> = {
   primary: "",
-  secondary: "pt-5",
-  support: "pt-5",
+  secondary: "pt-4",
+  support: "pt-4",
 };
 
 export function Section({

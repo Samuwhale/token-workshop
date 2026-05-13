@@ -47,7 +47,7 @@ export function SetAliasAction({
       if (onPushUndo && result.updated > 0) {
         const opId = result.operationId;
         onPushUndo({
-          description: `Set alias ${aliasRef} on ${result.updated} token${result.updated === 1 ? '' : 's'}`,
+          description: `Set reference ${aliasRef} on ${result.updated} token${result.updated === 1 ? '' : 's'}`,
           restore: async () => { await rollbackOperation(serverUrl, opId); onApply(); },
         });
       }
@@ -71,7 +71,7 @@ export function SetAliasAction({
 
   return (
     <EditorShell
-      title="Set alias"
+      title="Set reference"
       surface="authoring"
       footer={
         <div className={AUTHORING_SURFACE_CLASSES.footer}>
@@ -87,7 +87,8 @@ export function SetAliasAction({
       }
     >
       <div className={AUTHORING_SURFACE_CLASSES.bodyStack}>
-        <div className="relative">
+        <div className={`${AUTHORING.fieldStack} relative`}>
+          <label className={AUTHORING.label}>Token reference</label>
           <div className="flex flex-wrap items-center gap-1.5">
             <input
               ref={inputRef}
@@ -104,7 +105,7 @@ export function SetAliasAction({
               }}
               placeholder="{color.brand.primary}"
               className={`min-w-0 flex-1 ${AUTHORING.inputMonoBase} placeholder-[var(--color-figma-text-tertiary)]`}
-              aria-label="Alias reference"
+              aria-label="Token reference"
             />
             {aliasInput && (
               <button

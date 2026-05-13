@@ -1791,29 +1791,34 @@ export function TokenDetails({
               <div className="relative tm-token-details__identity-path" ref={pathInputWrapperRef}>
                 <div className="tm-token-details__create-name-grid">
                   <Field label="Group">
-                    <input
-                      type="text"
-                      value={createPathParts.group}
-                      onChange={(e) =>
-                        updateCreatePath(e.target.value, createPathParts.name)
-                      }
-                      onFocus={() => {
-                        if (trimmedEditPath) setShowPathAutocomplete(true);
-                      }}
-                      onBlur={(e) => {
-                        if (
-                          !pathInputWrapperRef.current?.contains(
-                            e.relatedTarget as Node,
-                          )
-                        ) {
-                          setShowPathAutocomplete(false);
+                    <div>
+                      <input
+                        type="text"
+                        value={createPathParts.group}
+                        onChange={(e) =>
+                          updateCreatePath(e.target.value, createPathParts.name)
                         }
-                      }}
-                      placeholder="color.brand"
-                      autoFocus={!createPathParts.group}
-                      autoComplete="off"
-                      className={AUTHORING.inputMono}
-                    />
+                        onFocus={() => {
+                          if (trimmedEditPath) setShowPathAutocomplete(true);
+                        }}
+                        onBlur={(e) => {
+                          if (
+                            !pathInputWrapperRef.current?.contains(
+                              e.relatedTarget as Node,
+                            )
+                          ) {
+                            setShowPathAutocomplete(false);
+                          }
+                        }}
+                        placeholder="color.brand"
+                        autoFocus={!createPathParts.group}
+                        autoComplete="off"
+                        className={AUTHORING.inputMono}
+                      />
+                      <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
+                        Use dots for subgroups.
+                      </p>
+                    </div>
                   </Field>
                   <Field label="Name">
                     <input

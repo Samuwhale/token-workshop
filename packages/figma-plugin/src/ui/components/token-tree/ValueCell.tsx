@@ -96,16 +96,39 @@ export function ValueCell({
   const canCreate =
     !value && !!tokenType && !!targetCollectionId && !!onRequestQuickEdit;
   const canAddValue = !value && (canCreate || !!onEdit);
+  const valueState =
+    !value
+      ? canAddValue
+        ? "empty"
+        : "unavailable"
+      : isBrokenAlias
+        ? "broken-alias"
+        : isResolvedAlias
+          ? isDerivation
+            ? "derived-alias"
+            : "resolved-alias"
+          : isDerivation
+            ? "derived-literal"
+            : "literal";
 
   const displayVal = value ? formatValue(value.$type, value.$value) : "—";
   const presentation = value
     ? getValueCellPresentation(value)
     : null;
   const titleLines = [`${optionName}: ${displayVal}`];
+  if (isResolvedAlias && resolvedAliasPath) {
+    titleLines.push(`Reference: ${resolvedAliasPath}`);
+  }
   if (derivationSourcePath) {
     titleLines.push(`Modified from: ${derivationSourcePath}`);
   }
   if (targetCollectionId) titleLines.push(`Collection: ${targetCollectionId}`);
+  if (canActivateValue) {
+    titleLines.push("Click to edit");
+  }
+  if (canAddValue) {
+    titleLines.push("Click to add a value");
+  }
 
   const openQuickEdit = () => {
     if (!onRequestQuickEdit) return;
@@ -262,6 +285,7 @@ export function ValueCell({
       data-empty={!value ? "true" : undefined}
       data-broken={isBrokenAlias ? "true" : undefined}
       data-unavailable={!value && !canAddValue ? "true" : undefined}
+      data-value-state={valueState}
       className={`tm-value-cell ${wrapperClass}`}
       title={titleLines.join("\n")}
       role={canActivateWrapper ? "button" : undefined}

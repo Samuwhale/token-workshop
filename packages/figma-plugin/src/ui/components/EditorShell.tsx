@@ -68,7 +68,7 @@ export function EditorShell({
     >
       <div
         className={joinClasses(
-          "flex min-w-0 flex-wrap items-start gap-2 border-b border-[var(--color-figma-border)] shrink-0",
+          "flex min-w-0 flex-wrap items-start gap-2.5 border-b border-[var(--color-figma-border)] shrink-0",
           isAuthoringSurface && "tm-authoring-surface__header",
           headerClassName,
         )}

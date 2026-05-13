@@ -18,7 +18,7 @@ export function HealthAliasOpportunitiesView({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <HealthSubViewHeader
-        title="Suggested aliases"
+        title="Suggested references"
         onBack={onBack}
         count={
           aliasOpportunityGroups.length > 0
@@ -31,7 +31,7 @@ export function HealthAliasOpportunitiesView({
         {aliasOpportunityGroups.length === 0 ? (
           <div className="py-12 text-center">
             <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-              No suggested aliases found
+              No suggested references found
             </p>
           </div>
         ) : (

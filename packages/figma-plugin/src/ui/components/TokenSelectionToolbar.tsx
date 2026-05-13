@@ -256,14 +256,14 @@ export function TokenSelectionToolbar({
                       Set value
                     </button>
                     <button type="button" role="menuitem" onClick={() => openAction('set-alias', close)} className={FLOATING_MENU_ITEM_CLASS}>
-                      Set alias
+                      Set reference
                     </button>
                     <div className={menuSeparator} />
                     <button type="button" role="menuitem" onClick={() => openAction('find-replace', close)} className={FLOATING_MENU_ITEM_CLASS}>
                       Find & replace
                     </button>
                     <button type="button" role="menuitem" onClick={() => openAction('rewrite-aliases', close)} className={FLOATING_MENU_ITEM_CLASS}>
-                      Rewrite aliases
+                      Rewrite references
                     </button>
                     <div className={menuSeparator} />
                     {hasScopableTypes && (
@@ -320,7 +320,7 @@ export function TokenSelectionToolbar({
                     )}
                     <div className={menuSeparator} />
                     <button type="button" role="menuitem" onClick={() => { close(); onLinkToTokens(); }} className={FLOATING_MENU_ITEM_CLASS}>
-                      Promote to alias
+                      Promote to reference
                     </button>
                   </>
                 )}

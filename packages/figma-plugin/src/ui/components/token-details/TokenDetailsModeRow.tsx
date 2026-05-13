@@ -538,7 +538,7 @@ export function TokenDetailsModeRow({
               {hasInheritedValue ? (
                 <div className="tm-token-mode-row__inherited-preview">
                   <span className="tm-token-mode-row__inherited-label">
-                    From reused token
+                    From source token
                   </span>
                   <span
                     className="tm-token-mode-row__inherited-value"
@@ -570,18 +570,22 @@ export function TokenDetailsModeRow({
                       : defaultModeValue,
                   )
                 }
-                aria-label={`Add ${modeName} value`}
+                aria-label={
+                  hasInheritedValue
+                    ? `Use source value for ${modeName}`
+                    : `Set direct value for ${modeName}`
+                }
                 title={
                   hasInheritedValue
-                    ? `Use value from reused token for ${modeName}`
-                    : `Add ${defaultModeValueLabel} for ${modeName}`
+                    ? `Use value from source token for ${modeName}`
+                    : `Set ${defaultModeValueLabel} for ${modeName}`
                 }
                 variant={!emptyModeCopyAction ? "primary" : "secondary"}
                 size="sm"
                 wrap
                 className="justify-start"
               >
-                {hasInheritedValue ? "Use reused value" : "Add value"}
+                {hasInheritedValue ? "Use source value" : "Set direct value"}
               </Button>
               <Button
                 onClick={handleAliasToggle}

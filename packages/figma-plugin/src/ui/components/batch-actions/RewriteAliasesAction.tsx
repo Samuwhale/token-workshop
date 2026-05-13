@@ -53,12 +53,12 @@ export function RewriteAliasesAction({
 
       if (onPushUndo && res.operationId) {
         onPushUndo({
-          description: `Rewrite ${matches.length} alias${matches.length === 1 ? '' : 'es'}: {${findAlias}} → {${replaceAlias}}`,
+          description: `Rewrite ${matches.length} reference${matches.length === 1 ? '' : 's'}: {${findAlias}} → {${replaceAlias}}`,
           restore: async () => { await rollbackOperation(serverUrl, res.operationId); onApply(); },
         });
       }
 
-      setFeedback({ ok: true, msg: `Rewrote ${matches.length} alias${matches.length === 1 ? '' : 'es'}` });
+      setFeedback({ ok: true, msg: `Rewrote ${matches.length} reference${matches.length === 1 ? '' : 's'}` });
       setFindAlias('');
       setReplaceAlias('');
       onApply();
@@ -85,10 +85,10 @@ export function RewriteAliasesAction({
   );
 
   return (
-    <EditorShell title="Rewrite aliases" surface="authoring" footer={footer}>
+    <EditorShell title="Rewrite references" surface="authoring" footer={footer}>
       <div className={AUTHORING_SURFACE_CLASSES.bodyStack}>
         <div className={AUTHORING.fieldStack}>
-          <label className={AUTHORING.label}>Find alias</label>
+          <label className={AUTHORING.label}>Find reference</label>
           <input
             type="text"
             value={findAlias}

@@ -503,7 +503,7 @@ export function getImportResultNextStepRecommendations(
       createWorkspaceRecommendation(
         "library",
         "health",
-        "Review naming, aliases, and unused tokens before publishing.",
+        "Review naming, references, and unused tokens before publishing.",
       ),
     );
   }

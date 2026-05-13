@@ -2,7 +2,7 @@ import type { ValidationIssue } from "../hooks/useValidationCache";
 
 const DIRECT_FIX_LABELS: Record<string, string> = {
   "flatten-alias-chain": "Flatten",
-  "extract-to-alias": "Make alias",
+  "extract-to-alias": "Make reference",
   "delete-token": "Delete",
   "rename-token": "Rename",
   "fix-type": "Fix type",
@@ -37,7 +37,7 @@ export function getUnsupportedIssueFixMessage(
     case "replace-deprecated-reference":
       return "Deprecated references need a replacement token. Use the Deprecated review view to choose one.";
     case "promote-to-shared-alias":
-      return "Alias promotion needs a shared target path. Use the Suggested aliases review view.";
+      return "Reference promotion needs a shared target path. Use the Suggested references review view.";
     case undefined:
       return `Issue "${issue.rule}" does not provide an automatic fix.`;
     default:

@@ -25,7 +25,7 @@ export const LINT_RULE_REGISTRY: LintRuleMeta[] = [
   {
     id: 'no-raw-color',
     label: 'Raw color value',
-    description: 'Flag color tokens using raw hex values instead of aliases.',
+    description: 'Flag color tokens using raw hex values instead of references.',
     tip: 'Extract the color to a primitive token and reference it',
   },
   {
@@ -46,14 +46,14 @@ export const LINT_RULE_REGISTRY: LintRuleMeta[] = [
   {
     id: 'max-alias-depth',
     label: 'Deep reference chain',
-    description: 'Prevent alias chains from getting too deep.',
+    description: 'Prevent reference chains from getting too deep.',
     tip: 'Shorten the chain by pointing closer to the source token',
     options: [{ key: 'maxDepth', label: 'Max depth', type: 'number' }],
   },
   {
     id: 'references-deprecated-token',
     label: 'Deprecated token in use',
-    description: 'Flag tokens whose alias chain still resolves through a deprecated token.',
+    description: 'Flag tokens whose reference chain still resolves through a deprecated token.',
     tip: 'Replace active references with a non-deprecated successor token',
   },
   {
@@ -64,20 +64,20 @@ export const LINT_RULE_REGISTRY: LintRuleMeta[] = [
   },
   {
     id: 'alias-opportunity',
-    label: 'Suggested alias',
-    description: 'Detect raw-value groups that can be replaced by one shared primitive alias.',
-    tip: 'Promote the group into one shared alias token',
+    label: 'Suggested reference',
+    description: 'Detect raw-value groups that can be replaced by one shared primitive token.',
+    tip: 'Promote the group into one shared token',
   },
   {
     id: 'no-hardcoded-dimensions',
     label: 'Hardcoded dimension',
-    description: 'Flag dimension and number tokens using raw values instead of aliases. Promotes reuse of spacing/sizing scales.',
+    description: 'Flag dimension and number tokens using raw values instead of references. Promotes reuse of spacing/sizing scales.',
     tip: 'Extract the value to a primitive scale token and reference it',
   },
   {
     id: 'require-alias-for-semantic-tokens',
     label: 'Raw semantic token',
-    description: 'Require tokens in semantic groups (e.g. "semantic", "component", "alias") to reference primitives via aliases rather than using raw values.',
+    description: 'Require tokens in semantic groups (e.g. "semantic", "component", "alias") to reference primitives instead of using raw values.',
     tip: 'Replace the raw value with a reference to a primitive token',
     options: [
       { key: 'semanticPrefixes', label: 'Semantic prefixes (comma-separated)', type: 'text', placeholder: 'semantic,component,alias' },
