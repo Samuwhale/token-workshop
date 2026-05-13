@@ -8,6 +8,7 @@ import {
   getTokenGeneratorInputPorts,
   validateStepName as validateGeneratorStepName,
   getTokenGeneratorOutputPorts,
+  validateGeneratorOutputPath as validateGeneratorTokenPath,
 } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import {
@@ -15,7 +16,6 @@ import {
   isPlainRecord,
   readGeneratorTokenRefs,
 } from "./generatorDataUtils";
-import { validateGeneratorTokenPath } from "./generatorValidation";
 
 export interface GraphIssue {
   id: string;

@@ -59,9 +59,6 @@ import {
   DEFAULT_SPACING_SCALE_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,
   DEFAULT_Z_INDEX_SCALE_CONFIG,
-  generatorTemplateLabel,
-  readGeneratorProvenance,
-  readStructuredGeneratorDraft,
 } from "@token-workshop/core";
 import { cloneValue } from "../../../shared/clone";
 import type { TokenMapEntry } from "../../../shared/types";
@@ -97,9 +94,9 @@ import {
   PreviewPanel,
   countPreviewChanges,
   formatOutputChangeSummary,
-  formatValue,
   withRemovedPreviewChanges,
 } from "./GeneratorPreviewPanel";
+import { formatGeneratorValue as formatValue } from "./generatorValueFormat";
 import {
   FieldBlock,
   GeneratorBooleanField,
@@ -142,6 +139,24 @@ import {
   type GraphFlowEdge,
   type GraphFlowNode,
 } from "./generatorGraphFlow";
+import {
+  contextualPaletteItems,
+  formatNodeKind,
+  isGeneratorInputNode,
+  isGeneratorOutputNode,
+  nodeInspectorNote,
+  nodeSummary,
+  readGeneratorOutputLabel,
+} from "./generatorNodeMetadata";
+import {
+  GeneratorSelectorRowDetails,
+  buildGeneratorSelectorRow,
+  findGeneratorOwnedPathsToRemove,
+  formatGeneratorCollectionMeta,
+  formatGeneratorSelectorScopeSummary,
+  readCollectionLabel,
+  sortGeneratorSelectorRows,
+} from "./generatorSelectorRows";
 import {
   asNamedNumberSteps,
   asNumberArray,
@@ -224,24 +239,6 @@ type GraphStructureCommitUiState = {
 };
 type GraphPanelState = "none" | "inspector" | "nodeLibrary";
 type GeneratorListScope = "collection" | "all";
-type GeneratorSelectorIssueTone = "error" | "warning" | "neutral";
-
-interface GeneratorSelectorRow {
-  generator: TokenGeneratorDocument;
-  status?: FullGeneratorStatusItem;
-  graphIssues: GraphIssue[];
-  sourceLabel: string;
-  recipeLabel: string;
-  outputLabel: string;
-  outputTitle: string;
-  outputChangeLabel: string;
-  statusLabel: string;
-  issueCount: number;
-  issueTone: GeneratorSelectorIssueTone;
-  collectionLabel: string;
-  searchText: string;
-  sortRank: number;
-}
 
 const COMPACT_GENERATORS_WIDTH = 560;
 const FOCUSABLE_SELECTOR =
@@ -255,434 +252,10 @@ const GENERATOR_EDITOR_TABS: Array<{
   { value: "graph", label: "Graph" },
 ];
 
-function findGeneratorOwnedPathsToRemove({
-  generatorId,
-  targetCollectionId,
-  preview,
-  perCollectionFlat,
-}: {
-  generatorId: string | null;
-  targetCollectionId: string | null;
-  preview: TokenGeneratorPreviewResult | null;
-  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
-}): string[] {
-  if (!generatorId || !targetCollectionId || !preview) {
-    return [];
-  }
-
-  const previewOutputPaths = new Set(
-    preview.outputs.map((output) => output.path),
-  );
-  return Object.entries(perCollectionFlat[targetCollectionId] ?? {})
-    .filter(([, token]) => {
-      const provenance = readGeneratorProvenance(token);
-      return provenance?.generatorId === generatorId;
-    })
-    .map(([path]) => path)
-    .filter((path) => !previewOutputPaths.has(path))
-    .sort((a, b) => a.localeCompare(b));
-}
-
 function getFocusableElements(container: HTMLElement): HTMLElement[] {
   return Array.from(
     container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
   ).filter((element) => element.tabIndex >= 0 && !element.hidden);
-}
-
-function readCollectionLabel(collection: TokenCollection | undefined): string {
-  if (!collection) return "Unknown collection";
-  return collection.publishRouting?.collectionName?.trim() || collection.id;
-}
-
-function formatCount(count: number, singular: string, plural = `${singular}s`) {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-
-function formatGeneratorCollectionMeta(
-  generatorCount: number,
-  outputCount: number | null,
-): string {
-  const generatorLabel = formatCount(generatorCount, "generator");
-  if (outputCount === null) return `${generatorLabel} · refreshing outputs`;
-  return `${generatorLabel} · ${formatCount(outputCount, "output")}`;
-}
-
-function readLiteralNodeValue(node: TokenGeneratorDocumentNode): string {
-  if (
-    node.kind === "literal" &&
-    node.data.type === "dimension" &&
-    typeof node.data.value === "number" &&
-    typeof node.data.unit === "string"
-  ) {
-    return `${node.data.value}${node.data.unit}`;
-  }
-  return formatValue(node.data.value);
-}
-
-function readGeneratorSourceLabel(
-  generator: TokenGeneratorDocument,
-  collectionLabelById: Map<string, string>,
-): string {
-  const structured = readStructuredGeneratorDraft(generator);
-  if (structured) {
-    if (structured.sourceMode === "token") {
-      const collectionLabel = structured.sourceCollectionId
-        ? collectionLabelById.get(structured.sourceCollectionId)
-        : null;
-      const sourceToken = structured.sourceTokenPath || "Choose source token";
-      return collectionLabel ? `${sourceToken} · ${collectionLabel}` : sourceToken;
-    }
-    if (structured.sourceValue) return structured.sourceValue;
-    return "Configured values";
-  }
-
-  const sourceNodes = generator.nodes.filter(isGeneratorInputNode);
-  if (sourceNodes.length === 0) {
-    return generator.nodes.length === 0 ? "No source" : "Generated";
-  }
-  const labels = sourceNodes
-    .map((node) => {
-      if (node.kind === "tokenInput" || node.kind === "alias") {
-        return String(node.data.path ?? "").trim();
-      }
-      return readLiteralNodeValue(node) || node.label;
-    })
-    .filter(Boolean);
-  if (labels.length === 0) return "Generated";
-  if (labels.length === 1) return labels[0]!;
-  return `${labels[0]} + ${labels.length - 1} more`;
-}
-
-function readGeneratorRecipeLabel(generator: TokenGeneratorDocument): string {
-  const structured = readStructuredGeneratorDraft(generator);
-  if (structured) return generatorTemplateLabel(structured.kind);
-  if (generator.nodes.length === 0) return "Blank graph";
-  const stepCount = generator.nodes.filter(
-    (node) => !isGeneratorInputNode(node) && !isGeneratorOutputNode(node),
-  ).length;
-  return stepCount > 0
-    ? `Custom graph · ${formatCount(stepCount, "step")}`
-    : "Custom graph";
-}
-
-function readGeneratorOutputChangeLabel(
-  generator: TokenGeneratorDocument,
-  status: FullGeneratorStatusItem | undefined,
-  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>,
-): string {
-  if (!status) return "Refreshing preview";
-  const deletedPaths = findGeneratorOwnedPathsToRemove({
-    generatorId: generator.id,
-    targetCollectionId: generator.targetCollectionId,
-    preview: status.preview,
-    perCollectionFlat,
-  });
-  const outputCount = status.preview.outputs.length;
-  if (outputCount === 0 && deletedPaths.length === 0) return "No output";
-  const counts = withRemovedPreviewChanges(
-    countPreviewChanges(status.preview.outputs),
-    deletedPaths.length,
-  );
-  return `${formatCount(outputCount, "output")} · ${formatOutputChangeSummary(counts)}`;
-}
-
-function readGeneratorSelectorStatusLabel(
-  generator: TokenGeneratorDocument,
-  status: FullGeneratorStatusItem | undefined,
-  graphIssues: GraphIssue[],
-): string {
-  if (graphIssues.some((issue) => issue.severity === "error")) {
-    return "Fix settings";
-  }
-  if (!status) return "Refreshing preview";
-  if (status.preview.blocking || status.preview.outputs.some((output) => output.collision)) {
-    return "Needs attention";
-  }
-  if (status.stale) return "Out of date";
-  if (status.unapplied) return "Ready to apply";
-  if (status.preview.outputs.length === 0) return "No output";
-  return readGeneratorStatusLabel(generator);
-}
-
-function readGeneratorSelectorIssueTone(
-  status: FullGeneratorStatusItem | undefined,
-  graphIssues: GraphIssue[],
-): GeneratorSelectorIssueTone {
-  if (
-    graphIssues.some((issue) => issue.severity === "error") ||
-    status?.preview.blocking ||
-    status?.preview.outputs.some((output) => output.collision)
-  ) {
-    return "error";
-  }
-  if (
-    graphIssues.length > 0 ||
-    status?.stale ||
-    status?.unapplied ||
-    status?.preview.outputs.length === 0 ||
-    (status?.preview.diagnostics.length ?? 0) > 0
-  ) {
-    return "warning";
-  }
-  return "neutral";
-}
-
-function readGeneratorSelectorSortRank(
-  status: FullGeneratorStatusItem | undefined,
-  issueTone: GeneratorSelectorIssueTone,
-): number {
-  if (issueTone === "error") return 0;
-  if (status?.stale || status?.unapplied || issueTone === "warning") return 1;
-  if (!status) return 2;
-  return 3;
-}
-
-function buildGeneratorSelectorRow({
-  generator,
-  status,
-  collectionLabelById,
-  perCollectionFlat,
-}: {
-  generator: TokenGeneratorDocument;
-  status?: FullGeneratorStatusItem;
-  collectionLabelById: Map<string, string>;
-  perCollectionFlat: Record<string, Record<string, TokenMapEntry>>;
-}): GeneratorSelectorRow {
-  const preview = status?.preview ?? null;
-  const graphIssues = collectGraphIssues(
-    generatorWithInferredTokenInputTypes(generator, perCollectionFlat),
-    preview,
-    perCollectionFlat,
-  );
-  const sourceLabel = readGeneratorSourceLabel(generator, collectionLabelById);
-  const recipeLabel = readGeneratorRecipeLabel(generator);
-  const outputLabel = readGeneratorOutputLabel(generator);
-  const outputTitle = readGeneratorDestinationSearchLabel(generator);
-  const outputChangeLabel = readGeneratorOutputChangeLabel(
-    generator,
-    status,
-    perCollectionFlat,
-  );
-  const statusLabel = readGeneratorSelectorStatusLabel(
-    generator,
-    status,
-    graphIssues,
-  );
-  const issueCount =
-    graphIssues.length +
-    (status?.preview.diagnostics.length ?? 0) +
-    (status?.preview.outputs.filter((output) => output.collision).length ?? 0) +
-    (status && status.preview.outputs.length === 0 ? 1 : 0);
-  const issueTone = readGeneratorSelectorIssueTone(status, graphIssues);
-  const collectionLabel =
-    collectionLabelById.get(generator.targetCollectionId) ??
-    "Unknown collection";
-  const searchText = [
-    generator.name,
-    sourceLabel,
-    recipeLabel,
-    outputLabel,
-    outputTitle,
-    outputChangeLabel,
-    statusLabel,
-    collectionLabel,
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return {
-    generator,
-    status,
-    graphIssues,
-    sourceLabel,
-    recipeLabel,
-    outputLabel,
-    outputTitle,
-    outputChangeLabel,
-    statusLabel,
-    issueCount,
-    issueTone,
-    collectionLabel,
-    searchText,
-    sortRank: readGeneratorSelectorSortRank(status, issueTone),
-  };
-}
-
-function sortGeneratorSelectorRows(
-  a: GeneratorSelectorRow,
-  b: GeneratorSelectorRow,
-): number {
-  if (a.sortRank !== b.sortRank) return a.sortRank - b.sortRank;
-  return a.generator.name.localeCompare(b.generator.name, undefined, {
-    sensitivity: "base",
-  });
-}
-
-function formatGeneratorSelectorScopeSummary(
-  rows: GeneratorSelectorRow[],
-): string {
-  if (rows.length === 0) return "No generators";
-  const outputCountKnown = rows.every((row) => Boolean(row.status));
-  const outputCount = outputCountKnown
-    ? rows.reduce(
-        (sum, row) => sum + (row.status?.preview.outputs.length ?? 0),
-        0,
-      )
-    : null;
-  const issueCount = rows.filter((row) => row.issueTone !== "neutral").length;
-  const parts = [
-    formatCount(rows.length, "generator"),
-    outputCount === null
-      ? "refreshing outputs"
-      : formatCount(outputCount, "output"),
-  ];
-  if (issueCount > 0) {
-    parts.push(
-      `${issueCount} ${issueCount === 1 ? "needs attention" : "need attention"}`,
-    );
-  }
-  return parts.join(" · ");
-}
-
-function GeneratorSelectorRowDetails({ row }: { row: GeneratorSelectorRow }) {
-  const sourceNodes = row.generator.nodes.filter(isGeneratorInputNode);
-  const outputNodes = row.generator.nodes.filter(isGeneratorOutputNode);
-  const preview = row.status?.preview ?? null;
-  const sampledOutputs = preview?.outputs.slice(0, 3) ?? [];
-  const targetModes = preview?.targetModes ?? [];
-  const remainingOutputCount = preview
-    ? Math.max(0, preview.outputs.length - sampledOutputs.length)
-    : 0;
-  const diagnostics = [
-    ...row.graphIssues.map((issue) => ({
-      id: issue.id,
-      severity: issue.severity,
-      message: issue.message,
-    })),
-    ...(preview?.diagnostics ?? []),
-  ];
-
-  return (
-    <div className="tm-generator-selector-row__details">
-      <div className="tm-generator-selector-detail-grid">
-        <section className="tm-generator-selector-detail-block">
-          <h3>Inputs</h3>
-          {sourceNodes.length > 0 ? (
-            <div className="tm-generator-selector-node-list">
-              {sourceNodes.map((node) => (
-                <div key={node.id} className="tm-generator-selector-node-line">
-                  <span className="tm-generator-selector-node-line__name">
-                    {node.label}
-                  </span>
-                  <span className="tm-generator-selector-node-line__meta">
-                    {formatNodeKind(node.kind)} ·{" "}
-                    {node.kind === "literal"
-                      ? readLiteralNodeValue(node)
-                      : String(node.data.path ?? "").trim() || "No token"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p>{row.sourceLabel}</p>
-          )}
-        </section>
-
-        <section className="tm-generator-selector-detail-block">
-          <h3>Recipe</h3>
-          <p>{row.recipeLabel}</p>
-        </section>
-
-        <section className="tm-generator-selector-detail-block">
-          <h3>Outputs</h3>
-          {preview ? (
-            <p>{row.outputChangeLabel}</p>
-          ) : outputNodes.length > 0 ? (
-            <div className="tm-generator-selector-node-list">
-              {outputNodes.map((node) => (
-                <div key={node.id} className="tm-generator-selector-node-line">
-                  <span className="tm-generator-selector-node-line__name">
-                    {node.label}
-                  </span>
-                  <span className="tm-generator-selector-node-line__meta">
-                    {String(node.data.pathPrefix ?? node.data.path ?? "").trim() ||
-                      "No output path"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p>No output nodes</p>
-          )}
-        </section>
-      </div>
-
-      {diagnostics.length > 0 ? (
-        <section className="tm-generator-selector-diagnostics">
-          {diagnostics.slice(0, 4).map((diagnostic) => (
-            <div
-              key={diagnostic.id}
-              className={`tm-generator-selector-diagnostic tm-generator-selector-diagnostic--${diagnostic.severity}`}
-            >
-              <AlertTriangle size={12} aria-hidden />
-              <span>{diagnostic.message}</span>
-            </div>
-          ))}
-        </section>
-      ) : null}
-
-      {sampledOutputs.length > 0 ? (
-        <section className="tm-generator-selector-output-samples">
-          {sampledOutputs.map((output) => (
-            <div key={`${output.nodeId}:${output.outputKey}`} className="tm-generator-selector-output-sample">
-              <div className="tm-generator-selector-output-sample__header">
-                <span title={output.path}>{output.path}</span>
-                <span
-                  className={`tm-generator-selector-output-sample__change tm-generator-selector-output-sample__change--${
-                    output.collision ? "collision" : output.change
-                  }`}
-                >
-                  {output.collision ? "Collision" : output.change}
-                </span>
-              </div>
-              <div className="tm-generator-selector-mode-values">
-                {targetModes.map((modeName) => {
-                  const modeValue = output.modeValues[modeName];
-                  return (
-                    <div
-                      key={modeName}
-                      className="tm-generator-selector-mode-value"
-                    >
-                      <span className="tm-generator-selector-mode-value__mode">
-                        {modeName}
-                      </span>
-                      <span className="tm-generator-selector-mode-value__value">
-                        {previewIsValueBearing(output.type) ? (
-                          <ValuePreview
-                            type={output.type}
-                            value={modeValue}
-                            size={14}
-                          />
-                        ) : null}
-                        <span title={formatValue(modeValue)}>
-                          {formatValue(modeValue) || "Empty"}
-                        </span>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-          {remainingOutputCount > 0 ? (
-            <div className="tm-generator-selector-output-more">
-              {remainingOutputCount} more output{remainingOutputCount === 1 ? "" : "s"}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-    </div>
-  );
 }
 
 const PALETTE: GeneratorPaletteItem[] = [
@@ -4406,55 +3979,6 @@ function ReviewIssueList({
   );
 }
 
-function readGeneratorOutputLabel(generator: TokenGeneratorDocument): string {
-  const structured = readStructuredGeneratorDraft(generator);
-  if (structured?.outputPrefix) return structured.outputPrefix;
-  const destinations = readGeneratorDestinationLabels(generator);
-  if (destinations.length === 0) return "No output";
-  if (destinations.length === 1) return destinations[0];
-  return `${destinations[0]} + ${destinations.length - 1} more`;
-}
-
-function readGeneratorDestinationSearchLabel(
-  generator: TokenGeneratorDocument,
-): string {
-  const structured = readStructuredGeneratorDraft(generator);
-  if (structured?.outputPrefix) return structured.outputPrefix;
-  return readGeneratorDestinationLabels(generator).join(" ");
-}
-
-function readGeneratorDestinationLabels(
-  generator: TokenGeneratorDocument,
-): string[] {
-  return generator.nodes
-    .filter(isGeneratorOutputNode)
-    .map((node) => String(node.data.pathPrefix ?? node.data.path ?? "").trim())
-    .filter(Boolean);
-}
-
-function isGeneratorInputNode(node: TokenGeneratorDocumentNode): boolean {
-  return (
-    node.kind === "tokenInput" ||
-    node.kind === "literal" ||
-    node.kind === "alias"
-  );
-}
-
-function isGeneratorOutputNode(node: TokenGeneratorDocumentNode): boolean {
-  return node.kind === "groupOutput" || node.kind === "output";
-}
-
-function readGeneratorStatusLabel(generator: TokenGeneratorDocument): string {
-  const diagnostics = generator.lastApplyDiagnostics ?? [];
-  if (diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
-    return "Needs attention";
-  }
-  if (diagnostics.some((diagnostic) => diagnostic.severity === "warning")) {
-    return "Applied with warnings";
-  }
-  return generator.lastAppliedAt ? "Applied" : "Not applied";
-}
-
 function GeneratorOverviewPanel({
   generator,
   collections,
@@ -5331,33 +4855,6 @@ function graphNodeAccent(node: TokenGeneratorDocumentNode): string {
   }
 }
 
-function formatNodeKind(kind: TokenGeneratorDocumentNode["kind"]): string {
-  switch (kind) {
-    case "tokenInput":
-      return "Token input";
-    case "groupOutput":
-      return "Series output";
-    case "colorRamp":
-      return "Color ramp";
-    case "spacingScale":
-      return "Spacing scale";
-    case "typeScale":
-      return "Type scale";
-    case "borderRadiusScale":
-      return "Radius scale";
-    case "opacityScale":
-      return "Opacity scale";
-    case "shadowScale":
-      return "Shadow scale";
-    case "zIndexScale":
-      return "Z-index scale";
-    case "customScale":
-      return "Custom scale";
-    default:
-      return kind.charAt(0).toUpperCase() + kind.slice(1);
-  }
-}
-
 function NodeInspector({
   node,
   collections,
@@ -5846,19 +5343,6 @@ function NodeInspectorNote({ node }: { node: TokenGeneratorDocumentNode }) {
   );
 }
 
-function nodeInspectorNote(node: TokenGeneratorDocumentNode): string | null {
-  if (node.kind === "output") {
-    return "Use this when the graph ends in one value. It creates one token at the path below.";
-  }
-  if (node.kind === "groupOutput") {
-    return "Use this for ramps and scales. It creates one token per item in the connected series.";
-  }
-  if (getNodeOutputPorts(node).some((port) => port.shape === "list")) {
-    return "This node outputs a series. Connect it to Series output to create one token per item.";
-  }
-  return null;
-}
-
 function portHandleStyle(total: number, index: number): CSSProperties {
   return {
     top: portVerticalPosition(total, index),
@@ -5886,69 +5370,4 @@ function formatPortMeta(port: TokenGeneratorPortDescriptor): string {
     return port.shape === "list" ? "series" : "value";
   }
   return port.shape === "list" ? `${port.type} series` : port.type;
-}
-
-function contextualPaletteItems(
-  palette: typeof PALETTE,
-  selectedNode: TokenGeneratorDocumentNode | null,
-  generator: TokenGeneratorDocument | null,
-): typeof PALETTE {
-  if (!generator)
-    return palette.filter(
-      (item) => item.category === "Inputs" || item.category === "Scales",
-    );
-  if (!selectedNode) {
-    return palette.filter((item) => {
-      if (item.category === "Inputs" || item.category === "Scales") {
-        return true;
-      }
-      return item.category === "Outputs";
-    });
-  }
-  if (
-    selectedNode.kind === "tokenInput" ||
-    selectedNode.kind === "literal" ||
-    selectedNode.kind === "alias"
-  ) {
-    return palette.filter(
-      (item) =>
-        item.category === "Math" ||
-        item.category === "Color" ||
-        item.category === "Scales" ||
-        item.category === "Outputs",
-    );
-  }
-  if (selectedNode.kind === "output" || selectedNode.kind === "groupOutput") {
-    return palette.filter(
-      (item) => item.category === "Inputs" || item.category === "Scales",
-    );
-  }
-  return palette.filter(
-    (item) =>
-      item.category === "Outputs" ||
-      item.category === "Math" ||
-      item.category === "Color",
-  );
-}
-
-function nodeSummary(node: TokenGeneratorDocumentNode): string {
-  if (node.kind === "tokenInput")
-    return String(node.data.path || "Choose token");
-  if (node.kind === "literal") return formatValue(node.data.value);
-  if (node.kind === "math")
-    return `${node.data.operation ?? "add"} ${node.data.amount ?? ""}`.trim();
-  if (node.kind === "color") return String(node.data.operation ?? "lighten");
-  if (node.kind === "formula") return String(node.data.expression ?? "Formula");
-  if (node.kind === "colorRamp") return "Mode-aware color series";
-  if (node.kind === "spacingScale") return "Spacing series";
-  if (node.kind === "typeScale") return "Type series";
-  if (node.kind === "borderRadiusScale") return "Radius series";
-  if (node.kind === "opacityScale") return "Opacity series";
-  if (node.kind === "shadowScale") return "Shadow series";
-  if (node.kind === "zIndexScale") return "Z-index series";
-  if (node.kind === "customScale") return "Formula series";
-  if (node.kind === "output") return String(node.data.path || "Output path");
-  if (node.kind === "groupOutput")
-    return String(node.data.pathPrefix || "Output series");
-  return node.kind;
 }

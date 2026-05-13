@@ -4,6 +4,7 @@ import type {
   TokenGeneratorPreviewResult,
 } from "@token-workshop/core";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
+import { formatGeneratorValue as formatValue } from "./generatorValueFormat";
 
 type PreviewGraphTarget = {
   diagnosticId?: string;
@@ -56,18 +57,6 @@ export function formatOutputChangeSummary(counts: PreviewChangeCounts): string {
   if (counts.removed > 0) parts.push(`${counts.removed} removed`);
   if (counts.unchanged > 0) parts.push(`${counts.unchanged} same`);
   return parts.length > 0 ? parts.join(", ") : "No output changes";
-}
-
-export function formatValue(value: unknown): string {
-  if (value == null) return "";
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  if (typeof value === "object" && "value" in value && "unit" in value) {
-    return `${String((value as { value: unknown }).value)}${String((value as { unit: unknown }).unit)}`;
-  }
-  return JSON.stringify(value);
 }
 
 export function PreviewPanel({

@@ -20,6 +20,7 @@ import {
   buildGeneratorNodesFromStructuredDraft,
   generatorDefaultConfig,
   generatorDefaultSourceValue,
+  validateGeneratorOutputPath as validateGeneratorTokenPath,
   type GeneratorConfiguredTemplateKind,
   type GeneratorSourceMode,
 } from "@token-workshop/core";
@@ -38,7 +39,6 @@ import {
   formatGeneratorDimensionInput,
   parseGeneratorDimensionInput,
 } from "./generators/GeneratorFieldControls";
-import { validateGeneratorTokenPath } from "./generators/generatorValidation";
 import type { GeneratorEditorMode } from "./generators/generatorEditorTypes";
 
 type BusyState = "create" | null;

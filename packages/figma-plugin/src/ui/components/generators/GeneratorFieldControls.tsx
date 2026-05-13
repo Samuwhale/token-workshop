@@ -1,6 +1,10 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, Copy, Plus, Trash2, X } from "lucide-react";
-import { DIMENSION_UNITS, type TokenCollection } from "@token-workshop/core";
+import {
+  DIMENSION_UNITS,
+  validateGeneratorOutputPath as validateGeneratorTokenPath,
+  type TokenCollection,
+} from "@token-workshop/core";
 import type { TokenMapEntry } from "../../../shared/types";
 import { Button, SegmentedControl } from "../../primitives";
 import { AUTHORING } from "../../shared/editorClasses";
@@ -9,7 +13,6 @@ import { ColorEditor } from "../valueEditors/ColorEditor";
 import { DimensionEditor, StepperInput } from "../valueEditors/DimensionEditor";
 import { FormulaInput } from "../FormulaInput";
 import { ValuePreview, previewIsValueBearing } from "../ValuePreview";
-import { validateGeneratorTokenPath } from "./generatorValidation";
 
 export type GeneratorTokenRefs = Record<string, string>;
 export type GeneratorDimensionInputValue = { value: number | string; unit: string };
