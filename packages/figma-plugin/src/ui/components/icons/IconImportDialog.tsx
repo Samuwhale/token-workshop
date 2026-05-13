@@ -318,6 +318,40 @@ function publicResultSummary(response: PublicIconResultsResponse): string {
     : `${response.icons.length} of ${response.total} icons`;
 }
 
+function mergePublicIconResults(
+  current: PublicIconResultsResponse | null,
+  next: PublicIconResultsResponse,
+): PublicIconResultsResponse {
+  if (!current) {
+    return next;
+  }
+  if (
+    isPublicIconCollectionBrowseResponse(current) !==
+    isPublicIconCollectionBrowseResponse(next)
+  ) {
+    return next;
+  }
+  return {
+    ...next,
+    start: current.start,
+    icons: [...current.icons, ...next.icons],
+  };
+}
+
+function mergePublicCollectionResults(
+  current: PublicIconCollectionListResponse | null,
+  next: PublicIconCollectionListResponse,
+): PublicIconCollectionListResponse {
+  if (!current) {
+    return next;
+  }
+  return {
+    ...next,
+    start: current.start,
+    collections: [...current.collections, ...next.collections],
+  };
+}
+
 function PublicLibraryRail({
   selectedPublicSourceId,
   disabled,
@@ -362,6 +396,8 @@ function PublicCollectionCatalog({
   query,
   onQueryChange,
   onSearch,
+  onLoadMore,
+  canLoadMore,
   loading,
   response,
   selectedCollectionId,
@@ -370,6 +406,8 @@ function PublicCollectionCatalog({
   query: string;
   onQueryChange: (value: string) => void;
   onSearch: () => void;
+  onLoadMore: () => void;
+  canLoadMore: boolean;
   loading: boolean;
   response: PublicIconCollectionListResponse | null;
   selectedCollectionId: string;
@@ -438,6 +476,18 @@ function PublicCollectionCatalog({
               </button>
             ))}
           </div>
+          {canLoadMore ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onLoadMore}
+              disabled={loading}
+              className="self-start bg-[var(--color-figma-bg)]"
+            >
+              {loading ? "Loading" : "More libraries"}
+            </Button>
+          ) : null}
         </>
       ) : (
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
@@ -675,6 +725,12 @@ export function IconImportDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const workspacePathRef = useRef<HTMLInputElement>(null);
+  const libraryRequestVersionRef = useRef(0);
+  const libraryActiveRequestIdRef = useRef(0);
+  const libraryAbortControllerRef = useRef<AbortController | null>(null);
+  const catalogRequestVersionRef = useRef(0);
+  const catalogActiveRequestIdRef = useRef(0);
+  const catalogAbortControllerRef = useRef<AbortController | null>(null);
   const [mode, setMode] = useState<ImportMode>("library");
   const [files, setFiles] = useState<File[]>([]);
   const [selectedPublicSourceId, setSelectedPublicSourceId] =
@@ -717,6 +773,13 @@ export function IconImportDialog({
           ? workspacePathRef
           : undefined,
   });
+
+  useEffect(() => {
+    return () => {
+      libraryAbortControllerRef.current?.abort();
+      catalogAbortControllerRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (mode !== "library" || publicProviders.length > 0) {
@@ -884,15 +947,27 @@ export function IconImportDialog({
 
   const currentPublicCollection = isPublicIconCollectionBrowseResponse(libraryResults)
     ? libraryResults.collection
-    : (libraryResults?.icons[0]?.collection ??
-      catalogResults?.collections.find(
-        (collection) => collection.id === libraryCollection,
-      ) ??
-      null);
+    : (libraryResults?.icons[0]?.collection ?? null);
 
   const publicCollectionCategories = isPublicIconCollectionBrowseResponse(libraryResults)
     ? libraryResults.categories
     : [];
+
+  const libraryResultsQuery = libraryResults
+    ? isPublicIconCollectionBrowseResponse(libraryResults)
+      ? ""
+      : libraryResults.query
+    : "";
+  const publicIconsCanLoadMore = Boolean(
+    libraryResults &&
+      libraryResults.icons.length < libraryResults.total &&
+      libraryQuery.trim() === libraryResultsQuery,
+  );
+  const catalogCanLoadMore = Boolean(
+    catalogResults &&
+      catalogResults.collections.length < catalogResults.total &&
+      catalogQuery.trim() === catalogResults.query,
+  );
 
   const confirmDisabled =
     busy ||
@@ -969,23 +1044,40 @@ export function IconImportDialog({
     query?: string;
     collection?: string;
     category?: string;
+    start?: number;
+    append?: boolean;
   }) => {
     const query = (next?.query ?? libraryQuery).trim();
     const collection = (next?.collection ?? libraryCollection).trim();
     const category = next?.category ?? libraryCategory;
+    const start = next?.start ?? 0;
+    const append = next?.append ?? false;
 
-    if (!collection || libraryLoading || busy) {
+    if (!collection || busy || (append && libraryLoading)) {
       return;
     }
+    if (!append) {
+      libraryRequestVersionRef.current += 1;
+    }
+    const requestVersion = libraryRequestVersionRef.current;
+    const requestId = libraryActiveRequestIdRef.current + 1;
+    const abortController = new AbortController();
+    libraryActiveRequestIdRef.current = requestId;
+    libraryAbortControllerRef.current?.abort();
+    libraryAbortControllerRef.current = abortController;
+
     setLibraryLoadedOnce(true);
     setLibraryLoading(true);
     setError("");
-    setLibraryResults(null);
-    setSelectedPublicIconIds(new Set());
+    if (!append) {
+      setLibraryResults(null);
+      setSelectedPublicIconIds(new Set());
+    }
     try {
       const params = new URLSearchParams({
         provider: activePublicProvider?.id ?? "iconify",
         limit: query ? "48" : "64",
+        start: String(start),
       });
       if (query) {
         params.set("query", query);
@@ -1001,9 +1093,14 @@ export function IconImportDialog({
         : "/api/icons/public/collection";
       const result = await apiFetch<PublicIconResultsResponse>(
         `${serverUrl}${path}?${params.toString()}`,
-        { signal: createFetchSignal(undefined, 15_000) },
+        { signal: createFetchSignal(abortController.signal, 15_000) },
       );
-      setLibraryResults(result);
+      if (requestVersion !== libraryRequestVersionRef.current) {
+        return;
+      }
+      setLibraryResults((current) =>
+        append ? mergePublicIconResults(current, result) : result,
+      );
       if (result.icons.length === 0) {
         setError(
           query
@@ -1012,9 +1109,17 @@ export function IconImportDialog({
         );
       }
     } catch (err) {
+      if (isAbortError(err) || requestVersion !== libraryRequestVersionRef.current) {
+        return;
+      }
       setError(getErrorMessage(err, "Failed to load public icons."));
     } finally {
-      setLibraryLoading(false);
+      if (requestId === libraryActiveRequestIdRef.current) {
+        setLibraryLoading(false);
+        if (libraryAbortControllerRef.current === abortController) {
+          libraryAbortControllerRef.current = null;
+        }
+      }
     }
   }, [
     activePublicProvider?.id,
@@ -1026,33 +1131,62 @@ export function IconImportDialog({
     serverUrl,
   ]);
 
-  const loadPublicCatalog = useCallback(async (nextQuery?: string) => {
-    const query = (nextQuery ?? catalogQuery).trim();
-    if (catalogLoading || busy) {
+  const loadPublicCatalog = useCallback(async (next?: {
+    query?: string;
+    start?: number;
+    append?: boolean;
+  }) => {
+    const query = (next?.query ?? catalogQuery).trim();
+    const start = next?.start ?? 0;
+    const append = next?.append ?? false;
+    if (busy || (append && catalogLoading)) {
       return;
     }
+    if (!append) {
+      catalogRequestVersionRef.current += 1;
+    }
+    const requestVersion = catalogRequestVersionRef.current;
+    const requestId = catalogActiveRequestIdRef.current + 1;
+    const abortController = new AbortController();
+    catalogActiveRequestIdRef.current = requestId;
+    catalogAbortControllerRef.current?.abort();
+    catalogAbortControllerRef.current = abortController;
     setCatalogLoading(true);
     setError("");
     try {
       const params = new URLSearchParams({
         provider: activePublicProvider?.id ?? "iconify",
         limit: "80",
+        start: String(start),
       });
       if (query) {
         params.set("query", query);
       }
       const result = await apiFetch<PublicIconCollectionListResponse>(
         `${serverUrl}/api/icons/public/collections?${params.toString()}`,
-        { signal: createFetchSignal(undefined, 15_000) },
+        { signal: createFetchSignal(abortController.signal, 15_000) },
       );
-      setCatalogResults(result);
+      if (requestVersion !== catalogRequestVersionRef.current) {
+        return;
+      }
+      setCatalogResults((current) =>
+        append ? mergePublicCollectionResults(current, result) : result,
+      );
       if (result.collections.length === 0) {
         setError("No public icon libraries matched this search.");
       }
     } catch (err) {
+      if (isAbortError(err) || requestVersion !== catalogRequestVersionRef.current) {
+        return;
+      }
       setError(getErrorMessage(err, "Failed to load public icon libraries."));
     } finally {
-      setCatalogLoading(false);
+      if (requestId === catalogActiveRequestIdRef.current) {
+        setCatalogLoading(false);
+        if (catalogAbortControllerRef.current === abortController) {
+          catalogAbortControllerRef.current = null;
+        }
+      }
     }
   }, [
     activePublicProvider?.id,
@@ -1081,23 +1215,39 @@ export function IconImportDialog({
   };
 
   const handleLibraryQueryChange = (value: string) => {
+    const wasSearching = Boolean(libraryQuery.trim());
+    libraryRequestVersionRef.current += 1;
+    libraryAbortControllerRef.current?.abort();
     setLibraryQuery(value);
     setSelectedPublicIconIds(new Set());
     setError("");
+    if (wasSearching && !value.trim()) {
+      void loadPublicCollection({ query: "", category: libraryCategory });
+    }
   };
 
   const clearLibraryQuery = () => {
+    libraryRequestVersionRef.current += 1;
+    libraryAbortControllerRef.current?.abort();
     setLibraryQuery("");
     void loadPublicCollection({ query: "", category: libraryCategory });
   };
 
   const handleLibraryCollectionChange = (value: string) => {
+    libraryRequestVersionRef.current += 1;
+    libraryAbortControllerRef.current?.abort();
     setSelectedPublicSourceId("custom");
     setLibraryCollection(value);
     setLibraryCategory("");
     setLibraryQuery("");
-    setLibraryResults(null);
     setSelectedPublicIconIds(new Set());
+    setError("");
+  };
+
+  const handleCatalogQueryChange = (value: string) => {
+    catalogRequestVersionRef.current += 1;
+    catalogAbortControllerRef.current?.abort();
+    setCatalogQuery(value);
     setError("");
   };
 
@@ -1119,14 +1269,14 @@ export function IconImportDialog({
     setLibraryQuery("");
     setLibraryCategory("");
     if (!catalogResults) {
-      void loadPublicCatalog("");
+      void loadPublicCatalog({ query: "" });
     }
   };
 
   const handlePublicCatalogCollectionSelect = (
     collection: PublicIconCollection,
   ) => {
-    setSelectedPublicSourceId("all");
+    setSelectedPublicSourceId("custom");
     setLibraryCollection(collection.id);
     setLibraryQuery("");
     setLibraryCategory("");
@@ -1153,6 +1303,30 @@ export function IconImportDialog({
     setLibraryCategory("");
     setLibraryQuery("");
     void loadPublicCollection({ query: "", collection, category: "" });
+  };
+
+  const handleLoadMorePublicIcons = () => {
+    if (!libraryResults) {
+      return;
+    }
+    void loadPublicCollection({
+      query: libraryQuery,
+      collection: libraryCollection,
+      category: libraryCategory,
+      start: libraryResults.start + libraryResults.icons.length,
+      append: true,
+    });
+  };
+
+  const handleLoadMorePublicCatalog = () => {
+    if (!catalogResults) {
+      return;
+    }
+    void loadPublicCatalog({
+      query: catalogQuery,
+      start: catalogResults.start + catalogResults.collections.length,
+      append: true,
+    });
   };
 
   const clearPublicIconSelection = () => {
@@ -1336,8 +1510,10 @@ export function IconImportDialog({
               {selectedPublicSourceId === "all" ? (
                 <PublicCollectionCatalog
                   query={catalogQuery}
-                  onQueryChange={setCatalogQuery}
+                  onQueryChange={handleCatalogQueryChange}
                   onSearch={() => void loadPublicCatalog()}
+                  onLoadMore={handleLoadMorePublicCatalog}
+                  canLoadMore={catalogCanLoadMore}
                   loading={catalogLoading}
                   response={catalogResults}
                   selectedCollectionId={libraryCollection}
@@ -1437,6 +1613,18 @@ export function IconImportDialog({
                     existingIconPaths={existingIconPaths}
                     onToggleIcon={togglePublicIcon}
                   />
+                  {publicIconsCanLoadMore ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleLoadMorePublicIcons}
+                      disabled={busy || libraryLoading}
+                      className="self-start bg-[var(--color-figma-bg-secondary)]"
+                    >
+                      {libraryLoading ? "Loading" : "More icons"}
+                    </Button>
+                  ) : null}
                 </div>
               ) : (
                 <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">

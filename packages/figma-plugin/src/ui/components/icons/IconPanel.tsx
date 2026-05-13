@@ -21,6 +21,7 @@ import type {
 } from "../../../shared/types";
 import { requestPluginMessage } from "../../shared/pluginMessaging";
 import {
+  ArrowLeft,
   AlertTriangle,
   CheckCircle2,
   Download,
@@ -42,6 +43,7 @@ import { IconImportDialog } from "./IconImportDialog";
 
 type IconStatusFilter = "all" | IconStatus;
 type IconHealthFilter = "all" | "publish" | "blocked" | "quality" | "frame" | "color";
+type IconWorkspaceView = "library" | "manage";
 type IconSlotPreferredMode = "all" | "matching";
 type IconCanvasActionRequest =
   | Omit<InsertIconMessage, "correlationId">
@@ -141,6 +143,11 @@ const STATUS_FILTERS: Array<{ value: IconStatusFilter; label: string }> = [
   { value: "published", label: "Published" },
   { value: "deprecated", label: "Deprecated" },
   { value: "blocked", label: "Blocked" },
+];
+
+const ICON_WORKSPACE_VIEWS: Array<{ value: IconWorkspaceView; label: string }> = [
+  { value: "library", label: "Library" },
+  { value: "manage", label: "Manage" },
 ];
 
 const STATUS_CLASS: Record<IconStatus, string> = {
@@ -691,6 +698,35 @@ function IconQualityPill({ icon }: { icon: ManagedIcon }) {
   );
 }
 
+function iconAttentionLabel(icon: ManagedIcon): string | null {
+  if (icon.status === "blocked" || icon.quality.state === "blocked") {
+    return "Blocked";
+  }
+  if (icon.status === "deprecated") {
+    return "Deprecated";
+  }
+  if (icon.quality.state === "review") {
+    return "Needs review";
+  }
+  if (iconNeedsPublish(icon)) {
+    return "Needs publish";
+  }
+  return null;
+}
+
+function iconAttentionClass(icon: ManagedIcon): string {
+  if (icon.status === "blocked" || icon.quality.state === "blocked") {
+    return "bg-[var(--workspace-danger)]";
+  }
+  if (icon.status === "deprecated" || icon.quality.state === "review") {
+    return "bg-[var(--color-figma-warning)]";
+  }
+  if (iconNeedsPublish(icon)) {
+    return "bg-[var(--color-figma-accent)]";
+  }
+  return "bg-[var(--color-figma-text-tertiary)]";
+}
+
 function IconGrid({
   icons,
   iconContent,
@@ -703,35 +739,40 @@ function IconGrid({
   onSelectIcon: (iconId: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(112px,1fr))] gap-2">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(76px,1fr))] gap-x-2 gap-y-3">
       {icons.map((icon) => {
         const selected = icon.id === selectedIconId;
+        const attentionLabel = iconAttentionLabel(icon);
         return (
           <button
             key={icon.id}
             type="button"
             onClick={() => onSelectIcon(icon.id)}
             aria-pressed={selected}
-            className={`flex min-h-[120px] min-w-0 flex-col items-start gap-2 rounded-md border p-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
+            className={`group relative flex min-h-[92px] min-w-0 flex-col items-center gap-1.5 rounded-md p-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
               selected
-                ? "border-[color:var(--color-figma-accent)] bg-[var(--surface-selected)]"
-                : "border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg)] hover:bg-[var(--surface-hover)]"
+                ? "bg-[var(--surface-selected)] shadow-[inset_0_0_0_1px_var(--color-figma-accent)]"
+                : "hover:bg-[var(--surface-hover)]"
             }`}
+            title={`${icon.name} · ${icon.path}${attentionLabel ? ` · ${attentionLabel}` : ""}`}
           >
-            <span className="flex h-11 w-full items-center justify-center rounded bg-[var(--color-figma-bg-secondary)]">
+            {attentionLabel ? (
+              <span
+                className={`absolute right-1.5 top-1.5 size-1.5 rounded-full ${iconAttentionClass(icon)}`}
+                title={attentionLabel}
+                aria-label={attentionLabel}
+              />
+            ) : null}
+            <span className="flex h-11 w-full items-center justify-center rounded bg-[var(--color-figma-bg-secondary)] group-hover:bg-[var(--color-figma-bg)]">
               <IconPreview icon={icon} content={iconContent[icon.id]?.content} />
             </span>
-            <span className="min-w-0 max-w-full">
-              <span className="block truncate text-body font-medium text-[color:var(--color-figma-text)]">
+            <span className="min-w-0 max-w-full self-stretch">
+              <span className="block truncate text-secondary font-medium text-[color:var(--color-figma-text)]">
                 {icon.name}
               </span>
-              <span className="block truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+              <span className="block truncate text-[11px] leading-tight text-[color:var(--color-figma-text-tertiary)]">
                 {icon.path}
               </span>
-            </span>
-            <span className="flex max-w-full flex-wrap gap-1">
-              <IconStatusPill status={icon.status} />
-              <IconQualityPill icon={icon} />
             </span>
           </button>
         );
@@ -980,7 +1021,7 @@ function IconUsageAuditPanel({
   );
 }
 
-function IconInspector({
+function IconDetailPanel({
   icon,
   content,
   selectionCount,
@@ -997,6 +1038,7 @@ function IconInspector({
   onCreateIconSlot,
   onSlotPreferredModeChange,
   onUpdateStatus,
+  onBack,
 }: {
   icon: ManagedIcon;
   content?: string;
@@ -1014,6 +1056,7 @@ function IconInspector({
   onCreateIconSlot: (action: IconSlotSetupAction) => void;
   onSlotPreferredModeChange: (mode: IconSlotPreferredMode) => void;
   onUpdateStatus: (status: IconStatus) => void;
+  onBack?: () => void;
 }) {
   const publicSource = icon.source.kind === "public-library" ? icon.source : null;
   const restoreStatus = restoredIconStatus(icon);
@@ -1053,12 +1096,24 @@ function IconInspector({
       : null;
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col gap-3 overflow-auto border-l border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3 min-[560px]:flex">
-      <div className="flex items-center gap-3">
+    <section className="flex min-h-0 shrink-0 flex-col gap-3 border-t border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+      <div className="flex min-w-0 items-center gap-3">
+        {onBack ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            aria-label="Back to icon grid"
+            className="px-1.5"
+          >
+            <ArrowLeft size={14} strokeWidth={1.75} aria-hidden />
+          </Button>
+        ) : null}
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--color-figma-bg)]">
           <IconPreview icon={icon} content={content} />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="truncate text-body font-medium text-[color:var(--color-figma-text)]">
             {icon.name}
           </div>
@@ -1068,7 +1123,9 @@ function IconInspector({
         </div>
       </div>
 
-      <IconStatusPill status={icon.status} />
+        <IconStatusPill status={icon.status} />
+        <IconQualityPill icon={icon} />
+      </div>
 
       <div className="flex flex-wrap gap-1.5">
         {icon.status === "deprecated" || icon.status === "blocked" ? (
@@ -1217,8 +1274,8 @@ function IconInspector({
         </div>
       ) : null}
 
-      <dl className="flex flex-col gap-2">
-        {rows.map(([label, value]) => (
+      <dl className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+        {rows.slice(0, 7).map(([label, value]) => (
           <div key={label} className="min-w-0">
             <dt className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
               {label}
@@ -1311,7 +1368,7 @@ function IconInspector({
           ))}
         </div>
       ) : null}
-    </aside>
+    </section>
   );
 }
 
@@ -1324,6 +1381,7 @@ export function IconPanel() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<IconStatusFilter>("all");
   const [healthFilter, setHealthFilter] = useState<IconHealthFilter>("all");
+  const [workspaceView, setWorkspaceView] = useState<IconWorkspaceView>("library");
   const [slotPreferredMode, setSlotPreferredMode] = useState<IconSlotPreferredMode>("all");
   const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
