@@ -181,6 +181,7 @@ export function CollectionTabs({
     scopeValue !== "all";
   const showCreateButton = Boolean(onOpenCreateCollection);
   const showImportButton = Boolean(onOpenImport);
+  const showCreateMenu = showCreateButton && showImportButton;
   const primaryAction =
     showCreateButton
       ? {
@@ -199,7 +200,6 @@ export function CollectionTabs({
             onClick: () => onOpenImport?.(),
           }
         : null;
-  const showImportAction = showCreateButton && showImportButton;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerTitle =
     visibleMeta.length > 0 ? `${visibleTitle} · ${visibleMeta}` : visibleTitle;
@@ -422,13 +422,29 @@ export function CollectionTabs({
   ) : null;
 
   const createMenuPopover =
-    showImportAction && createMenu.open ? (
+    showCreateMenu && createMenu.open ? (
       <div
         ref={createMenu.menuRef}
         style={createMenuStyle ?? { visibility: "hidden" }}
         className={FLOATING_MENU_CLASS}
         role="menu"
       >
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            onOpenCreateCollection?.();
+            createMenu.close({ restoreFocus: false });
+          }}
+          className={FLOATING_MENU_ITEM_CLASS}
+        >
+          <span className="shrink-0 text-[color:var(--color-figma-text-secondary)]">
+            {createActionIcon ?? <Plus size={12} strokeWidth={1.5} aria-hidden />}
+          </span>
+          <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
+            {createActionLabel}
+          </span>
+        </button>
         <button
           type="button"
           role="menuitem"
@@ -461,6 +477,7 @@ export function CollectionTabs({
                     options={[...COLLECTION_SCOPE_OPTIONS]}
                     onChange={allCollectionsScope.onChange}
                     ariaLabel="Collection scope"
+                    allowWrap
                     size="compact"
                   />
                 </div>
@@ -498,36 +515,25 @@ export function CollectionTabs({
             </div>
 
             <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
-              {showImportAction ? (
-                <div className="tm-collection-toolbar__split-button">
-                  <Button
-                    onClick={() => onOpenCreateCollection?.()}
-                    aria-label={createActionTitle}
-                    title={createActionTitle}
-                    variant="secondary"
-                    size="sm"
-                    wrap
-                    className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary tm-collection-toolbar__split-button-primary justify-start rounded-r-none border-r-0 pr-2`}
-                  >
-                    {primaryAction?.icon}
-                    <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                      {primaryAction?.label}
-                    </span>
-                  </Button>
-                  <Button
-                    ref={createMenu.triggerRef}
-                    onClick={createMenu.toggle}
-                    aria-expanded={createMenu.open}
-                    aria-haspopup="menu"
-                    aria-label="New collection actions"
-                    title="New collection actions"
-                    variant="secondary"
-                    size="sm"
-                    className="tm-collection-toolbar__split-button-toggle rounded-l-none px-0"
-                  >
-                    <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
-                  </Button>
-                </div>
+              {showCreateMenu ? (
+                <Button
+                  ref={createMenu.triggerRef}
+                  onClick={createMenu.toggle}
+                  aria-expanded={createMenu.open}
+                  aria-haspopup="menu"
+                  aria-label="New collection actions"
+                  title="New collection actions"
+                  variant="secondary"
+                  size="sm"
+                  wrap
+                  className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary justify-start`}
+                >
+                  {primaryAction?.icon}
+                  <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
+                    New
+                  </span>
+                  <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
+                </Button>
               ) : primaryAction ? (
                 <Button
                   onClick={primaryAction.onClick}
@@ -576,7 +582,9 @@ export function CollectionTabs({
         </div>
       </div>
       {switcherMenu ? createPortal(switcherMenu, document.body) : null}
-      {createMenuPopover ? createPortal(createMenuPopover, document.body) : null}
+      {showCreateMenu && createMenuPopover
+        ? createPortal(createMenuPopover, document.body)
+        : null}
     </>
   );
 }

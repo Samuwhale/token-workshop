@@ -297,8 +297,8 @@ function ModeRow({
               setRenaming(true);
             }}
             disabled={saving}
-            aria-label="Rename mode"
-            title="Rename mode"
+            aria-label={`Rename ${modeName} mode`}
+            title={`Rename ${modeName} mode`}
           >
             <Pencil size={11} strokeWidth={1.5} aria-hidden />
           </IconButton>
@@ -308,8 +308,8 @@ function ModeRow({
               size="sm"
               onClick={actionsMenu.toggle}
               disabled={saving}
-              aria-label="More mode actions"
-              title="More mode actions"
+              aria-label={`More actions for ${modeName} mode`}
+              title={`More actions for ${modeName} mode`}
               aria-haspopup="menu"
               aria-expanded={actionsMenu.open}
             >

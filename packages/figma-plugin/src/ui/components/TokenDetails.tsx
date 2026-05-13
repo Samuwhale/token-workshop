@@ -8,7 +8,6 @@ import {
   Link2,
   MoreHorizontal,
   X,
-  Plus,
 } from "lucide-react";
 import { SHORTCUT_KEYS } from "../shared/shortcutRegistry";
 import { Spinner } from "./Spinner";
@@ -1656,8 +1655,7 @@ export function TokenDetails({
             onClick={() => onManageCollectionModes(ownerCollectionId)}
             className="tm-token-details__text-button"
           >
-            <Plus size={12} strokeWidth={1.5} aria-hidden />
-            Manage modes
+            Edit collection modes
           </button>
         ) : null}
       </div>

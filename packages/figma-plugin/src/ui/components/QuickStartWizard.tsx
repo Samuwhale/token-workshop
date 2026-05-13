@@ -33,11 +33,12 @@ interface QuickStartWizardProps {
   onBack?: () => void;
 }
 
-function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
+function ConnectStep({ serverUrl, checking, onRetry, onClose, closeLabel }: {
   serverUrl: string;
   checking?: boolean;
   onRetry?: () => void;
   onClose: () => void;
+  closeLabel?: string;
 }) {
   const [showServerDetails, setShowServerDetails] = useState(false);
 
@@ -83,7 +84,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose }: {
           variant="secondary"
           className="flex-1"
         >
-          Close
+          {closeLabel ?? "Close"}
         </Button>
         <Button
           type="button"
@@ -365,6 +366,7 @@ export function QuickStartWizard({
               checking={checking}
               onRetry={onRetryConnection}
               onClose={embedded && onBack ? onBack : onClose}
+              closeLabel={embedded && onBack ? "Back" : "Close"}
             />
           ) : (
             <CreateCollectionStep

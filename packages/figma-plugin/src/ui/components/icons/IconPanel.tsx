@@ -96,34 +96,6 @@ interface IconFigmaLinksResponse {
   registry: IconRegistryFile;
 }
 
-interface IconAttributionManifest {
-  generatedAt: string;
-  summary: {
-    publicIconCount: number;
-    attributionRequiredIconCount: number;
-    sourceCount: number;
-    attributionRequiredSourceCount: number;
-  };
-  sources: Array<{
-    provider: string;
-    providerName: string;
-    collectionId: string;
-    collectionName: string;
-    license: {
-      name: string;
-      url: string;
-      attributionRequired: boolean;
-    };
-    iconCount: number;
-  }>;
-  icons: Array<{
-    id: string;
-    name: string;
-    path: string;
-    sourceUrl: string;
-  }>;
-}
-
 const SVG_FRAME_EPSILON = 1e-6;
 
 const STATUS_FILTERS: Array<{ value: IconStatusFilter; label: string }> = [
@@ -353,6 +325,14 @@ function iconCanUseOnCanvas(icon: ManagedIcon): boolean {
   );
 }
 
+function iconCanExport(icon: ManagedIcon): boolean {
+  return (
+    icon.status !== "deprecated" &&
+    icon.status !== "blocked" &&
+    icon.quality.state !== "blocked"
+  );
+}
+
 function getIconHealthSummary(
   icons: ManagedIcon[],
   defaultIconSize: number,
@@ -536,6 +516,34 @@ function runIconUsageAudit(
       reject(new Error("Open the plugin in Figma to audit icon usage."));
     }
   });
+}
+
+async function readIconExportError(response: Response): Promise<string> {
+  const fallback = `Icon export failed (${response.status}).`;
+  try {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.toLowerCase().includes("application/json")) {
+      const body = (await response.json()) as { error?: unknown; message?: unknown };
+      if (typeof body.message === "string" && body.message.trim()) {
+        return body.message;
+      }
+      if (typeof body.error === "string" && body.error.trim()) {
+        return body.error;
+      }
+    }
+    const text = await response.text();
+    return text.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function readContentDispositionFilename(value: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const match = /filename="([^"]+)"/i.exec(value) ?? /filename=([^;]+)/i.exec(value);
+  return match?.[1]?.trim() || null;
 }
 
 function iconUsageAuditInput(
@@ -1188,7 +1196,7 @@ export function IconPanel() {
   const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [attributionExporting, setAttributionExporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [canvasActionBusy, setCanvasActionBusy] = useState(false);
   const [auditScope, setAuditScope] = useState<IconUsageAuditScope>("selection");
   const [auditLoading, setAuditLoading] = useState(false);
@@ -1343,8 +1351,8 @@ export function IconPanel() {
     () => icons.filter(iconNeedsPublish),
     [icons],
   );
-  const publicIconCount = useMemo(
-    () => icons.filter((icon) => icon.source.kind === "public-library").length,
+  const exportableIconCount = useMemo(
+    () => icons.filter(iconCanExport).length,
     [icons],
   );
 
@@ -1458,35 +1466,37 @@ export function IconPanel() {
     }
   }, [iconsToPublish, publishing, registry, serverUrl]);
 
-  const handleExportAttribution = useCallback(async () => {
-    if (attributionExporting) {
+  const handleExportIcons = useCallback(async () => {
+    if (exporting || exportableIconCount === 0) {
       return;
     }
 
-    setAttributionExporting(true);
+    setExporting(true);
     setError(null);
     try {
-      const manifest = await apiFetch<IconAttributionManifest>(
-        `${serverUrl}/api/icons/attribution`,
-        { signal: createFetchSignal(undefined, 10_000) },
-      );
-      const payload = JSON.stringify(manifest, null, 2);
-      downloadBlob(
-        new Blob([payload], { type: "application/json" }),
-        "icon-attribution.json",
-      );
+      const response = await fetch(`${serverUrl}/api/icons/export`, {
+        signal: createFetchSignal(undefined, 30_000),
+      });
+      if (!response.ok) {
+        throw new Error(await readIconExportError(response));
+      }
+      const blob = await response.blob();
+      const filename =
+        readContentDispositionFilename(response.headers.get("content-disposition")) ??
+        "token-workshop-icons.zip";
+      downloadBlob(blob, filename);
       dispatchToast(
-        `Exported attribution for ${formatIconCount(manifest.summary.publicIconCount)}.`,
+        `Exported ${formatIconCount(exportableIconCount)} for developer handoff.`,
         "success",
       );
     } catch (err) {
-      const message = getErrorMessage(err, "Failed to export icon attribution.");
+      const message = getErrorMessage(err, "Failed to export icons.");
       setError(message);
       dispatchToast(message, "error");
     } finally {
-      setAttributionExporting(false);
+      setExporting(false);
     }
-  }, [attributionExporting, serverUrl]);
+  }, [exportableIconCount, exporting, serverUrl]);
 
   const handleInsert = useCallback(async () => {
     if (!selectedIcon || canvasActionBusy || !iconCanUseOnCanvas(selectedIcon)) {
@@ -1711,16 +1721,16 @@ export function IconPanel() {
             type="button"
             variant="secondary"
             size="sm"
-            onClick={() => void handleExportAttribution()}
-            disabled={attributionExporting || publicIconCount === 0}
+            onClick={() => void handleExportIcons()}
+            disabled={exporting || exportableIconCount === 0}
             title={
-              publicIconCount > 0
-                ? "Export public icon source and license metadata"
-                : "Import public library icons before exporting attribution"
+              exportableIconCount > 0
+                ? "Export SVGs, React components, manifests, and attribution metadata"
+                : "Import or unblock icons before exporting"
             }
           >
             <Download size={13} strokeWidth={1.5} aria-hidden />
-            {attributionExporting ? "Exporting" : "Attribution"}
+            {exporting ? "Exporting" : "Export"}
           </Button>
           <Button
             type="button"

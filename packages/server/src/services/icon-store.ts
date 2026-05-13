@@ -17,6 +17,11 @@ import {
 } from "@token-workshop/core";
 import { BadRequestError, ConflictError, NotFoundError } from "../errors.js";
 import { readPublicIconImportData } from "./icon-public-sources.js";
+import {
+  buildIconExportBundle,
+  isIconExportable,
+  type IconExportBundle,
+} from "./icon-export.js";
 import { expectJsonObject, parseJsonFile } from "../utils/json-file.js";
 import { PromiseChainLock } from "../utils/promise-chain-lock.js";
 
@@ -413,6 +418,21 @@ export class IconStore {
     return this.lock.withLock(async () => {
       await this.reloadFromDiskUnlocked();
       return buildIconAttributionManifest(this.registry.icons);
+    });
+  }
+
+  async getExportBundle(): Promise<IconExportBundle> {
+    return this.lock.withLock(async () => {
+      await this.reloadFromDiskUnlocked();
+      const sources = await Promise.all(
+        this.registry.icons
+          .filter(isIconExportable)
+          .map(async (icon) => ({
+            icon,
+            svgContent: (await this.getSvgContentUnlocked(icon.id)).content,
+          })),
+      );
+      return buildIconExportBundle(this.registry, sources);
     });
   }
 

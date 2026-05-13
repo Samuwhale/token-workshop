@@ -551,8 +551,8 @@ export const TokenGroupNode = memo(
                         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                         setGroupMenuPos(clampMenuPosition(rect.left, rect.bottom + 2, 192, 420));
                       }}
-                      title="Group actions"
-                      aria-label="Group actions"
+                      title={`More actions for ${node.name}`}
+                      aria-label={`More actions for ${node.name}`}
                       aria-haspopup="menu"
                       aria-expanded={!!groupMenuPos}
                       className="tm-token-tree-row__icon-button"

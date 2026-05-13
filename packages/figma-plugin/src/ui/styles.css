@@ -1837,29 +1837,8 @@ button.tm-status-row:not(:disabled):hover {
   flex: 0 0 auto;
 }
 
-.tm-collection-toolbar__split-button {
-  display: inline-flex;
-  min-inline-size: 0;
-  max-inline-size: 100%;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-}
-
-.tm-collection-toolbar__split-button-primary {
-  min-inline-size: 0;
-  flex: 1 1 auto;
-}
-
-.tm-collection-toolbar__split-button-toggle {
-  flex: 0 0 28px;
-  min-inline-size: 28px;
-}
-
-@media (pointer: coarse) {
-  .tm-collection-toolbar__split-button-toggle {
-    flex-basis: 44px;
-    min-inline-size: 44px;
-  }
+.tm-collection-toolbar__action--primary {
+  flex: 0 1 auto;
 }
 
 .tm-collection-toolbar__actions {
@@ -1929,18 +1908,22 @@ button.tm-status-row:not(:disabled):hover {
     padding-inline: 7px;
   }
 
-  .tm-collection-toolbar__split-button-primary {
-    flex: 0 0 28px;
-    justify-content: center;
-    padding-inline: 7px;
-  }
-
   .tm-collection-toolbar__action-label {
     display: none;
   }
 
   .tm-collection-toolbar .tm-toolbar-action__label {
     display: none;
+  }
+
+  .tm-collection-toolbar__action--primary {
+    justify-content: flex-start;
+    padding-inline: 8px;
+  }
+
+  .tm-collection-toolbar__action--primary .tm-collection-toolbar__action-label,
+  .tm-collection-toolbar__action--primary .tm-toolbar-action__label {
+    display: block;
   }
 }
 
@@ -1956,6 +1939,17 @@ button.tm-status-row:not(:disabled):hover {
 
   .tm-collection-toolbar__row {
     gap: 3px;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .tm-collection-toolbar__leading,
+  .tm-collection-toolbar__actions {
+    flex-basis: 100%;
+  }
+
+  .tm-collection-toolbar__actions {
+    justify-content: flex-start;
   }
 }
 
@@ -4968,7 +4962,7 @@ button.tm-token-details__text-button:disabled:hover {
 
 .tm-token-mode-row__helper {
   margin: 4px 0 0;
-  max-inline-size: 34ch;
+  max-inline-size: 100%;
   font-size: var(--font-size-sm);
   line-height: var(--leading-body);
   color: var(--color-figma-text-error);
@@ -5321,19 +5315,19 @@ button.tm-token-details__text-button:disabled:hover {
 
 @container (max-width: 420px) {
   .tm-token-mode-row__controls {
-    flex: 0 1 auto;
-    justify-content: flex-end;
-    margin-left: auto;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    margin-left: 0;
   }
 
   .tm-token-mode-row__action-button {
     min-inline-size: var(--control-size-compact);
-    justify-content: center;
+    justify-content: flex-start;
     padding-inline: 6px;
   }
 
   .tm-token-mode-row__action-button-label {
-    display: none;
+    display: block;
   }
 
   .tm-token-mode-row__action-button--menu {

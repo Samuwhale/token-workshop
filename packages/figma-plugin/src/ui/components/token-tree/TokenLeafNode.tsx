@@ -1004,6 +1004,7 @@ export const TokenLeafNode = memo(
             role="checkbox"
             aria-checked={isSelected}
             aria-label={`Select ${node.name}`}
+            title={isSelected ? `Clear selection for ${node.name}` : `Select ${node.name}`}
             tabIndex={-1}
             onClick={(e) => {
               e.stopPropagation();

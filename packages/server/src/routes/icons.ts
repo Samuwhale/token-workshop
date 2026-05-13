@@ -1,3 +1,4 @@
+import archiver from "archiver";
 import type { FastifyPluginAsync } from "fastify";
 import { handleRouteError } from "../errors.js";
 import {
@@ -108,6 +109,31 @@ export const iconRoutes: FastifyPluginAsync = async (fastify) => {
       return await fastify.iconStore.getAttributionManifest();
     } catch (err) {
       return handleRouteError(reply, err, "Failed to export icon attribution");
+    }
+  });
+
+  fastify.get("/icons/export", async (_request, reply) => {
+    try {
+      const bundle = await fastify.iconStore.getExportBundle();
+      const archive = archiver("zip", { zlib: { level: 9 } });
+      archive.on("error", (err) => {
+        reply.raw.destroy(err);
+      });
+      for (const file of bundle.files) {
+        archive.append(file.content, { name: file.path });
+      }
+      void archive.finalize();
+      reply
+        .header("Content-Type", "application/zip")
+        .header(
+          "Content-Disposition",
+          `attachment; filename="${bundle.fileName}"`,
+        )
+        .header("X-Icon-Exported-Count", String(bundle.summary.exportedIconCount))
+        .header("X-Icon-Skipped-Count", String(bundle.summary.skippedIconCount));
+      return reply.send(archive);
+    } catch (err) {
+      return handleRouteError(reply, err, "Failed to export icons");
     }
   });
 

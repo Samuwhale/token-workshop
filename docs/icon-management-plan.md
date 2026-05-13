@@ -48,6 +48,7 @@ Implemented:
 - Initial governed public icon browsing and import through Iconify-backed public libraries, including server-side search, SVG fetch/import through the registry quality path, source URL capture, required collection license metadata, attribution flags, and a Library import tab in the Icons workspace.
 - Public icon source governance now includes explicit provider discovery/search validation, selected-import license and attribution review, source links before import, UI request timeouts, and bounded server-side collection metadata caching.
 - Public icon attribution can be exported from the Icons workspace as a grouped JSON manifest for handoff, including provider, collection, license, source URL, status, and attribution-required summaries for every public-library icon.
+- Initial developer handoff export from the Icons workspace, including a server-generated zip with raw SVGs, normalized SVGs, React TypeScript components, a typed icon index, a full icon manifest, and attribution metadata for active non-blocked icons.
 
 Missing:
 
@@ -60,7 +61,7 @@ Missing:
 - Richer replacement previews and multi-slot selection controls from the Icons workspace.
 - Richer component icon slot setup with boolean visibility, curated preferred values, component set support, exposed nested instances, and multi-slot previews.
 - Richer icon usage audit, guided repair, cross-page/file usage analytics, batch finding navigation, configurable raw-icon heuristics, and full deprecation workflows beyond the initial selection/page audit and unpromoted-slot detection.
-- Icon exports for SVG, typed code, manifests, license metadata, and token-aligned handoff.
+- Richer icon exports beyond the initial SVG, React TypeScript, manifest, and attribution bundle, including platform-specific bundles and deeper token-aligned handoff.
 - Integration with review, publish, health, history, and git workflows.
 
 ## Experience Principles
