@@ -12,6 +12,7 @@ interface SegmentedControlProps<T extends string> {
   onChange: (value: T) => void;
   ariaLabel?: string;
   allowWrap?: boolean;
+  disabled?: boolean;
   size?: "default" | "compact";
 }
 
@@ -21,25 +22,34 @@ export function SegmentedControl<T extends string>({
   onChange,
   ariaLabel,
   allowWrap = false,
+  disabled = false,
   size = "default",
 }: SegmentedControlProps<T>) {
   const adaptiveWrap = allowWrap || options.length > 3;
   const compact = size === "compact";
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) {
+      return;
+    }
+
     const currentIndex = options.findIndex((option) => option.value === value);
     if (currentIndex === -1) {
       return;
     }
 
+    const focusOption = (index: number) => {
+      const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
+        '[role="radio"]',
+      );
+      buttons[index]?.focus();
+    };
+
     const move = (delta: number) => {
       const nextIndex =
         (currentIndex + delta + options.length) % options.length;
       onChange(options[nextIndex].value);
-      const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
-        '[role="radio"]',
-      );
-      buttons[nextIndex]?.focus();
+      focusOption(nextIndex);
     };
 
     if (event.key === "ArrowRight" || event.key === "ArrowDown") {
@@ -55,19 +65,13 @@ export function SegmentedControl<T extends string>({
     if (event.key === "Home") {
       event.preventDefault();
       onChange(options[0].value);
-      const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
-        '[role="radio"]',
-      );
-      buttons[0]?.focus();
+      focusOption(0);
     }
 
     if (event.key === "End") {
       event.preventDefault();
       onChange(options[options.length - 1].value);
-      const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
-        '[role="radio"]',
-      );
-      buttons[options.length - 1]?.focus();
+      focusOption(options.length - 1);
     }
   };
 
@@ -80,6 +84,7 @@ export function SegmentedControl<T extends string>({
       } ${compact ? "tm-segmented-control--compact" : ""}`}
       role="radiogroup"
       aria-label={ariaLabel}
+      aria-disabled={disabled || undefined}
       onKeyDown={handleKeyDown}
     >
       {options.map((option) => {
@@ -90,6 +95,7 @@ export function SegmentedControl<T extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
+            disabled={disabled}
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
             title={option.label}
@@ -100,7 +106,9 @@ export function SegmentedControl<T extends string>({
             } ${
               selected
                 ? "bg-[var(--surface-panel-header)] text-[color:var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--border-muted)]"
-                : "bg-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
+                : disabled
+                  ? "bg-transparent text-[color:var(--color-figma-text-tertiary)]"
+                  : "bg-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
             }`}
           >
             <span className="tm-segmented-control__label block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">

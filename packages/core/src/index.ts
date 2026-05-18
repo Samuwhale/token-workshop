@@ -15,6 +15,8 @@ export {
   DEFAULTS,
   REFERENCE_REGEX,
   makeReferenceGlobalRegex,
+  PUBLIC_ICON_LIMITS,
+  PUBLIC_ICON_PROVIDER_ID,
 } from './constants.js';
 export type { DimensionUnit, StrokeStyleKeyword } from './constants.js';
 export {
@@ -56,6 +58,19 @@ export type {
   IconSvgMetadata,
   ManagedIcon,
 } from './icon-types.js';
+export type {
+  PublicIconCollection,
+  PublicIconCollectionBrowseResponse,
+  PublicIconCollectionCategory,
+  PublicIconCollectionListResponse,
+  PublicIconImportData,
+  PublicIconImportItem,
+  PublicIconProvider,
+  PublicIconProvidersResponse,
+  PublicIconResultsResponse,
+  PublicIconSearchResponse,
+  PublicIconSearchResult,
+} from './public-icon-types.js';
 export {
   DEFAULT_ICON_COMPONENT_PREFIX,
   DEFAULT_ICON_PAGE_NAME,

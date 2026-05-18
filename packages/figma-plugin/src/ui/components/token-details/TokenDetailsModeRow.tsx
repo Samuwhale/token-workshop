@@ -24,7 +24,7 @@ import {
   FLOATING_MENU_CLASS,
   FLOATING_MENU_ITEM_CLASS,
 } from "../../shared/menuClasses";
-import { Button, TextInput } from "../../primitives";
+import { Button, SegmentedControl, TextInput } from "../../primitives";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -247,7 +247,6 @@ export function TokenDetailsModeRow({
     aliasPreview !== null &&
     !aliasPreview.isUnresolvedAlias &&
     aliasPreview.displayValue.length > 0;
-  const referenceActionLabel = aliasMode ? "Referenced" : "Reference";
   const typographyPreview =
     tokenType === "typography" ? getTypographyPreviewValue(value ?? "") : null;
   const copyMenuStyle = useAnchoredFloatingStyle({
@@ -279,10 +278,14 @@ export function TokenDetailsModeRow({
       value,
     ],
   );
-  const handleAliasToggle = () => {
+  const setReferenceMode = (nextAliasMode: boolean) => {
     if (!editable || !onChange) return;
 
-    if (aliasMode) {
+    if (nextAliasMode === aliasMode) {
+      return;
+    }
+
+    if (!nextAliasMode) {
       setAliasMode(false);
       setAutocompleteOpen(false);
       if (typeof value === "string" && isAlias(value)) {
@@ -299,6 +302,9 @@ export function TokenDetailsModeRow({
         : "",
     );
     setAutocompleteOpen(true);
+  };
+  const handleAliasToggle = () => {
+    setReferenceMode(!aliasMode);
   };
 
   const handleAliasSelect = (path: string) => {
@@ -332,34 +338,34 @@ export function TokenDetailsModeRow({
         !showHeader && "tm-token-mode-row__controls--body",
       )}
     >
-      <Button
-        onClick={handleAliasToggle}
-        aria-pressed={aliasMode}
-        variant="secondary"
-        size="sm"
-        wrap
-        className="tm-token-mode-row__action-button justify-start"
+      <div
+        className="tm-token-mode-row__value-mode"
         title={
-          aliasMode
-            ? `Use a direct value for ${modeName}`
-            : `Reference another token for ${modeName}`
-        }
-        aria-label={
-          aliasMode
-            ? `Use a direct value for ${modeName}`
-            : `Reference another token for ${modeName}`
+          !editable
+            ? `${modeName} value source cannot be changed here`
+            : aliasMode
+              ? `${modeName} uses a token reference`
+              : `${modeName} uses a direct value`
         }
       >
-        <Link2 size={12} strokeWidth={1.5} aria-hidden />
-        <span className="tm-token-mode-row__action-button-label">
-          {referenceActionLabel}
-        </span>
-      </Button>
+        <SegmentedControl
+          value={aliasMode ? "reference" : "value"}
+          options={[
+            { value: "value", label: "Value" },
+            { value: "reference", label: "Reference" },
+          ]}
+          onChange={(next) => setReferenceMode(next === "reference")}
+          ariaLabel={`${modeName} value source`}
+          disabled={!editable}
+          size="compact"
+        />
+      </div>
       {copyActions.length > 0 ? (
         <div className="tm-token-mode-row__menu-trigger relative">
           <Button
             ref={copyMenu.triggerRef}
             onClick={copyMenu.toggle}
+            aria-pressed={copyMenu.open}
             aria-expanded={copyMenu.open}
             aria-haspopup="menu"
             aria-label={`Copy value actions for ${modeName}`}

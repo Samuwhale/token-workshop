@@ -179,6 +179,10 @@ export const TokenGroupNode = memo(
       hasSelectableTokens && groupSelectedCount === groupLeafPaths.length;
     const groupPartiallySelected =
       groupSelectedCount > 0 && !groupAllSelected;
+    const groupSelectionVisibilityClass =
+      groupAllSelected || groupPartiallySelected || selectionActive || isGroupActive
+        ? "opacity-100 pointer-events-auto"
+        : "opacity-0 pointer-events-none group-hover/group:opacity-100 group-hover/group:pointer-events-auto group-focus-within/group:opacity-100 group-focus-within/group:pointer-events-auto";
 
     // Aggregate descendant values per mode so collapsed groups preview what's
     // inside without the user having to expand.
@@ -487,7 +491,7 @@ export const TokenGroupNode = memo(
                   )}
                 {hasSelectableTokens && onToggleGroupSelection ? (
                   <label
-                    className="tm-token-tree-row__group-selection tm-token-tree-row__icon-button shrink-0 cursor-pointer"
+                    className={`tm-token-tree-row__group-selection tm-token-tree-row__icon-button shrink-0 cursor-pointer ${groupSelectionVisibilityClass}`}
                     title={
                       groupAllSelected
                         ? `Clear selection in ${node.name}`

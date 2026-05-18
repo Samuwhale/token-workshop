@@ -5,6 +5,7 @@ import {
   browsePublicIconCollection,
   listPublicIconCollections,
   listPublicIconProviders,
+  readPublicIconSvg,
   searchPublicIcons,
 } from "../services/icon-public-sources.js";
 
@@ -112,6 +113,18 @@ export const iconRoutes: FastifyPluginAsync = async (fastify) => {
         return await browsePublicIconCollection(request.query);
       } catch (err) {
         return handleRouteError(reply, err, "Failed to browse public icon collection");
+      }
+    },
+  );
+
+  fastify.get<{ Querystring: Record<string, unknown> }>(
+    "/icons/public/svg",
+    async (request, reply) => {
+      try {
+        const svg = await readPublicIconSvg(request.query);
+        return reply.header("Content-Type", "image/svg+xml; charset=utf-8").send(svg);
+      } catch (err) {
+        return handleRouteError(reply, err, "Failed to load public icon SVG");
       }
     },
   );

@@ -2,8 +2,8 @@
  * ValueCell — per-mode value display for the token list.
  *
  * Display-only: renders a type-aware preview (swatch, text, alias/derivation marker) and
- * emits a request upward when the user clicks to edit, or clicks "+" on a
- * missing mode value. The quick editor popover is mounted by the parent row,
+ * emits a request upward when the user clicks to edit or add a missing mode
+ * value. The quick editor popover is mounted by the parent row,
  * not by the cell itself, so every token type shares one editing surface.
  */
 import { useRef } from "react";
@@ -96,6 +96,9 @@ export function ValueCell({
   const canCreate =
     !value && !!tokenType && !!targetCollectionId && !!onRequestQuickEdit;
   const canAddValue = !value && (canCreate || !!onEdit);
+  const wrapperInteractive = canActivateWrapper || canAddValue;
+  const wrapperHasActions =
+    wrapperInteractive || canActivateText || hasAliasNavigationAction;
   const valueState =
     !value
       ? canAddValue
@@ -123,11 +126,10 @@ export function ValueCell({
     titleLines.push(`Modified from: ${derivationSourcePath}`);
   }
   if (targetCollectionId) titleLines.push(`Collection: ${targetCollectionId}`);
-  if (canActivateValue) {
-    titleLines.push("Click to edit");
-  }
   if (canAddValue) {
-    titleLines.push("Click to add a value");
+    titleLines.push(`Add ${optionName} value`);
+  } else if (canActivateValue) {
+    titleLines.push(`Edit ${optionName} value`);
   }
 
   const openQuickEdit = () => {
@@ -152,7 +154,10 @@ export function ValueCell({
   const wrapperClass = [
     "tm-value-cell__wrapper",
     "flex h-full min-w-0 items-center gap-1.5 overflow-hidden px-1.5",
-    canActivateValue || canAddValue
+    wrapperHasActions
+      ? "tm-value-cell__wrapper--has-actions"
+      : null,
+    wrapperInteractive
       ? "tm-value-cell__wrapper--interactive"
       : null,
     brokenAliasTint,
@@ -180,8 +185,7 @@ export function ValueCell({
     }
     onEdit?.();
   };
-  const handleAddValue = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
+  const activateAddValue = () => {
     if (canCreate) {
       openQuickEdit();
       return;
@@ -189,19 +193,27 @@ export function ValueCell({
     onEdit?.();
   };
   const handleWrapperClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!canActivateWrapper) {
+    if (!wrapperInteractive) {
       return;
     }
     event.stopPropagation();
+    if (canAddValue) {
+      activateAddValue();
+      return;
+    }
     activateValue();
   };
   const handleWrapperKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!canActivateWrapper) {
+    if (!wrapperInteractive) {
       return;
     }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       event.stopPropagation();
+      if (canAddValue) {
+        activateAddValue();
+        return;
+      }
       activateValue();
     }
   };
@@ -281,17 +293,22 @@ export function ValueCell({
     <div
       ref={cellRef}
       data-token-mode-cell={optionName}
-      data-interactive={canActivateValue || canAddValue ? "true" : undefined}
+      data-interactive={wrapperInteractive ? "true" : undefined}
+      data-has-actions={wrapperHasActions ? "true" : undefined}
       data-empty={!value ? "true" : undefined}
       data-broken={isBrokenAlias ? "true" : undefined}
       data-unavailable={!value && !canAddValue ? "true" : undefined}
       data-value-state={valueState}
       className={`tm-value-cell ${wrapperClass}`}
       title={titleLines.join("\n")}
-      role={canActivateWrapper ? "button" : undefined}
-      tabIndex={canActivateWrapper ? 0 : undefined}
+      role={wrapperInteractive ? "button" : undefined}
+      tabIndex={wrapperInteractive ? 0 : undefined}
       aria-label={
-        canActivateWrapper ? `Edit ${titleLines.join(". ")}` : undefined
+        wrapperInteractive
+          ? canAddValue
+            ? `Add ${optionName} value`
+            : `Edit ${optionName} value`
+          : undefined
       }
       onClick={handleWrapperClick}
       onKeyDown={handleWrapperKeyDown}
@@ -299,16 +316,13 @@ export function ValueCell({
       {!value ? (
         canAddValue ? (
           <div className="tm-value-cell__empty-action">
-            <button
-              type="button"
+            <span
               className="tm-value-cell__create-button tm-value-cell__interactive-control"
-              onClick={handleAddValue}
-              aria-label={`Add ${optionName} value`}
-              title={`Add ${optionName} value`}
+              aria-hidden="true"
             >
               <Plus size={10} strokeWidth={2} aria-hidden />
               <span className="tm-value-cell__create-button-label">Add value</span>
-            </button>
+            </span>
           </div>
         ) : (
           <span className="text-body text-[color:var(--color-figma-text-tertiary)]">

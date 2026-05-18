@@ -68,14 +68,21 @@ export function ModeColumnHeader({
         next = widthRef.current + step * multiplier;
       } else if (e.key === "ArrowLeft") {
         next = widthRef.current - step * multiplier;
+      } else if (e.key === "Home") {
+        next = MIN_MODE_COL_PX;
+      } else if (e.key === "End") {
+        next = MAX_MODE_COL_PX;
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onReset();
+        return;
+      } else {
+        return;
       }
-      else if (e.key === "Home") next = MIN_MODE_COL_PX;
-      else if (e.key === "End") next = MAX_MODE_COL_PX;
-      else return;
       e.preventDefault();
       onResize(next);
     },
-    [onResize],
+    [onResize, onReset],
   );
 
   const widthAriaPct = Math.round(
@@ -88,11 +95,13 @@ export function ModeColumnHeader({
       aria-orientation="vertical"
       aria-label={`Resize ${modeName} column ${
         edge === "start" ? "from left edge" : "from right edge"
-      }`}
+      }. Arrow keys resize. Enter resets.`}
       aria-valuenow={widthAriaPct}
       aria-valuemin={0}
       aria-valuemax={100}
+      aria-valuetext={`${Math.round(width)} px`}
       tabIndex={0}
+      title={`Resize ${modeName}. Double-click or press Enter to reset.`}
       onMouseDown={(event) => handleResizeMouseDown(edge, event)}
       onDoubleClick={handleResizeDoubleClick}
       onKeyDown={(event) => handleResizeKeyDown(edge, event)}

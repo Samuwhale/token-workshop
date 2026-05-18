@@ -2031,12 +2031,6 @@ button.tm-status-row:not(:disabled):hover {
   gap: 2px;
 }
 
-.tm-selection-toolbar__selection-meta {
-  min-inline-size: 0;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-}
-
 .tm-selection-toolbar__menu,
 .tm-selection-toolbar__bulk-actions > button {
   min-inline-size: 0;
@@ -2286,11 +2280,13 @@ button.tm-status-row:not(:disabled):hover {
   .tm-token-toolbar__overflow > button {
     inline-size: 100%;
     max-inline-size: none;
-    justify-content: space-between;
+    justify-content: flex-start;
+    border-color: var(--border-muted);
+    background: var(--surface-group-quiet);
   }
 
   .tm-token-toolbar__overflow-button {
-    justify-content: space-between;
+    justify-content: flex-start;
   }
 
   .tm-toolbar-action__label,
@@ -2362,7 +2358,12 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 @container (max-width: 420px) {
-  .tm-selection-toolbar__selection-toggle,
+  .tm-selection-toolbar__selection-toggle {
+    flex-basis: 100%;
+  }
+}
+
+@container (max-width: 300px) {
   .tm-selection-toolbar__menu,
   .tm-selection-toolbar__bulk-actions > button {
     flex-basis: 100%;
@@ -2632,13 +2633,16 @@ button.tm-status-row:not(:disabled):hover {
     box-shadow var(--motion-fast) var(--ease-standard);
 }
 
-.tm-value-cell__wrapper--interactive {
-  cursor: pointer;
+.tm-value-cell__wrapper--has-actions {
   border-color: color-mix(in srgb, var(--workspace-library) 22%, transparent);
   background: color-mix(in srgb, var(--workspace-library) 4%, transparent);
 }
 
-.tm-value-cell__wrapper[data-empty="true"][data-interactive="true"] {
+.tm-value-cell__wrapper--interactive {
+  cursor: pointer;
+}
+
+.tm-value-cell__wrapper[data-empty="true"][data-has-actions="true"] {
   border-style: dashed;
   background: color-mix(in srgb, var(--workspace-library) 10%, transparent);
 }
@@ -2664,7 +2668,7 @@ button.tm-status-row:not(:disabled):hover {
   background: color-mix(in srgb, var(--color-figma-warning) 5%, transparent);
 }
 
-.tm-value-cell__wrapper--interactive:hover {
+.tm-value-cell__wrapper--has-actions:hover {
   background: color-mix(in srgb, var(--workspace-library) 11%, transparent);
   border-color: color-mix(in srgb, var(--workspace-library) 38%, transparent);
 }
@@ -2772,7 +2776,9 @@ button.tm-status-row:not(:disabled):hover {
 
 .tm-value-cell__create-button-label {
   min-inline-size: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tm-value-cell__line {
@@ -2783,37 +2789,32 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-value-cell__line--wrap {
-  display: -webkit-box;
-  white-space: normal;
-  text-overflow: clip;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
 }
 
 @container (max-width: 260px) {
   .tm-value-cell__wrapper {
-    align-items: flex-start;
+    align-items: center;
     gap: 3px;
     padding-inline: 6px;
-    padding-block: 5px;
+    padding-block: 3px;
   }
 
   .tm-value-cell__line {
     font-size: var(--font-size-xs);
-    display: -webkit-box;
-    white-space: normal;
-    text-overflow: clip;
-    overflow-wrap: anywhere;
+    display: block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
     line-height: 1.15;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
   }
 
   .tm-value-cell__text--buttonlike {
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding-block: 2px;
+    justify-content: center;
+    padding-block: 0;
   }
 
   .tm-value-cell__empty-action,
@@ -2824,7 +2825,7 @@ button.tm-status-row:not(:disabled):hover {
   .tm-value-cell__create-button {
     justify-content: flex-start;
     padding-inline: 8px;
-    white-space: normal;
+    white-space: nowrap;
   }
 }
 
@@ -2923,6 +2924,11 @@ button.tm-status-row:not(:disabled):hover {
   gap: 2px;
 }
 
+.tm-token-tree-row__group-selection {
+  position: relative;
+  z-index: 3;
+}
+
 .tm-token-tree-row__trailing {
   display: flex;
   min-inline-size: 0;
@@ -2945,6 +2951,7 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 .tm-token-tree-row__selection-control,
+.tm-token-tree-row__group-selection,
 .tm-token-tree-row__quick-apply,
 .tm-token-tree-row__overflow-control {
   transition:
@@ -3164,7 +3171,8 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 @media (pointer: coarse) {
-  .tm-token-tree-row__selection-control {
+  .tm-token-tree-row__selection-control,
+  .tm-token-tree-row__group-selection {
     opacity: 0.72 !important;
     pointer-events: auto !important;
   }
@@ -3180,7 +3188,8 @@ button.tm-status-row:not(:disabled):hover {
 }
 
 @container (max-width: 480px) {
-  .tm-token-tree-row__selection-control {
+  .tm-token-tree-row__selection-control,
+  .tm-token-tree-row__group-selection {
     opacity: 0.72 !important;
     pointer-events: auto !important;
   }
@@ -5056,6 +5065,15 @@ button.tm-token-details__text-button:disabled:hover {
 .tm-token-mode-row__action-button-label {
   min-inline-size: 0;
   display: block;
+}
+
+.tm-token-mode-row__value-mode {
+  min-inline-size: min(100%, 136px);
+  flex: 0 1 176px;
+}
+
+.tm-token-mode-row__value-mode .tm-segmented-control {
+  inline-size: 100%;
 }
 
 .tm-token-mode-row__body {

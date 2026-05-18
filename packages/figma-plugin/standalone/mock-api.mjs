@@ -665,7 +665,6 @@ export async function handleMockApiRequest(req, res, url) {
         limit: page.limit,
         start: page.start,
         collections: clone(page.items),
-        categories: [{ name: 'General', count: matches.length }],
       },
       method,
     );
@@ -719,7 +718,6 @@ export async function handleMockApiRequest(req, res, url) {
         limit: page.limit,
         start: page.start,
         icons: clone(page.items),
-        collections: clone(mockPublicIconCollections),
       },
       method,
     );
@@ -747,9 +745,10 @@ export async function handleMockApiRequest(req, res, url) {
               kind: 'public-library',
               provider: publicIcon.provider,
               providerName: publicIcon.providerName,
-              collection: publicIcon.collection.id,
+              collectionId: publicIcon.collection.id,
               collectionName: publicIcon.collection.name,
               iconId: publicIcon.id,
+              iconName: publicIcon.id.split(':').at(-1) ?? publicIcon.name,
               sourceUrl: publicIcon.sourceUrl,
               license: clone(publicIcon.collection.license),
             },

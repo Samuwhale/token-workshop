@@ -127,3 +127,22 @@ export const REFERENCE_REGEX = /^\{([^}]+)\}$/;
  * A factory is used instead of a shared constant to avoid `.lastIndex` contamination
  * when callers use `.test()` or `.exec()` on the same regex instance. */
 export const makeReferenceGlobalRegex = (): RegExp => /\{([^}]+)\}/g;
+
+// ---------------------------------------------------------------------------
+// Public Icon Sources
+// ---------------------------------------------------------------------------
+
+export const PUBLIC_ICON_LIMITS = {
+  searchDefault: 32,
+  searchPage: 48,
+  searchMax: 64,
+  collectionListDefault: 80,
+  collectionListPage: 80,
+  collectionListMax: 200,
+  collectionBrowseDefault: 64,
+  collectionBrowsePage: 64,
+  collectionBrowseMax: 96,
+  importMax: 64,
+} as const;
+
+export const PUBLIC_ICON_PROVIDER_ID = "iconify";

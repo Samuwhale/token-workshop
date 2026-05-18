@@ -1,7 +1,17 @@
 import {
+  PUBLIC_ICON_LIMITS,
+  PUBLIC_ICON_PROVIDER_ID,
   normalizeIconPath,
-  type IconLicenseMetadata,
   type IconSource,
+  type PublicIconCollection,
+  type PublicIconCollectionBrowseResponse,
+  type PublicIconCollectionCategory,
+  type PublicIconCollectionListResponse,
+  type PublicIconImportData,
+  type PublicIconImportItem,
+  type PublicIconProvider,
+  type PublicIconSearchResponse,
+  type PublicIconSearchResult,
 } from "@token-workshop/core";
 import {
   BadRequestError,
@@ -11,16 +21,35 @@ import {
 
 const ICONIFY_API_BASE_URL = "https://api.iconify.design";
 const ICONIFY_SOURCE_BASE_URL = "https://icon-sets.iconify.design";
-const ICONIFY_PROVIDER_ID = "iconify";
 const ICONIFY_PROVIDER_NAME = "Iconify";
-const PUBLIC_ICON_SEARCH_LIMIT_MAX = 64;
-const PUBLIC_ICON_COLLECTION_LIST_LIMIT_MAX = 200;
-const PUBLIC_ICON_COLLECTION_BROWSE_LIMIT_MAX = 96;
-const PUBLIC_ICON_IMPORT_LIMIT_MAX = 64;
 const PUBLIC_ICON_IMPORT_CONCURRENCY = 8;
+const ICONIFY_COLLECTION_LOOKUP_CONCURRENCY = 8;
 const ICONIFY_REQUEST_TIMEOUT_MS = 10_000;
 const ICONIFY_COLLECTION_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const ICONIFY_COLLECTION_CACHE_MAX_ENTRIES = 256;
+const ICONIFY_SVG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const ICONIFY_SVG_CACHE_MAX_ENTRIES = 512;
+const PUBLIC_ICON_SEARCH_FIELDS = new Set([
+  "provider",
+  "query",
+  "collection",
+  "limit",
+  "start",
+]);
+const PUBLIC_ICON_COLLECTION_LIST_FIELDS = new Set([
+  "provider",
+  "query",
+  "limit",
+  "start",
+]);
+const PUBLIC_ICON_COLLECTION_BROWSE_FIELDS = new Set([
+  "provider",
+  "collection",
+  "category",
+  "limit",
+  "start",
+]);
+const PUBLIC_ICON_SVG_FIELDS = new Set(["provider", "id"]);
 
 const LICENSES_WITHOUT_ATTRIBUTION = new Set([
   "0BSD",
@@ -40,92 +69,26 @@ const LICENSES_WITHOUT_ATTRIBUTION = new Set([
 
 const iconifyCollectionCache = new Map<string, IconifyCollectionCacheEntry>();
 let iconifyCollectionListCache: IconifyCollectionListCacheEntry | null = null;
+let iconifyCollectionListRequest: Promise<PublicIconCollection[]> | null = null;
+const iconifyCollectionRequests = new Map<
+  string,
+  Promise<PublicIconCollection>
+>();
 const iconifyCollectionBrowseCache = new Map<
   string,
   IconifyCollectionBrowseCacheEntry
 >();
-
-export interface PublicIconProvider {
-  id: string;
-  name: string;
-  description: string;
-}
-
-export interface PublicIconCollection {
-  id: string;
-  name: string;
-  total: number;
-  category?: string;
-  tags: string[];
-  license: IconLicenseMetadata;
-}
-
-export interface PublicIconSearchResult {
-  id: string;
-  provider: string;
-  providerName: string;
-  collection: PublicIconCollection;
-  name: string;
-  path: string;
-  svgUrl: string;
-  sourceUrl: string;
-}
-
-export interface PublicIconSearchResponse {
-  provider: PublicIconProvider;
-  query: string;
-  total: number;
-  limit: number;
-  start: number;
-  icons: PublicIconSearchResult[];
-  collections: PublicIconCollection[];
-}
-
-export interface PublicIconCollectionCategory {
-  name: string;
-  count: number;
-}
-
-export interface PublicIconCollectionListResponse {
-  provider: PublicIconProvider;
-  query: string;
-  category?: string;
-  total: number;
-  limit: number;
-  start: number;
-  collections: PublicIconCollection[];
-  categories: PublicIconCollectionCategory[];
-}
-
-export interface PublicIconCollectionBrowseResponse {
-  provider: PublicIconProvider;
-  collection: PublicIconCollection;
-  category?: string;
-  total: number;
-  limit: number;
-  start: number;
-  icons: PublicIconSearchResult[];
-  categories: PublicIconCollectionCategory[];
-}
-
-export interface PublicIconImportItem {
-  id: string;
-  path?: string;
-  name?: string;
-}
-
-export interface PublicIconImportData {
-  source: IconSource;
-  svg: string;
-  path: string;
-  name: string;
-  tags?: string[];
-}
+const iconifyCollectionBrowseRequests = new Map<
+  string,
+  Promise<IconifyCollectionBrowseData>
+>();
+const iconifySvgCache = new Map<string, IconifySvgCacheEntry>();
+const iconifySvgRequests = new Map<string, Promise<string>>();
 
 export function listPublicIconProviders(): PublicIconProvider[] {
   return [
     {
-      id: ICONIFY_PROVIDER_ID,
+      id: PUBLIC_ICON_PROVIDER_ID,
       name: ICONIFY_PROVIDER_NAME,
       description: "Free SVG icon sets with collection license metadata.",
     },
@@ -144,23 +107,25 @@ export async function searchPublicIcons(
     url.searchParams.set("prefix", request.collection);
   }
 
-  const payload = await fetchIconifyJson<IconifySearchResponse>(url);
-  const collections = normalizeIconifyCollections(payload.collections ?? {});
+  const payload = readIconifySearchResponse(
+    await fetchIconifyJson(url, "Iconify search"),
+  );
+  const collections = normalizeIconifyCollections(payload.collections);
   const collectionById = new Map(
     collections.map((collection) => [collection.id, collection]),
   );
-  const icons = (payload.icons ?? [])
+  await hydrateMissingSearchCollections(payload.icons, collectionById);
+  const icons = payload.icons
     .map((id) => iconifySearchResult(id, collectionById))
     .filter((icon): icon is PublicIconSearchResult => Boolean(icon));
 
   return {
     provider: iconifyProvider(),
     query: request.query,
-    total: readNonNegativeNumber(payload.total, "Iconify search total"),
-    limit: readPositiveNumber(payload.limit, "Iconify search limit"),
-    start: readNonNegativeNumber(payload.start, "Iconify search start"),
+    total: payload.total,
+    limit: payload.limit,
+    start: payload.start,
     icons,
-    collections,
   };
 }
 
@@ -169,12 +134,8 @@ export async function listPublicIconCollections(
 ): Promise<PublicIconCollectionListResponse> {
   const request = readPublicIconCollectionListRequest(input);
   const collections = await readIconifyCollections();
-  const categories = summarizeCollectionCategories(collections);
   const normalizedQuery = request.query.toLowerCase();
   const filtered = collections.filter((collection) => {
-    if (request.category && collection.category !== request.category) {
-      return false;
-    }
     if (!normalizedQuery) {
       return true;
     }
@@ -194,12 +155,10 @@ export async function listPublicIconCollections(
   return {
     provider: iconifyProvider(),
     query: request.query,
-    ...(request.category ? { category: request.category } : {}),
     total: filtered.length,
     limit: request.limit,
     start: request.start,
     collections: page,
-    categories,
   };
 }
 
@@ -241,12 +200,12 @@ export async function readPublicIconImportData(
         parsedId.prefix,
         collectionByPrefix,
       );
-      const svg = await fetchIconifySvg(parsedId.prefix, parsedId.name);
+      const svg = await readIconifySvg(parsedId.prefix, parsedId.name);
       const sourceUrl = iconifySourceUrl(parsedId.prefix, parsedId.name);
       const iconId = iconifyIconId(parsedId.prefix, parsedId.name);
       const source: IconSource = {
         kind: "public-library",
-        provider: ICONIFY_PROVIDER_ID,
+        provider: PUBLIC_ICON_PROVIDER_ID,
         providerName: ICONIFY_PROVIDER_NAME,
         collectionId: collection.id,
         collectionName: collection.name,
@@ -267,6 +226,51 @@ export async function readPublicIconImportData(
   );
 
   return imports;
+}
+
+export async function readPublicIconSvg(input: unknown): Promise<string> {
+  const params = isRecord(input) ? input : {};
+  rejectUnsupportedFields(params, PUBLIC_ICON_SVG_FIELDS);
+  assertPublicIconProvider(params.provider);
+  const { prefix, name } = parseIconifyIconId(readRequiredString(params.id, "id"));
+  return readIconifySvg(prefix, name);
+}
+
+async function hydrateMissingSearchCollections(
+  iconIds: string[],
+  collectionById: Map<string, PublicIconCollection>,
+): Promise<void> {
+  const missingPrefixes = uniqueSorted(
+    iconIds
+      .map((id) => tryParseIconifyIconId(id)?.prefix)
+      .filter((prefix): prefix is string =>
+        Boolean(prefix && !collectionById.has(prefix)),
+      ),
+  );
+  if (missingPrefixes.length === 0) {
+    return;
+  }
+
+  const collections = await mapInChunks(
+    missingPrefixes,
+    ICONIFY_COLLECTION_LOOKUP_CONCURRENCY,
+    async (prefix) => {
+      try {
+        return await readIconifyCollection(prefix);
+      } catch (err) {
+        if (err instanceof BadRequestError) {
+          return null;
+        }
+        throw err;
+      }
+    },
+  );
+
+  for (const collection of collections) {
+    if (collection) {
+      collectionById.set(collection.id, collection);
+    }
+  }
 }
 
 function readIconifyCollectionOnce(
@@ -290,7 +294,10 @@ function iconifySearchResult(
   id: string,
   collectionById: Map<string, PublicIconCollection>,
 ): PublicIconSearchResult | null {
-  const parsedId = parseIconifyIconId(id);
+  const parsedId = tryParseIconifyIconId(id);
+  if (!parsedId) {
+    return null;
+  }
   const collection = collectionById.get(parsedId.prefix);
   if (!collection) {
     return null;
@@ -306,12 +313,12 @@ function publicIconResultFromParts(
   const id = iconifyIconId(prefix, name);
   return {
     id,
-    provider: ICONIFY_PROVIDER_ID,
+    provider: PUBLIC_ICON_PROVIDER_ID,
     providerName: ICONIFY_PROVIDER_NAME,
     collection,
     name: titleFromIconName(name),
     path: defaultPublicIconPath(prefix, name),
-    svgUrl: iconifySvgUrl(prefix, name),
+    svgUrl: publicIconSvgUrl(id),
     sourceUrl: iconifySourceUrl(prefix, name),
   };
 }
@@ -323,10 +330,21 @@ async function readIconifyCollections(): Promise<PublicIconCollection[]> {
   ) {
     return iconifyCollectionListCache.collections;
   }
+  if (iconifyCollectionListRequest) {
+    return iconifyCollectionListRequest;
+  }
 
+  iconifyCollectionListRequest = fetchIconifyCollections();
+  try {
+    return await iconifyCollectionListRequest;
+  } finally {
+    iconifyCollectionListRequest = null;
+  }
+}
+
+async function fetchIconifyCollections(): Promise<PublicIconCollection[]> {
   const url = new URL("/collections", ICONIFY_API_BASE_URL);
-  const payload =
-    await fetchIconifyJson<Record<string, IconifyCollectionInfo>>(url);
+  const payload = await fetchIconifyJson(url, "Iconify collection list");
   const collections = normalizeIconifyCollections(payload);
   iconifyCollectionListCache = {
     collections,
@@ -348,23 +366,38 @@ async function readIconifyCollectionBrowseData(
   if (cached) {
     iconifyCollectionBrowseCache.delete(prefix);
   }
+  const existingRequest = iconifyCollectionBrowseRequests.get(prefix);
+  if (existingRequest) {
+    return existingRequest;
+  }
 
+  const request = fetchIconifyCollectionBrowseData(prefix);
+  iconifyCollectionBrowseRequests.set(prefix, request);
+  try {
+    return await request;
+  } finally {
+    iconifyCollectionBrowseRequests.delete(prefix);
+  }
+}
+
+async function fetchIconifyCollectionBrowseData(
+  prefix: string,
+): Promise<IconifyCollectionBrowseData> {
   const collection = await readIconifyCollection(prefix);
   const url = new URL("/collection", ICONIFY_API_BASE_URL);
   url.searchParams.set("prefix", prefix);
-  const payload = await fetchIconifyJson<IconifyCollectionResponse>(url);
+  const payload = readIconifyCollectionResponse(
+    await fetchIconifyJson(url, `Iconify collection "${prefix}"`),
+  );
   const data = normalizeIconifyCollectionBrowseData(collection, payload);
   iconifyCollectionBrowseCache.set(prefix, {
     data,
     expiresAt: Date.now() + ICONIFY_COLLECTION_CACHE_TTL_MS,
   });
-  while (iconifyCollectionBrowseCache.size > ICONIFY_COLLECTION_CACHE_MAX_ENTRIES) {
-    const oldestKey = iconifyCollectionBrowseCache.keys().next().value;
-    if (!oldestKey) {
-      return data;
-    }
-    iconifyCollectionBrowseCache.delete(oldestKey);
-  }
+  trimCacheMap(
+    iconifyCollectionBrowseCache,
+    ICONIFY_COLLECTION_CACHE_MAX_ENTRIES,
+  );
   return data;
 }
 
@@ -378,11 +411,29 @@ async function readIconifyCollection(
   if (cached) {
     iconifyCollectionCache.delete(prefix);
   }
+  const existingRequest = iconifyCollectionRequests.get(prefix);
+  if (existingRequest) {
+    return existingRequest;
+  }
 
+  const request = fetchIconifyCollection(prefix);
+  iconifyCollectionRequests.set(prefix, request);
+  try {
+    return await request;
+  } finally {
+    iconifyCollectionRequests.delete(prefix);
+  }
+}
+
+async function fetchIconifyCollection(
+  prefix: string,
+): Promise<PublicIconCollection> {
   const url = new URL("/collections", ICONIFY_API_BASE_URL);
   url.searchParams.set("prefixes", prefix);
-  const payload =
-    await fetchIconifyJson<Record<string, IconifyCollectionInfo>>(url);
+  const payload = await fetchIconifyJson(
+    url,
+    `Iconify collection "${prefix}" metadata`,
+  );
   const collections = normalizeIconifyCollections(payload);
   const collection = collections.find((candidate) => candidate.id === prefix);
   if (!collection) {
@@ -390,6 +441,36 @@ async function readIconifyCollection(
   }
   cacheIconifyCollection(prefix, collection);
   return collection;
+}
+
+async function readIconifySvg(prefix: string, name: string): Promise<string> {
+  const key = iconifyIconId(prefix, name);
+  const cached = iconifySvgCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.svg;
+  }
+  if (cached) {
+    iconifySvgCache.delete(key);
+  }
+
+  const existingRequest = iconifySvgRequests.get(key);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = fetchIconifySvg(prefix, name);
+  iconifySvgRequests.set(key, request);
+  try {
+    const svg = await request;
+    iconifySvgCache.set(key, {
+      svg,
+      expiresAt: Date.now() + ICONIFY_SVG_CACHE_TTL_MS,
+    });
+    trimCacheMap(iconifySvgCache, ICONIFY_SVG_CACHE_MAX_ENTRIES);
+    return svg;
+  } finally {
+    iconifySvgRequests.delete(key);
+  }
 }
 
 function cacheIconifyCollection(
@@ -401,49 +482,70 @@ function cacheIconifyCollection(
     expiresAt: Date.now() + ICONIFY_COLLECTION_CACHE_TTL_MS,
   });
 
-  while (iconifyCollectionCache.size > ICONIFY_COLLECTION_CACHE_MAX_ENTRIES) {
-    const oldestKey = iconifyCollectionCache.keys().next().value;
-    if (!oldestKey) {
+  trimCacheMap(iconifyCollectionCache, ICONIFY_COLLECTION_CACHE_MAX_ENTRIES);
+}
+
+function trimCacheMap<TKey, TValue>(
+  cache: Map<TKey, TValue>,
+  maxEntries: number,
+): void {
+  while (cache.size > maxEntries) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey === undefined) {
       return;
     }
-    iconifyCollectionCache.delete(oldestKey);
+    cache.delete(oldestKey);
   }
 }
 
-function normalizeIconifyCollections(
-  input: Record<string, IconifyCollectionInfo>,
-): PublicIconCollection[] {
+function normalizeIconifyCollections(input: unknown): PublicIconCollection[] {
+  if (!isRecord(input)) {
+    throw new ConflictError("Iconify collections response must be a JSON object.");
+  }
   return Object.entries(input)
     .map(([id, collection]) => normalizeIconifyCollection(id, collection))
-    .filter((collection): collection is PublicIconCollection => Boolean(collection));
+    .filter((collection): collection is PublicIconCollection =>
+      Boolean(collection),
+    );
 }
 
 function normalizeIconifyCollection(
   id: string,
-  collection: IconifyCollectionInfo,
+  collection: unknown,
 ): PublicIconCollection | null {
-  if (!collection.license?.title || !collection.license.url) {
+  const normalizedId = tryNormalizeIconifyPathSegment(id, "collection");
+  if (!normalizedId) {
     return null;
   }
-  const licenseName = collection.license.spdx || collection.license.title;
-  if (!licenseName.trim()) {
+  if (!isRecord(collection) || !isRecord(collection.license)) {
     return null;
   }
-  const normalizedLicenseName = licenseName.trim();
+  const license = collection.license;
+  const licenseTitle = readOptionalText(license.title);
+  const licenseUrl = readOptionalText(license.url);
+  if (!licenseTitle || !licenseUrl) {
+    return null;
+  }
+  const normalizedLicenseName = readOptionalText(license.spdx) ?? licenseTitle;
+  const normalizedName = readOptionalText(collection.name) ?? normalizedId;
+  const normalizedCategory = readOptionalText(collection.category);
+  const normalizedTags = Array.isArray(collection.tags)
+    ? uniqueSorted(
+        collection.tags
+          .filter((tag): tag is string => typeof tag === "string")
+          .map(readOptionalText)
+          .filter((tag): tag is string => Boolean(tag)),
+      )
+    : [];
   return {
-    id,
-    name: collection.name || id,
-    total: typeof collection.total === "number" ? collection.total : 0,
-    ...(collection.category ? { category: collection.category } : {}),
-    tags: Array.isArray(collection.tags)
-      ? collection.tags.filter(
-          (tag): tag is string =>
-            typeof tag === "string" && Boolean(tag.trim()),
-        )
-      : [],
+    id: normalizedId,
+    name: normalizedName,
+    total: readOptionalNonNegativeInteger(collection.total, 0),
+    ...(normalizedCategory ? { category: normalizedCategory } : {}),
+    tags: normalizedTags,
     license: {
       name: normalizedLicenseName,
-      url: collection.license.url,
+      url: licenseUrl,
       attributionRequired: !LICENSES_WITHOUT_ATTRIBUTION.has(
         normalizeLicenseIdentifier(normalizedLicenseName),
       ),
@@ -462,16 +564,27 @@ function normalizeIconifyCollectionBrowseData(
     visibleIcons.add(name);
   }
 
-  const categories = Object.entries(input.categories ?? {})
-    .map(([name, icons]) => {
-      const iconNames = normalizeIconifyIconNames(icons);
-      for (const iconName of iconNames) {
-        visibleIcons.add(iconName);
-      }
-      iconNamesByCategory.set(name, iconNames);
-      return { name, count: iconNames.length };
-    })
-    .filter((category) => category.count > 0)
+  for (const [rawCategoryName, icons] of Object.entries(input.categories ?? {})) {
+    const categoryName = readOptionalText(rawCategoryName);
+    if (!categoryName) {
+      continue;
+    }
+    const iconNames = normalizeIconifyIconNames(icons);
+    if (iconNames.length === 0) {
+      continue;
+    }
+    for (const iconName of iconNames) {
+      visibleIcons.add(iconName);
+    }
+    const existingNames = iconNamesByCategory.get(categoryName) ?? [];
+    iconNamesByCategory.set(
+      categoryName,
+      uniqueSorted([...existingNames, ...iconNames]),
+    );
+  }
+
+  const categories = Array.from(iconNamesByCategory.entries())
+    .map(([name, iconNames]) => ({ name, count: iconNames.length }))
     .sort((left, right) => left.name.localeCompare(right.name));
 
   return {
@@ -488,28 +601,12 @@ function normalizeIconifyIconNames(input: unknown): string[] {
   if (!Array.isArray(input)) {
     return [];
   }
-  const names = input.filter(
-    (name): name is string =>
-      typeof name === "string" && /^[a-z0-9][a-z0-9_-]*$/i.test(name),
+  return uniqueSorted(
+    input
+      .filter((name): name is string => typeof name === "string")
+      .map((name) => tryNormalizeIconifyPathSegment(name, "icon name"))
+      .filter((name): name is string => Boolean(name)),
   );
-  return Array.from(new Set(names)).sort((left, right) =>
-    left.localeCompare(right),
-  );
-}
-
-function summarizeCollectionCategories(
-  collections: PublicIconCollection[],
-): PublicIconCollectionCategory[] {
-  const counts = new Map<string, number>();
-  for (const collection of collections) {
-    if (!collection.category) {
-      continue;
-    }
-    counts.set(collection.category, (counts.get(collection.category) ?? 0) + 1);
-  }
-  return Array.from(counts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((left, right) => left.name.localeCompare(right.name));
 }
 
 async function fetchIconifySvg(prefix: string, name: string): Promise<string> {
@@ -522,9 +619,7 @@ async function fetchIconifySvg(prefix: string, name: string): Promise<string> {
     label,
   );
   if (!response.ok) {
-    throw new BadRequestError(
-      `${label} could not be loaded (${response.status}).`,
-    );
+    throw iconifyResponseError(label, response);
   }
   const contentType = response.headers.get("content-type") ?? "";
   if (!contentType.toLowerCase().includes("svg")) {
@@ -537,21 +632,32 @@ async function fetchIconifySvg(prefix: string, name: string): Promise<string> {
   return svg;
 }
 
-async function fetchIconifyJson<T>(url: URL): Promise<T> {
+async function fetchIconifyJson(url: URL, label: string): Promise<unknown> {
   const response = await fetchIconifyResponse(
     url,
     { headers: { accept: "application/json" } },
-    "Iconify request",
+    label,
   );
   if (!response.ok) {
-    throw new BadRequestError(`Iconify request failed (${response.status}).`);
+    throw iconifyResponseError(label, response);
   }
   try {
-    return (await response.json()) as T;
+    return await response.json();
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new ConflictError(`Iconify returned invalid JSON: ${message}`);
   }
+}
+
+function iconifyResponseError(label: string, response: Response): Error {
+  const statusLabel = response.statusText
+    ? `${response.status} ${response.statusText}`
+    : String(response.status);
+  const message = `${label} failed (${statusLabel}).`;
+  if (response.status === 429 || response.status >= 500) {
+    return new ServiceUnavailableError(message);
+  }
+  return new BadRequestError(message);
 }
 
 function normalizeLicenseIdentifier(value: string): string {
@@ -601,54 +707,46 @@ function isAbortError(err: unknown): boolean {
 }
 
 function readPublicIconSearchRequest(input: unknown): {
-  provider: string;
   query: string;
   collection?: string;
   limit: number;
   start: number;
 } {
   const params = isRecord(input) ? input : {};
-  const provider = readOptionalString(params.provider, "provider") ?? ICONIFY_PROVIDER_ID;
-  if (provider !== ICONIFY_PROVIDER_ID) {
-    throw new BadRequestError(`Public icon provider "${provider}" is not supported.`);
-  }
+  rejectUnsupportedFields(params, PUBLIC_ICON_SEARCH_FIELDS);
+  assertPublicIconProvider(params.provider);
   const query = readRequiredString(params.query, "query");
-  const collection = readOptionalString(params.collection, "collection");
-  if (collection) {
-    assertIconifyPathSegment(collection, "collection");
-  }
+  const collection = readOptionalIconifyPathSegment(params.collection, "collection");
   return {
-    provider,
     query,
     ...(collection ? { collection } : {}),
-    limit: readOptionalInteger(params.limit, 32, 1, PUBLIC_ICON_SEARCH_LIMIT_MAX, "limit"),
+    limit: readOptionalInteger(
+      params.limit,
+      PUBLIC_ICON_LIMITS.searchDefault,
+      1,
+      PUBLIC_ICON_LIMITS.searchMax,
+      "limit",
+    ),
     start: readOptionalInteger(params.start, 0, 0, 10_000, "start"),
   };
 }
 
 function readPublicIconCollectionListRequest(input: unknown): {
-  provider: string;
   query: string;
-  category?: string;
   limit: number;
   start: number;
 } {
   const params = isRecord(input) ? input : {};
-  const provider = readOptionalString(params.provider, "provider") ?? ICONIFY_PROVIDER_ID;
-  if (provider !== ICONIFY_PROVIDER_ID) {
-    throw new BadRequestError(`Public icon provider "${provider}" is not supported.`);
-  }
+  rejectUnsupportedFields(params, PUBLIC_ICON_COLLECTION_LIST_FIELDS);
+  assertPublicIconProvider(params.provider);
   const query = readOptionalString(params.query, "query") ?? "";
-  const category = readOptionalString(params.category, "category");
   return {
-    provider,
     query,
-    ...(category ? { category } : {}),
     limit: readOptionalInteger(
       params.limit,
-      80,
+      PUBLIC_ICON_LIMITS.collectionListDefault,
       1,
-      PUBLIC_ICON_COLLECTION_LIST_LIMIT_MAX,
+      PUBLIC_ICON_LIMITS.collectionListMax,
       "limit",
     ),
     start: readOptionalInteger(params.start, 0, 0, 10_000, "start"),
@@ -656,29 +754,24 @@ function readPublicIconCollectionListRequest(input: unknown): {
 }
 
 function readPublicIconCollectionBrowseRequest(input: unknown): {
-  provider: string;
   collection: string;
   category?: string;
   limit: number;
   start: number;
 } {
   const params = isRecord(input) ? input : {};
-  const provider = readOptionalString(params.provider, "provider") ?? ICONIFY_PROVIDER_ID;
-  if (provider !== ICONIFY_PROVIDER_ID) {
-    throw new BadRequestError(`Public icon provider "${provider}" is not supported.`);
-  }
-  const collection = readRequiredString(params.collection, "collection");
-  assertIconifyPathSegment(collection, "collection");
+  rejectUnsupportedFields(params, PUBLIC_ICON_COLLECTION_BROWSE_FIELDS);
+  assertPublicIconProvider(params.provider);
+  const collection = readRequiredIconifyPathSegment(params.collection, "collection");
   const category = readOptionalString(params.category, "category");
   return {
-    provider,
     collection,
     ...(category ? { category } : {}),
     limit: readOptionalInteger(
       params.limit,
-      64,
+      PUBLIC_ICON_LIMITS.collectionBrowseDefault,
       1,
-      PUBLIC_ICON_COLLECTION_BROWSE_LIMIT_MAX,
+      PUBLIC_ICON_LIMITS.collectionBrowseMax,
       "limit",
     ),
     start: readOptionalInteger(params.start, 0, 0, 10_000, "start"),
@@ -696,9 +789,9 @@ function readPublicIconImportRequest(input: unknown): {
   if (!Array.isArray(input.icons) || input.icons.length === 0) {
     throw new BadRequestError("icons must be a non-empty array.");
   }
-  if (input.icons.length > PUBLIC_ICON_IMPORT_LIMIT_MAX) {
+  if (input.icons.length > PUBLIC_ICON_LIMITS.importMax) {
     throw new BadRequestError(
-      `icons must include ${PUBLIC_ICON_IMPORT_LIMIT_MAX} or fewer items.`,
+      `icons must include ${PUBLIC_ICON_LIMITS.importMax} or fewer items.`,
     );
   }
   const tags = readOptionalTags(input.tags, "tags");
@@ -727,12 +820,12 @@ function assertUniquePublicIconImports(icons: PublicIconImportItem[]): void {
   const seenPaths = new Set<string>();
 
   for (const icon of icons) {
-    parseIconifyIconId(icon.id);
-    const normalizedId = icon.id.toLowerCase();
-    if (seenIds.has(normalizedId)) {
+    const parsedId = parseIconifyIconId(icon.id);
+    const canonicalId = iconifyIconId(parsedId.prefix, parsedId.name);
+    if (seenIds.has(canonicalId)) {
       throw new BadRequestError(`Duplicate public icon id "${icon.id}".`);
     }
-    seenIds.add(normalizedId);
+    seenIds.add(canonicalId);
 
     const normalizedPath = normalizePublicIconImportPath(icon);
     if (seenPaths.has(normalizedPath)) {
@@ -742,19 +835,52 @@ function assertUniquePublicIconImports(icons: PublicIconImportItem[]): void {
   }
 }
 
+function assertPublicIconProvider(value: unknown): void {
+  const provider = readOptionalString(value, "provider") ?? PUBLIC_ICON_PROVIDER_ID;
+  if (provider !== PUBLIC_ICON_PROVIDER_ID) {
+    throw new BadRequestError(`Public icon provider "${provider}" is not supported.`);
+  }
+}
+
 function parseIconifyIconId(id: string): { prefix: string; name: string } {
   const [prefix, name, extra] = id.split(":");
   if (!prefix || !name || extra !== undefined) {
     throw new BadRequestError(`Iconify icon id "${id}" must look like "collection:name".`);
   }
-  assertIconifyPathSegment(prefix, "collection");
-  assertIconifyPathSegment(name, "icon name");
-  return { prefix: prefix.toLowerCase(), name: name.toLowerCase() };
+  return {
+    prefix: normalizeIconifyPathSegment(prefix, "collection"),
+    name: normalizeIconifyPathSegment(name, "icon name"),
+  };
+}
+
+function tryParseIconifyIconId(id: string): { prefix: string; name: string } | null {
+  try {
+    return parseIconifyIconId(id);
+  } catch {
+    return null;
+  }
 }
 
 function assertIconifyPathSegment(value: string, label: string): void {
-  if (!/^[a-z0-9][a-z0-9_-]*$/i.test(value)) {
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(value)) {
     throw new BadRequestError(`Iconify ${label} "${value}" is not valid.`);
+  }
+}
+
+function normalizeIconifyPathSegment(value: string, label: string): string {
+  const normalized = value.trim().toLowerCase();
+  assertIconifyPathSegment(normalized, label);
+  return normalized;
+}
+
+function tryNormalizeIconifyPathSegment(
+  value: string,
+  label: string,
+): string | null {
+  try {
+    return normalizeIconifyPathSegment(value, label);
+  } catch {
+    return null;
   }
 }
 
@@ -770,8 +896,16 @@ function iconifyIconId(prefix: string, name: string): string {
   return `${prefix}:${name}`;
 }
 
+function publicIconSvgUrl(id: string): string {
+  const params = new URLSearchParams({
+    provider: PUBLIC_ICON_PROVIDER_ID,
+    id,
+  });
+  return `/api/icons/public/svg?${params.toString()}`;
+}
+
 function defaultPublicIconPath(prefix: string, name: string): string {
-  return `${prefix}.${name.replace(/-/g, ".")}`;
+  return normalizeIconPath(`${prefix}.${name}`);
 }
 
 function normalizePublicIconImportPath(icon: PublicIconImportItem): string {
@@ -809,6 +943,22 @@ function readOptionalString(value: unknown, field: string): string | undefined {
   return readRequiredString(value, field);
 }
 
+function readOptionalText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function readRequiredIconifyPathSegment(value: unknown, field: string): string {
+  return normalizeIconifyPathSegment(readRequiredString(value, field), field);
+}
+
+function readOptionalIconifyPathSegment(
+  value: unknown,
+  field: string,
+): string | undefined {
+  const text = readOptionalString(value, field);
+  return text ? normalizeIconifyPathSegment(text, field) : undefined;
+}
+
 function readOptionalInteger(
   value: unknown,
   fallback: number,
@@ -819,7 +969,12 @@ function readOptionalInteger(
   if (value === undefined || value === null || value === "") {
     return fallback;
   }
-  const numberValue = typeof value === "string" ? Number(value) : value;
+  const numberValue =
+    typeof value === "string" && value.trim()
+      ? Number(value.trim())
+      : typeof value === "string"
+        ? Number.NaN
+        : value;
   if (
     typeof numberValue !== "number" ||
     !Number.isInteger(numberValue) ||
@@ -831,18 +986,38 @@ function readOptionalInteger(
   return numberValue;
 }
 
-function readPositiveNumber(value: unknown, field: string): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    throw new ConflictError(`${field} must be a positive number.`);
+function uniqueSorted(values: string[]): string[] {
+  return Array.from(new Set(values)).sort((left, right) =>
+    left.localeCompare(right),
+  );
+}
+
+function readPositiveInteger(value: unknown, field: string): number {
+  const integer = readNonNegativeInteger(value, field);
+  if (integer <= 0) {
+    throw new ConflictError(`${field} must be a positive integer.`);
+  }
+  return integer;
+}
+
+function readNonNegativeInteger(value: unknown, field: string): number {
+  if (
+    typeof value !== "number" ||
+    !Number.isSafeInteger(value) ||
+    value < 0
+  ) {
+    throw new ConflictError(`${field} must be a non-negative integer.`);
   }
   return value;
 }
 
-function readNonNegativeNumber(value: unknown, field: string): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
-    throw new ConflictError(`${field} must be a non-negative number.`);
-  }
-  return value;
+function readOptionalNonNegativeInteger(
+  value: unknown,
+  fallback: number,
+): number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : fallback;
 }
 
 function readOptionalTags(value: unknown, field: string): string[] | undefined {
@@ -877,32 +1052,67 @@ function rejectUnsupportedFields(
   }
 }
 
+function readIconifySearchResponse(input: unknown): IconifySearchResponse {
+  if (!isRecord(input)) {
+    throw new ConflictError("Iconify search response must be a JSON object.");
+  }
+  return {
+    icons: readOptionalStringArray(input.icons, "Iconify search icons"),
+    total: readNonNegativeInteger(input.total, "Iconify search total"),
+    limit: readPositiveInteger(input.limit, "Iconify search limit"),
+    start: readNonNegativeInteger(input.start, "Iconify search start"),
+    collections: input.collections ?? {},
+  };
+}
+
+function readIconifyCollectionResponse(
+  input: unknown,
+): IconifyCollectionResponse {
+  if (!isRecord(input)) {
+    throw new ConflictError("Iconify collection response must be a JSON object.");
+  }
+  return {
+    uncategorized: input.uncategorized,
+    categories:
+      input.categories === undefined
+        ? {}
+        : readRecord(input.categories, "Iconify collection categories"),
+  };
+}
+
+function readRecord(value: unknown, field: string): Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw new ConflictError(`${field} must be a JSON object.`);
+  }
+  return value;
+}
+
+function readOptionalStringArray(value: unknown, field: string): string[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new ConflictError(`${field} must be an array.`);
+  }
+  return value.map((item, index) => {
+    if (typeof item !== "string") {
+      throw new ConflictError(`${field}[${index}] must be a string.`);
+    }
+    return item;
+  });
+}
+
 interface IconifySearchResponse {
-  icons?: string[];
-  total?: number;
-  limit?: number;
-  start?: number;
-  collections?: Record<string, IconifyCollectionInfo>;
+  icons: string[];
+  total: number;
+  limit: number;
+  start: number;
+  collections: unknown;
 }
 
 interface IconifyCollectionResponse {
-  prefix?: string;
-  total?: number;
-  title?: string;
   uncategorized?: unknown;
   categories?: Record<string, unknown>;
-}
-
-interface IconifyCollectionInfo {
-  name?: string;
-  total?: number;
-  category?: string;
-  tags?: unknown[];
-  license?: {
-    title?: string;
-    spdx?: string;
-    url?: string;
-  };
 }
 
 interface IconifyCollectionCacheEntry {
@@ -924,5 +1134,10 @@ interface IconifyCollectionBrowseData {
 
 interface IconifyCollectionBrowseCacheEntry {
   data: IconifyCollectionBrowseData;
+  expiresAt: number;
+}
+
+interface IconifySvgCacheEntry {
+  svg: string;
   expiresAt: number;
 }

@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { IconRegistryFile, IconStatus, ManagedIcon } from "@token-workshop/core";
 import type {
   IconCanvasActionResultMessage,
@@ -42,15 +41,35 @@ import { dispatchToast } from "../../shared/toastBus";
 import { downloadBlob, getErrorMessage, isAbortError } from "../../shared/utils";
 import { IconImportDialog } from "./IconImportDialog";
 import {
-  formatIconDimension,
-  iconFrameDimensionMatches,
   svgDataUrl,
 } from "./iconUiUtils";
+import {
+  colorBehaviorLabel,
+  colorBehaviorNote,
+  colorDetails,
+  formatHealthCount,
+  getIconHealthSummary,
+  iconCanExport,
+  iconCanUseAsSlotPreference,
+  iconCanUseOnCanvas,
+  iconFrameLabel,
+  iconFrameMismatchNote,
+  iconGeometryLabel,
+  iconIsBlocked,
+  iconMatchesHealthFilter,
+  iconNeedsPublish,
+  iconPrimaryHealthFilter,
+  iconStatusVerb,
+  qualityStateLabel,
+  restoredIconStatus,
+  type IconHealthFilter,
+  type IconHealthSummary,
+} from "./iconHealth";
 
 type IconStatusFilter = "all" | IconStatus;
-type IconHealthFilter = "all" | "publish" | "blocked" | "quality" | "frame" | "color";
 type IconWorkspaceView = "library" | "audit";
 type IconSlotPreferredMode = "all" | "matching";
+const ICON_CONTENTS_TIMEOUT_MS = 15_000;
 type IconCanvasActionRequest =
   | Omit<InsertIconMessage, "correlationId">
   | Omit<ReplaceSelectionWithIconMessage, "correlationId">
@@ -93,14 +112,6 @@ interface IconContentBatchItem {
 interface IconContentCacheItem {
   content: string;
   hash: string;
-}
-
-interface IconHealthSummary {
-  needsPublish: number;
-  blocked: number;
-  qualityReview: number;
-  frameIssues: number;
-  colorReview: number;
 }
 
 interface IconContentsResponse {
@@ -227,229 +238,6 @@ function sourceLabel(icon: ManagedIcon): string {
 
 function shortHash(hash: string): string {
   return hash.replace(/^sha256:/, "").slice(0, 10);
-}
-
-function colorBehaviorLabel(icon: ManagedIcon): string {
-  switch (icon.svg.color.behavior) {
-    case "inheritable":
-      return "Inherits color";
-    case "hardcoded-monotone":
-      return "Monotone";
-    case "multicolor":
-      return "Multicolor";
-    case "unknown":
-      return "Unknown";
-  }
-}
-
-function colorBehaviorNote(icon: ManagedIcon): string | null {
-  if (icon.svg.color.behavior === "hardcoded-monotone") {
-    return "Publishing normalizes this icon to a single editable paint.";
-  }
-  if (icon.svg.color.behavior === "multicolor") {
-    return "Multicolor artwork keeps its source paints when published.";
-  }
-  if (icon.svg.color.behavior === "unknown") {
-    return "Re-import the source SVG before relying on color audits.";
-  }
-  return null;
-}
-
-function colorDetails(icon: ManagedIcon): string {
-  const details: string[] = [];
-  if (icon.svg.color.values.length > 0) {
-    details.push(icon.svg.color.values.join(", "));
-  }
-  if (icon.svg.color.usesCurrentColor) {
-    details.push("currentColor");
-  }
-  if (icon.svg.color.hasInlineStyles) {
-    details.push("inline styles");
-  }
-  if (icon.svg.color.hasPaintServers) {
-    details.push("paint servers");
-  }
-  if (icon.svg.color.hasOpacity) {
-    details.push("opacity");
-  }
-  return details.length > 0 ? details.join(" / ") : "No explicit paint";
-}
-
-function qualityStateLabel(icon: ManagedIcon): string {
-  switch (icon.quality.state) {
-    case "ready":
-      return "Ready";
-    case "review":
-      return "Needs review";
-    case "blocked":
-      return "Blocked";
-  }
-}
-
-function iconFrameLabel(icon: ManagedIcon): string {
-  const width = formatIconDimension(icon.svg.viewBoxWidth);
-  const height = formatIconDimension(icon.svg.viewBoxHeight);
-  return `${width}x${height}`;
-}
-
-function iconGeometryLabel(icon: ManagedIcon): string {
-  const geometry = icon.svg.geometry;
-  if (!geometry) {
-    return "Unknown";
-  }
-  const bounds = geometry.bounds;
-  if (!bounds) {
-    return geometry.precision === "unknown"
-      ? "Unknown"
-      : `Unknown (${geometry.precision})`;
-  }
-  return [
-    `${formatIconDimension(bounds.minX)}, ${formatIconDimension(bounds.minY)}`,
-    `${formatIconDimension(bounds.maxX)}, ${formatIconDimension(bounds.maxY)}`,
-    geometry.precision,
-  ].join(" / ");
-}
-
-function iconFrameMismatchNote(
-  icon: ManagedIcon,
-  defaultIconSize: number,
-): string | null {
-  if (
-    iconFrameDimensionMatches(icon.svg.viewBoxWidth, defaultIconSize) &&
-    iconFrameDimensionMatches(icon.svg.viewBoxHeight, defaultIconSize)
-  ) {
-    return null;
-  }
-  const libraryFrame = formatIconDimension(defaultIconSize);
-  return [
-    `The SVG viewBox is ${iconFrameLabel(icon)}; this library publishes icons`,
-    `into a ${libraryFrame}x${libraryFrame} component frame.`,
-    "Re-import a matching source if this is unintentional.",
-  ].join(" ");
-}
-
-function iconHasFrameIssue(icon: ManagedIcon, defaultIconSize: number): boolean {
-  return (
-    !iconFrameDimensionMatches(icon.svg.viewBoxMinX, 0) ||
-    !iconFrameDimensionMatches(icon.svg.viewBoxMinY, 0) ||
-    !iconFrameDimensionMatches(icon.svg.viewBoxWidth, defaultIconSize) ||
-    !iconFrameDimensionMatches(icon.svg.viewBoxHeight, defaultIconSize) ||
-    icon.quality.issues.some((issue) =>
-      issue.kind === "geometry-bounds" ||
-      issue.kind === "keyline-overflow" ||
-      issue.kind === "off-center",
-    )
-  );
-}
-
-function iconNeedsPublish(icon: ManagedIcon): boolean {
-  return (
-    icon.status !== "deprecated" &&
-    icon.status !== "blocked" &&
-    icon.quality.state !== "blocked" &&
-    (!icon.figma.componentId || icon.figma.lastSyncedHash !== icon.svg.hash)
-  );
-}
-
-function iconNeedsColorReview(icon: ManagedIcon): boolean {
-  return icon.quality.issues.some((issue) =>
-    issue.kind === "unknown-color" ||
-    issue.kind === "multicolor" ||
-    issue.kind === "inline-style" ||
-    issue.kind === "style-block" ||
-    issue.kind === "paint-server" ||
-    issue.kind === "opacity",
-  );
-}
-
-function iconNeedsQualityReview(icon: ManagedIcon): boolean {
-  return icon.quality.state === "review";
-}
-
-function iconIsBlocked(icon: ManagedIcon): boolean {
-  return icon.status === "blocked" || icon.quality.state === "blocked";
-}
-
-function iconCanUseOnCanvas(icon: ManagedIcon): boolean {
-  return (
-    !iconIsBlocked(icon) &&
-    Boolean(icon.figma.componentId || icon.figma.componentKey)
-  );
-}
-
-function iconCanUseAsSlotPreference(icon: ManagedIcon): boolean {
-  return iconCanUseOnCanvas(icon) && icon.status !== "deprecated";
-}
-
-function iconCanExport(icon: ManagedIcon): boolean {
-  return (
-    icon.status !== "deprecated" &&
-    icon.status !== "blocked" &&
-    icon.quality.state !== "blocked"
-  );
-}
-
-function restoredIconStatus(icon: ManagedIcon): IconStatus {
-  return icon.figma.lastSyncedHash === icon.svg.hash &&
-    Boolean(icon.figma.componentId || icon.figma.componentKey)
-    ? "published"
-    : "draft";
-}
-
-function iconStatusVerb(status: IconStatus): string {
-  switch (status) {
-    case "draft":
-      return "restored to draft";
-    case "published":
-      return "restored to published";
-    case "deprecated":
-      return "marked deprecated";
-    case "blocked":
-      return "blocked";
-  }
-}
-
-function getIconHealthSummary(
-  icons: ManagedIcon[],
-  defaultIconSize: number,
-): IconHealthSummary {
-  return icons.reduce<IconHealthSummary>(
-    (summary, icon) => ({
-      needsPublish: summary.needsPublish + (iconNeedsPublish(icon) ? 1 : 0),
-      blocked: summary.blocked + (iconIsBlocked(icon) ? 1 : 0),
-      qualityReview:
-        summary.qualityReview + (iconNeedsQualityReview(icon) ? 1 : 0),
-      frameIssues:
-        summary.frameIssues + (iconHasFrameIssue(icon, defaultIconSize) ? 1 : 0),
-      colorReview: summary.colorReview + (iconNeedsColorReview(icon) ? 1 : 0),
-    }),
-    { needsPublish: 0, blocked: 0, qualityReview: 0, frameIssues: 0, colorReview: 0 },
-  );
-}
-
-function formatHealthCount(count: number, label: string): string {
-  return `${count} ${label}${count === 1 ? "" : "s"}`;
-}
-
-function iconMatchesHealthFilter(
-  icon: ManagedIcon,
-  filter: IconHealthFilter,
-  defaultIconSize: number,
-): boolean {
-  switch (filter) {
-    case "all":
-      return true;
-    case "publish":
-      return iconNeedsPublish(icon);
-    case "blocked":
-      return iconIsBlocked(icon);
-    case "quality":
-      return iconNeedsQualityReview(icon);
-    case "frame":
-      return iconHasFrameIssue(icon, defaultIconSize);
-    case "color":
-      return iconNeedsColorReview(icon);
-  }
 }
 
 function publishIconsInFigma(
@@ -737,7 +525,7 @@ function IconGrid({
   onInsertIcon: (icon: ManagedIcon) => void;
 }) {
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(76px,1fr))] gap-x-2 gap-y-3">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-x-2 gap-y-3">
       {icons.map((icon) => {
         const selected = icon.id === selectedIconId;
         const attentionLabel = iconAttentionLabel(icon);
@@ -745,7 +533,7 @@ function IconGrid({
         return (
           <div
             key={icon.id}
-            className={`group relative min-h-[96px] min-w-0 rounded-md outline-none transition-colors ${
+            className={`group relative min-h-[112px] min-w-0 rounded-md outline-none transition-colors ${
               selected
                 ? "bg-[var(--surface-selected)] shadow-[inset_0_0_0_1px_var(--color-figma-accent)]"
                 : "hover:bg-[var(--surface-hover)]"
@@ -755,10 +543,10 @@ function IconGrid({
               type="button"
               onClick={() => onSelectIcon(icon.id)}
               aria-pressed={selected}
-              className="flex h-full min-h-[96px] w-full min-w-0 flex-col items-center gap-1.5 rounded-md p-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)]"
+              className="flex h-full min-h-[112px] w-full min-w-0 flex-col items-center gap-1.5 rounded-md p-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)]"
               title={`${icon.name} · ${icon.path}${attentionLabel ? ` · ${attentionLabel}` : ""}`}
             >
-              <span className="flex h-11 w-full items-center justify-center rounded bg-[var(--color-figma-bg-secondary)] group-hover:bg-[var(--color-figma-bg)]">
+              <span className="flex h-12 w-full items-center justify-center rounded bg-[var(--color-figma-bg-secondary)] group-hover:bg-[var(--color-figma-bg)]">
                 <IconPreview icon={icon} content={iconContent[icon.id]?.content} />
               </span>
               <span className="min-w-0 max-w-full self-stretch">
@@ -1058,6 +846,7 @@ function IconDetailPanel({
   onCreateIconSlot,
   onSlotPreferredModeChange,
   onUpdateStatus,
+  onViewHealthFilter,
   onBack,
   variant = "full",
 }: {
@@ -1077,11 +866,13 @@ function IconDetailPanel({
   onCreateIconSlot: (action: IconSlotSetupAction) => void;
   onSlotPreferredModeChange: (mode: IconSlotPreferredMode) => void;
   onUpdateStatus: (status: IconStatus) => void;
+  onViewHealthFilter?: (filter: IconHealthFilter) => void;
   onBack?: () => void;
   variant?: "compact" | "full";
 }) {
   const publicSource = icon.source.kind === "public-library" ? icon.source : null;
   const [showDeveloperDetails, setShowDeveloperDetails] = useState(false);
+  const [showStatusActions, setShowStatusActions] = useState(false);
   const restoreStatus = restoredIconStatus(icon);
   const canRestore = icon.quality.state !== "blocked";
   const rows: Array<[string, string]> = [
@@ -1109,6 +900,7 @@ function IconDetailPanel({
   ];
   const colorNote = colorBehaviorNote(icon);
   const frameMismatchNote = iconFrameMismatchNote(icon, defaultIconSize);
+  const detailHealthFilter = iconPrimaryHealthFilter(icon, defaultIconSize);
   const primaryRows = rows.filter(([label]) =>
     ["Component", "Source", "Frame", "Color", "Readiness"].includes(label),
   );
@@ -1237,48 +1029,6 @@ function IconDetailPanel({
         <IconQualityPill icon={icon} />
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {icon.status === "deprecated" || icon.status === "blocked" ? (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => onUpdateStatus(restoreStatus)}
-            disabled={statusActionBusy || !canRestore}
-            title={
-              canRestore
-                ? `Restore this icon as ${restoreStatus}`
-                : "Fix blocked quality issues before restoring this icon"
-            }
-          >
-            <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-            Restore
-          </Button>
-        ) : null}
-        {icon.status !== "deprecated" ? (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => onUpdateStatus("deprecated")}
-            disabled={statusActionBusy}
-          >
-            Deprecate
-          </Button>
-        ) : null}
-        {icon.status !== "blocked" ? (
-          <Button
-            type="button"
-            variant="danger"
-            size="sm"
-            onClick={() => onUpdateStatus("blocked")}
-            disabled={statusActionBusy}
-          >
-            Block
-          </Button>
-        ) : null}
-      </div>
-
       <div className="grid grid-cols-2 gap-2">
         <Button
           type="button"
@@ -1384,6 +1134,62 @@ function IconDetailPanel({
         </div>
       ) : null}
 
+      <div className="flex min-w-0 flex-col gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowStatusActions((current) => !current)}
+          aria-expanded={showStatusActions}
+          className="self-start px-1.5"
+        >
+          Manage status
+        </Button>
+        {showStatusActions ? (
+          <div className="flex flex-wrap gap-1.5">
+            {icon.status === "deprecated" || icon.status === "blocked" ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => onUpdateStatus(restoreStatus)}
+                disabled={statusActionBusy || !canRestore}
+                title={
+                  canRestore
+                    ? `Restore this icon as ${restoreStatus}`
+                    : "Fix blocked quality issues before restoring this icon"
+                }
+              >
+                <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+                Restore
+              </Button>
+            ) : null}
+            {icon.status !== "deprecated" ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => onUpdateStatus("deprecated")}
+                disabled={statusActionBusy}
+              >
+                Deprecate
+              </Button>
+            ) : null}
+            {icon.status !== "blocked" ? (
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                onClick={() => onUpdateStatus("blocked")}
+                disabled={statusActionBusy}
+              >
+                Block
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
       <dl className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2">
         {primaryRows.map(([label, value]) => (
           <div key={label} className="min-w-0">
@@ -1465,15 +1271,39 @@ function IconDetailPanel({
       ) : null}
 
       {frameMismatchNote ? (
-        <p className="m-0 rounded bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
-          {frameMismatchNote}
-        </p>
+        <div className="flex min-w-0 flex-col gap-1 rounded bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
+          <p className="m-0">{frameMismatchNote}</p>
+          {onViewHealthFilter ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onViewHealthFilter("frame")}
+              className="self-start px-1.5"
+            >
+              View all frame issues
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {icon.quality.issues.length > 0 ? (
         <div className="flex min-w-0 flex-col gap-1">
-          <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-            Quality
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+              Quality
+            </div>
+            {onViewHealthFilter && detailHealthFilter ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewHealthFilter(detailHealthFilter)}
+                className="px-1.5"
+              >
+                View all
+              </Button>
+            ) : null}
           </div>
           {icon.quality.issues.slice(0, 5).map((issue) => (
             <p
@@ -1528,6 +1358,7 @@ export function IconPanel() {
   const [exporting, setExporting] = useState(false);
   const [checkingSources, setCheckingSources] = useState(false);
   const [sourceUpdateReport, setSourceUpdateReport] = useState<IconSourceUpdateReport | null>(null);
+  const [showLibraryActions, setShowLibraryActions] = useState(false);
   const [canvasActionBusy, setCanvasActionBusy] = useState(false);
   const [statusActionBusy, setStatusActionBusy] = useState(false);
   const [auditScope, setAuditScope] = useState<IconUsageAuditScope>("selection");
@@ -1538,36 +1369,58 @@ export function IconPanel() {
     total: number;
   } | null>(null);
   const [iconContent, setIconContent] = useState<Record<string, IconContentCacheItem>>({});
+  const iconContentErrorToastRef = useRef<string | null>(null);
+
+  const applyRegistry = useCallback((nextRegistry: IconRegistryFile | null) => {
+    setRegistry(nextRegistry);
+    setSourceUpdateReport(null);
+    setAuditResult(null);
+  }, []);
 
   const loadIconContents = useCallback(
-    async (ids: string[]) => {
+    async (ids: string[], signal?: AbortSignal) => {
       if (!connected || ids.length === 0) {
         return;
       }
       const uniqueIds = Array.from(new Set(ids));
-      const data = await apiFetch<IconContentsResponse>(
-        `${serverUrl}/api/icons/contents`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ids: uniqueIds }),
-        },
-      );
-      const nextContent = Object.fromEntries(
-        data.contents
-          .filter((item): item is IconContentBatchItem & IconContentCacheItem =>
-            typeof item.content === "string" && typeof item.hash === "string",
-          )
-          .map((item) => [
-            item.id,
-            {
-              content: item.content,
-              hash: item.hash,
-            },
-          ]),
-      );
-      if (Object.keys(nextContent).length > 0) {
-        setIconContent((current) => ({ ...current, ...nextContent }));
+      try {
+        const data = await apiFetch<IconContentsResponse>(
+          `${serverUrl}/api/icons/contents`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            signal: createFetchSignal(signal, ICON_CONTENTS_TIMEOUT_MS),
+            body: JSON.stringify({ ids: uniqueIds }),
+          },
+        );
+        if (signal?.aborted) {
+          return;
+        }
+        iconContentErrorToastRef.current = null;
+        const nextContent = Object.fromEntries(
+          data.contents
+            .filter((item): item is IconContentBatchItem & IconContentCacheItem =>
+              typeof item.content === "string" && typeof item.hash === "string",
+            )
+            .map((item) => [
+              item.id,
+              {
+                content: item.content,
+                hash: item.hash,
+              },
+            ]),
+        );
+        if (Object.keys(nextContent).length > 0) {
+          setIconContent((current) => ({ ...current, ...nextContent }));
+        }
+      } catch (err) {
+        if (!isAbortError(err) && !signal?.aborted) {
+          const message = getErrorMessage(err, "Failed to load icon previews.");
+          if (iconContentErrorToastRef.current !== message) {
+            iconContentErrorToastRef.current = message;
+            dispatchToast(message, "error");
+          }
+        }
       }
     },
     [connected, serverUrl],
@@ -1576,7 +1429,7 @@ export function IconPanel() {
   const loadIcons = useCallback(
     async (signal?: AbortSignal) => {
       if (!connected) {
-        setRegistry(null);
+        applyRegistry(null);
         setError(null);
         setLoading(false);
         return;
@@ -1591,7 +1444,7 @@ export function IconPanel() {
         if (signal?.aborted) {
           return;
         }
-        setRegistry(data.registry);
+        applyRegistry(data.registry);
       } catch (err) {
         if (isAbortError(err) || signal?.aborted) {
           return;
@@ -1603,7 +1456,7 @@ export function IconPanel() {
         }
       }
     },
-    [connected, serverUrl],
+    [applyRegistry, connected, serverUrl],
   );
 
   useEffect(() => {
@@ -1646,8 +1499,31 @@ export function IconPanel() {
   );
 
   useEffect(() => {
-    void loadIconContents(missingContentIds);
+    const controller = new AbortController();
+    void loadIconContents(missingContentIds, controller.signal);
+    return () => controller.abort();
   }, [loadIconContents, missingContentIds]);
+
+  useEffect(() => {
+    if (!registry) {
+      setIconContent({});
+      return;
+    }
+
+    const currentHashes = new Map(icons.map((icon) => [icon.id, icon.svg.hash]));
+    setIconContent((current) => {
+      let changed = false;
+      const next: Record<string, IconContentCacheItem> = {};
+      for (const [id, content] of Object.entries(current)) {
+        if (currentHashes.get(id) === content.hash) {
+          next[id] = content;
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [icons, registry]);
 
   const filteredIcons = useMemo(
     () =>
@@ -1785,7 +1661,7 @@ export function IconPanel() {
             }),
           },
         );
-        setRegistry(patched.registry);
+        applyRegistry(patched.registry);
       }
 
       if (successes.length > 0) {
@@ -1812,7 +1688,7 @@ export function IconPanel() {
       setPublishing(false);
       setPublishProgress(null);
     }
-  }, [iconsToPublish, publishing, registry, serverUrl]);
+  }, [applyRegistry, iconsToPublish, publishing, registry, serverUrl]);
 
   const handleExportIcons = useCallback(async () => {
     if (exporting || exportableIconCount === 0) {
@@ -1896,7 +1772,7 @@ export function IconPanel() {
           body: JSON.stringify({ status }),
         },
       );
-      setRegistry(result.registry);
+      applyRegistry(result.registry);
       setSelectedIconId(result.icon.id);
       dispatchToast(
         `${selectedIcon.name} ${iconStatusVerb(result.icon.status)}.`,
@@ -1909,7 +1785,12 @@ export function IconPanel() {
     } finally {
       setStatusActionBusy(false);
     }
-  }, [selectedIcon, serverUrl, statusActionBusy]);
+  }, [applyRegistry, selectedIcon, serverUrl, statusActionBusy]);
+
+  const handleViewHealthFilter = useCallback((filter: IconHealthFilter) => {
+    setWorkspaceView("library");
+    setHealthFilter(filter);
+  }, []);
 
   const handleInsertIcon = useCallback(async (icon: ManagedIcon) => {
     if (canvasActionBusy || !iconCanUseOnCanvas(icon)) {
@@ -2158,44 +2039,6 @@ export function IconPanel() {
     }, "*");
   }, []);
 
-  const handleWorkspaceViewKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLDivElement>) => {
-      if (
-        event.key !== "ArrowRight" &&
-        event.key !== "ArrowDown" &&
-        event.key !== "ArrowLeft" &&
-        event.key !== "ArrowUp" &&
-        event.key !== "Home" &&
-        event.key !== "End"
-      ) {
-        return;
-      }
-
-      event.preventDefault();
-      const currentIndex = ICON_WORKSPACE_VIEWS.findIndex(
-        (view) => view.value === workspaceView,
-      );
-      const lastIndex = ICON_WORKSPACE_VIEWS.length - 1;
-      const nextIndex =
-        event.key === "Home"
-          ? 0
-          : event.key === "End"
-            ? lastIndex
-            : event.key === "ArrowRight" || event.key === "ArrowDown"
-              ? Math.min(currentIndex + 1, lastIndex)
-              : Math.max(currentIndex - 1, 0);
-      const nextView = ICON_WORKSPACE_VIEWS[nextIndex];
-      if (nextView) {
-        setWorkspaceView(nextView.value);
-        const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>(
-          '[role="radio"]',
-        );
-        buttons[nextIndex]?.focus();
-      }
-    },
-    [workspaceView],
-  );
-
   if (!connected) {
     return (
       <FeedbackPlaceholder
@@ -2216,52 +2059,30 @@ export function IconPanel() {
       />
 
       <div className="flex shrink-0 flex-col gap-2 border-b border-[color:var(--color-figma-border)] px-3 py-2">
-        <div className="flex min-w-0 flex-col gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <div
-              className="inline-flex shrink-0 items-stretch gap-[2px] rounded-[var(--radius-md)] bg-[var(--surface-group-quiet)] p-[2px]"
-              role="radiogroup"
-              aria-label="Icons workspace view"
-              onKeyDown={handleWorkspaceViewKeyDown}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <SegmentedControl
+            value={workspaceView}
+            options={ICON_WORKSPACE_VIEWS}
+            onChange={setWorkspaceView}
+            ariaLabel="Icons workspace view"
+            size="compact"
+          />
+          <div className="ml-auto flex min-w-0 items-center gap-1.5">
+            <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              {formatIconCount(filteredIcons.length)}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => void loadIcons()}
+              disabled={loading}
+              title="Refresh icons"
+              className="px-1.5"
             >
-              {ICON_WORKSPACE_VIEWS.map((view) => {
-                const selected = workspaceView === view.value;
-                return (
-                  <button
-                    key={view.value}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    tabIndex={selected ? 0 : -1}
-                    onClick={() => setWorkspaceView(view.value)}
-                    className={`min-h-7 rounded-[3px] px-2 text-secondary font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
-                      selected
-                        ? "bg-[var(--surface-panel-header)] text-[color:var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--border-muted)]"
-                        : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
-                    }`}
-                  >
-                    {view.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="ml-auto flex min-w-0 items-center gap-2">
-              <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {formatIconCount(filteredIcons.length)}
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => void loadIcons()}
-                disabled={loading}
-                title="Refresh icons"
-                className="px-1.5"
-              >
-                <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-                {loading ? "Refreshing" : "Refresh"}
-              </Button>
-            </div>
+              <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+              {loading ? "Refreshing" : "Refresh"}
+            </Button>
           </div>
         </div>
 
@@ -2273,77 +2094,81 @@ export function IconPanel() {
           size="sm"
         />
 
+        <SegmentedControl
+          value={statusFilter}
+          options={STATUS_FILTERS}
+          onChange={setStatusFilter}
+          ariaLabel="Icon status"
+          size="compact"
+        />
+
+        <IconHealthStrip
+          summary={healthSummary}
+          activeFilter={healthFilter}
+          onFilterChange={setHealthFilter}
+        />
+
         <div className="flex min-w-0 flex-col gap-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <SegmentedControl
-              value={statusFilter}
-              options={STATUS_FILTERS}
-              onChange={setStatusFilter}
-              ariaLabel="Icon status"
-              size="compact"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => void handlePublish()}
-              disabled={publishing || iconsToPublish.length === 0}
-            >
-              <UploadCloud size={13} strokeWidth={1.5} aria-hidden />
-              {publishProgress
-                ? `${publishProgress.current}/${publishProgress.total}`
-                : publishing
-                  ? "Publishing"
-                  : "Publish"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => void handleExportIcons()}
-              disabled={exporting || exportableIconCount === 0}
-              title={
-                exportableIconCount > 0
-                  ? "Export SVGs, React components, manifests, and attribution metadata"
-                  : "Import or unblock icons before exporting"
-              }
-            >
-              <Download size={13} strokeWidth={1.5} aria-hidden />
-              {exporting ? "Exporting" : "Export"}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => void handleCheckSourceUpdates()}
-              disabled={checkingSources || icons.length === 0}
-              title="Check local SVG and public icon sources for updates"
-            >
-              <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-              {checkingSources ? "Checking" : "Sources"}
-            </Button>
-            {healthFilter !== "all" ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowLibraryActions((current) => !current)}
+            aria-expanded={showLibraryActions}
+            className="self-start px-1.5"
+          >
+            Library actions
+          </Button>
+          {showLibraryActions ? (
+            <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
               <Button
                 type="button"
-                variant="ghost"
+                variant="secondary"
                 size="sm"
-                onClick={() => setHealthFilter("all")}
+                onClick={() => void handlePublish()}
+                disabled={publishing || iconsToPublish.length === 0}
               >
-                Clear health
+                <UploadCloud size={13} strokeWidth={1.5} aria-hidden />
+                {publishProgress
+                  ? `${publishProgress.current}/${publishProgress.total}`
+                  : publishing
+                    ? "Publishing"
+                    : `Publish ${iconsToPublish.length || ""}`.trim()}
               </Button>
-            ) : null}
-          </div>
-          <IconHealthStrip
-            summary={healthSummary}
-            activeFilter={healthFilter}
-            onFilterChange={setHealthFilter}
-          />
-          {sourceUpdateReport ? (
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              <span>{formatHealthCount(sourceUpdateReport.summary.checked, "source checked")}</span>
-              <span>{formatHealthCount(sourceUpdateReport.summary.changed, "artwork update")}</span>
-              <span>{formatHealthCount(sourceUpdateReport.summary.metadataChanged, "metadata update")}</span>
-              <span>{formatHealthCount(sourceUpdateReport.summary.unavailable, "unavailable source")}</span>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleExportIcons()}
+                disabled={exporting || exportableIconCount === 0}
+                title={
+                  exportableIconCount > 0
+                    ? "Export SVGs, React components, manifests, and attribution metadata"
+                    : "Import or unblock icons before exporting"
+                }
+              >
+                <Download size={13} strokeWidth={1.5} aria-hidden />
+                {exporting ? "Exporting" : "Export"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => void handleCheckSourceUpdates()}
+                disabled={checkingSources || icons.length === 0}
+                title="Check local SVG and public icon sources for updates"
+              >
+                <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+                {checkingSources ? "Checking" : "Check sources"}
+              </Button>
+              {sourceUpdateReport ? (
+                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  <span>{formatHealthCount(sourceUpdateReport.summary.checked, "source checked")}</span>
+                  <span>{formatHealthCount(sourceUpdateReport.summary.changed, "artwork update")}</span>
+                  <span>{formatHealthCount(sourceUpdateReport.summary.metadataChanged, "metadata update")}</span>
+                  <span>{formatHealthCount(sourceUpdateReport.summary.unavailable, "unavailable source")}</span>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -2376,24 +2201,26 @@ export function IconPanel() {
             onClick: () => setImportOpen(true),
           }}
         />
-      ) : filteredIcons.length === 0 ? (
-        <FeedbackPlaceholder
-          variant="no-results"
-          title="No matching icons"
-          description="Change the search, status, or health filter."
-        />
       ) : workspaceView === "library" ? (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="min-w-0 flex-1 overflow-auto p-3 pb-4">
-            <IconGrid
-              icons={filteredIcons}
-              iconContent={iconContent}
-              selectedIconId={selectedIcon?.id ?? null}
-              canvasActionBusy={canvasActionBusy}
-              onSelectIcon={setSelectedIconId}
-              onInsertIcon={(icon) => void handleInsertIcon(icon)}
+          {filteredIcons.length === 0 ? (
+            <FeedbackPlaceholder
+              variant="no-results"
+              title="No matching icons"
+              description="Change the search, status, or health filter."
             />
-          </div>
+          ) : (
+            <div className="min-w-0 flex-1 overflow-auto p-3 pb-4">
+              <IconGrid
+                icons={filteredIcons}
+                iconContent={iconContent}
+                selectedIconId={selectedIcon?.id ?? null}
+                canvasActionBusy={canvasActionBusy}
+                onSelectIcon={setSelectedIconId}
+                onInsertIcon={(icon) => void handleInsertIcon(icon)}
+              />
+            </div>
+          )}
           {selectedIcon ? (
             <IconDetailPanel
               icon={selectedIcon}
@@ -2412,6 +2239,7 @@ export function IconPanel() {
               onCreateIconSlot={handleCreateIconSlot}
               onSlotPreferredModeChange={setSlotPreferredMode}
               onUpdateStatus={handleUpdateIconStatus}
+              onViewHealthFilter={handleViewHealthFilter}
               onBack={() => setSelectedIconId(null)}
               variant="compact"
             />
@@ -2451,6 +2279,7 @@ export function IconPanel() {
                 onCreateIconSlot={handleCreateIconSlot}
                 onSlotPreferredModeChange={setSlotPreferredMode}
                 onUpdateStatus={handleUpdateIconStatus}
+                onViewHealthFilter={handleViewHealthFilter}
               />
             ) : (
               <div className="rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
@@ -2468,7 +2297,7 @@ export function IconPanel() {
           defaultIconSize={defaultIconSize}
           onClose={() => setImportOpen(false)}
           onImported={(nextRegistry, importedIcons) => {
-            setRegistry(nextRegistry);
+            applyRegistry(nextRegistry);
             const firstIcon = importedIcons[0];
             if (firstIcon) {
               setSelectedIconId(firstIcon.id);

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { ChevronDown, X } from 'lucide-react';
 import { useDropdownMenu } from '../hooks/useDropdownMenu';
 import { useAnchoredFloatingStyle } from '../shared/floatingPosition';
 import {
@@ -61,6 +62,7 @@ function ToolbarDropdown({
         ref={triggerRef}
         onClick={toggle}
         disabled={disabled}
+        aria-label={`${label} actions for selected tokens`}
         aria-expanded={open}
         aria-haspopup="menu"
         variant="ghost"
@@ -68,9 +70,7 @@ function ToolbarDropdown({
         className="tm-selection-toolbar__action-button justify-between gap-2"
       >
         {label}
-        <svg width="10" height="10" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
-          <path d="M1.5 3L4 5.5L6.5 3" />
-        </svg>
+        <ChevronDown size={12} strokeWidth={1.8} aria-hidden="true" />
       </Button>
       {open && (
         <div
@@ -130,26 +130,26 @@ export function TokenSelectionToolbar({
   const totalSelectedLabel = `${selectedPaths.size} selected total`;
   const visibleSelectedLabel = `${visibleSelectedCount} selected in these results`;
   const selectionSummary =
-    displayedSelectionCount === 0
+    selectedPaths.size > 0
+      ? `${selectedPaths.size} selected`
+      : displayedSelectionCount === 0
       ? "No visible tokens"
-      : visibleSelectedCount === 0
-        ? `${displayedSelectionCount} visible token${
-            displayedSelectionCount === 1 ? "" : "s"
-          }`
-        : hiddenSelectionCount > 0
-          ? totalSelectedLabel
-          : `${visibleSelectedCount} selected`;
-  const selectionMetaParts = [
-    hiddenSelectionCount > 0 ? visibleSelectedLabel : null,
+      : `${displayedSelectionCount} visible token${
+          displayedSelectionCount === 1 ? "" : "s"
+        }`;
+  const hiddenSelectionLabel =
     hiddenSelectionCount > 0
-      ? `${hiddenSelectionCount} selected outside these results`
-      : null,
+      ? `${visibleSelectedLabel}\n${hiddenSelectionCount} selected outside these results`
+      : null;
+  const selectionToggleTitle = [
+    totalSelectedLabel,
+    hiddenSelectionLabel,
     selectedPaths.size === 1 && hiddenSelectionCount === 0
-      ? "Shift-click adds a range"
+      ? "Shift-click selects a range"
       : null,
-  ].filter(Boolean);
-  const selectionMeta =
-    selectionMetaParts.length > 0 ? selectionMetaParts.join(" · ") : null;
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   const openAction = useCallback(
     (action: BatchActionType, close: () => void) => {
@@ -172,6 +172,7 @@ export function TokenSelectionToolbar({
                   ? ''
                   : 'tm-selection-toolbar__selection-toggle--disabled'
               }`}
+              title={selectionToggleTitle}
             >
               <input
                 type="checkbox"
@@ -193,14 +194,6 @@ export function TokenSelectionToolbar({
                 >
                   {selectionSummary}
                 </span>
-                {selectionMeta ? (
-                  <span
-                    className="tm-selection-toolbar__selection-meta text-secondary text-[color:var(--color-figma-text-tertiary)]"
-                    title={selectionMeta}
-                  >
-                    {selectionMeta}
-                  </span>
-                ) : null}
               </span>
             </label>
           </div>
@@ -211,10 +204,9 @@ export function TokenSelectionToolbar({
                 variant="ghost"
                 size="sm"
                 className="justify-start"
+                aria-label="Clear token selection"
               >
-                <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
-                  <path d="M2 2l6 6M8 2l-6 6" />
-                </svg>
+                <X size={12} strokeWidth={1.8} aria-hidden="true" />
                 <span className="tm-toolbar-action__label">Clear</span>
               </Button>
             ) : null}
@@ -223,7 +215,7 @@ export function TokenSelectionToolbar({
 
         {hiddenSelectionCount > 0 ? (
           <div className="tm-responsive-toolbar__row">
-            <div className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-warning)] px-2.5 py-1.5 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-warning)]">
+            <div className="min-w-0 rounded-[var(--radius-md)] bg-[var(--surface-warning)] px-2.5 py-1.5 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-warning)] [overflow-wrap:anywhere]">
               Actions apply to all {selectedPaths.size} selected tokens, including {hiddenSelectionCount} outside these results.
             </div>
           </div>
@@ -332,6 +324,7 @@ export function TokenSelectionToolbar({
                 variant="ghost"
                 size="sm"
                 className="tm-selection-toolbar__action-button justify-start text-[color:var(--color-figma-text-error)] hover:bg-[var(--color-figma-error)]/10 hover:text-[color:var(--color-figma-text-error)]"
+                aria-label="Delete selected tokens"
               >
                 Delete
               </Button>

@@ -36,7 +36,7 @@ export const DEPTH_GUIDE_COLOR = "var(--color-figma-border)";
 // Table grid template
 // ---------------------------------------------------------------------------
 
-export const TOKEN_COLUMN_MIN_PX = 176;
+export const TOKEN_COLUMN_MIN_PX = 208;
 
 /** Default / min / max widths for individual mode columns (px). */
 export const DEFAULT_MODE_COL_PX = 112;
