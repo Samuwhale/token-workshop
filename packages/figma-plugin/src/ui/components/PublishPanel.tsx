@@ -1173,7 +1173,6 @@ export function PublishPanel({
         <FeedbackPlaceholder
           variant="disconnected"
           title="Connect to sync with Figma"
-          description="Publish and compare require an active token server connection."
           align="start"
         />
       </div>

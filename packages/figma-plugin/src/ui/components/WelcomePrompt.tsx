@@ -17,17 +17,14 @@ export type StartHereBranch = "root" | "start-new";
 
 type StartHereBranchCopy = {
   title: string;
-  description: string;
 };
 
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
     title: "Start your token library",
-    description: "Create a collection to organize tokens and modes.",
   },
   "start-new": {
     title: "Create your first collection",
-    description: "Name the collection, then add Light, Dark, or any context your designs need.",
   },
 };
 
@@ -39,13 +36,11 @@ function getStartHereBranchCopy(
   if (branch === "start-new" && !connected) {
     return {
       title: "Connect to your token library",
-      description: "Start the shared token library, then continue with collections and modes.",
     };
   }
   if (branch === "start-new" && hasCollections) {
     return {
       title: "Add to your library",
-      description: "Create a token, import a system, or extract values from selected layers.",
     };
   }
   return START_HERE_BRANCH_COPY[branch];
@@ -71,7 +66,6 @@ interface WelcomePromptProps {
 
 interface ActionRowProps {
   title: string;
-  description: string;
   disabled?: boolean;
   onClick: () => void;
   icon: ReactNode;
@@ -80,7 +74,6 @@ interface ActionRowProps {
 
 function ActionRow({
   title,
-  description,
   disabled = false,
   onClick,
   icon,
@@ -118,9 +111,6 @@ function ActionRow({
           ].join(" ")}
         >
           {title}
-        </span>
-        <span className="tm-start-action__description mt-0.5 text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)] block">
-          {description}
         </span>
       </span>
       <ChevronRight
@@ -190,32 +180,17 @@ export function WelcomePrompt({
     <div>
       <ActionRow
         title={hasCollections ? "Add to this library" : "Create your first collection"}
-        description={
-          hasCollections
-            ? "Create tokens, import tokens, or extract values from the canvas."
-            : "Group related tokens and define their modes."
-        }
         onClick={() => setBranch("start-new")}
         emphasized
         icon={<Plus size={14} strokeWidth={1.75} aria-hidden />}
       />
       <ActionRow
         title="Import existing tokens"
-        description="Bring in Figma variables, styles, JSON, CSS, or Tokens Studio files."
         onClick={() => handleRequiresConnection(onImportExistingSystem)}
         icon={<Upload size={14} strokeWidth={1.75} aria-hidden />}
       />
       <ActionRow
         title="Start from current selection"
-        description={
-          !connected
-            ? "Connect to the token library before inspecting selected layers."
-            : collectionIds.length === 0
-            ? "Create a collection first, then extract values from selected layers."
-            : selectedNodeCount > 0
-            ? "Inspect selected layers and turn design values into tokens."
-            : "Select at least one layer in Figma to use this path."
-        }
         disabled={connected && collectionIds.length > 0 && selectedNodeCount === 0}
         onClick={handleStartFromSelection}
         icon={<MousePointer2 size={14} strokeWidth={1.75} aria-hidden />}
@@ -241,9 +216,6 @@ export function WelcomePrompt({
         role="dialog"
         aria-modal="true"
         aria-labelledby="welcome-dialog-title"
-        aria-describedby={
-          branchCopy.description ? "welcome-dialog-description" : undefined
-        }
       >
         <div className="tm-start-dialog__header border-b border-[var(--color-figma-border)] px-2.5 py-2">
           <div className="flex items-start justify-between gap-3">
@@ -274,14 +246,6 @@ export function WelcomePrompt({
               <X size={12} strokeWidth={2} aria-hidden />
             </button>
           </div>
-          {branchCopy.description ? (
-            <p
-              id="welcome-dialog-description"
-              className="mt-1 max-w-[28ch] text-secondary leading-[1.45] text-[color:var(--color-figma-text-secondary)]"
-            >
-              {branchCopy.description}
-            </p>
-          ) : null}
           {!connected && (
             <NoticeBanner
               severity={checking ? "info" : "error"}

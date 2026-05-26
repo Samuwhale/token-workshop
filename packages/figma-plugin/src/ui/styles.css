@@ -390,6 +390,10 @@ a[role="menuitem"] {
   max-inline-size: min(680px, calc(100vw - 16px));
 }
 
+.tm-icon-import-dialog {
+  block-size: min(720px, calc(100vh - 16px));
+}
+
 .tm-modal-panel--paste {
   inline-size: min(100%, 420px);
 }
@@ -1565,6 +1569,15 @@ button.tm-status-row:not(:disabled):hover {
 
 .tm-segmented-control--compact .tm-segmented-control__label {
   line-height: 1.1;
+}
+
+.tm-segmented-control--disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.tm-segmented-control--disabled .tm-segmented-control__button {
+  cursor: not-allowed;
 }
 
 .tm-feedback-placeholder {

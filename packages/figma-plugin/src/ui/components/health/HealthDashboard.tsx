@@ -69,11 +69,9 @@ function formatCheckedAt(date: Date): string {
 
 function ReviewSection({
   title,
-  description,
   rows,
 }: {
   title: string;
-  description: string;
   rows: ReviewRow[];
 }) {
   if (rows.length === 0) return null;
@@ -83,9 +81,6 @@ function ReviewSection({
         <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
           {title}
         </h3>
-        <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          {description}
-        </p>
       </div>
       <div className="tm-health-section__rows">
         {rows.map((row) => (
@@ -130,12 +125,11 @@ export function HealthDashboard({
 }: HealthDashboardProps) {
   if (!connected) {
     return (
-      <FeedbackPlaceholder
-        variant="disconnected"
-        title="Connect to review this library"
-        description="Review needs an active token server connection before it can check issues, usage, and generators."
-        align="start"
-      />
+        <FeedbackPlaceholder
+          variant="disconnected"
+          title="Connect to review this library"
+          align="start"
+        />
     );
   }
 
@@ -264,13 +258,11 @@ export function HealthDashboard({
       <div className="tm-health-sections">
         <ReviewSection
           title="Fix next"
-          description="Items that can block confident handoff or publish."
           rows={fixNextRows}
         />
         {cleanupRows.length > 0 ? (
           <ReviewSection
             title="Clean up"
-            description="Helpful library maintenance after blockers are clear."
             rows={cleanupRows}
           />
         ) : null}

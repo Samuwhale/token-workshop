@@ -131,6 +131,11 @@ export function ValueCell({
   } else if (canActivateValue) {
     titleLines.push(`Edit ${optionName} value`);
   }
+  const wrapperAriaLabel = wrapperInteractive
+    ? canAddValue
+      ? `Add ${optionName} value`
+      : `Edit ${optionName} value: ${displayVal}`
+    : undefined;
 
   const openQuickEdit = () => {
     if (!onRequestQuickEdit) return;
@@ -303,13 +308,7 @@ export function ValueCell({
       title={titleLines.join("\n")}
       role={wrapperInteractive ? "button" : undefined}
       tabIndex={wrapperInteractive ? 0 : undefined}
-      aria-label={
-        wrapperInteractive
-          ? canAddValue
-            ? `Add ${optionName} value`
-            : `Edit ${optionName} value`
-          : undefined
-      }
+      aria-label={wrapperAriaLabel}
       onClick={handleWrapperClick}
       onKeyDown={handleWrapperKeyDown}
     >

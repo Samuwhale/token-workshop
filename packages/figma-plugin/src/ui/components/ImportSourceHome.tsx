@@ -11,21 +11,14 @@ import { Button } from "../primitives";
 function SourceButton({
   icon,
   label,
-  description,
   variant = "secondary",
   onClick,
 }: {
   icon: ReactNode;
   label: string;
-  description?: string;
   variant?: "primary" | "secondary";
   onClick: () => void;
 }) {
-  const descriptionClassName =
-    variant === "primary"
-      ? "text-[color:var(--color-figma-text-onbrand)] opacity-75"
-      : "text-[color:var(--color-figma-text-tertiary)]";
-
   return (
     <Button
       type="button"
@@ -38,13 +31,6 @@ function SourceButton({
       {icon}
       <span className="flex min-w-0 flex-col items-start gap-0.5">
         <span>{label}</span>
-        {description ? (
-          <span
-            className={`text-[var(--font-size-xs)] font-normal leading-tight ${descriptionClassName}`}
-          >
-            {description}
-          </span>
-        ) : null}
       </span>
     </Button>
   );
@@ -81,14 +67,12 @@ export function ImportSourceHome() {
             icon={<Table2 size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleReadVariables}
             label="Figma variables"
-            description="Keep collections and modes"
             variant="primary"
           />
           <SourceButton
             icon={<Layers3 size={14} strokeWidth={1.75} aria-hidden />}
             onClick={handleReadStyles}
             label="Figma styles"
-            description="Import color, text, effect styles"
           />
         </div>
       </div>
@@ -96,9 +80,6 @@ export function ImportSourceHome() {
       <div className="tm-import-home__section">
         <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
           From a file
-        </div>
-        <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Drop JSON, CSS, Tailwind, or Tokens Studio files.
         </div>
         <button
           type="button"

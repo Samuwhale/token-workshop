@@ -38,11 +38,9 @@ function operationSubtitle(op: OperationEntry): string {
 
 function ActivitySectionHeader({
   title,
-  description,
   tone = "default",
 }: {
   title: string;
-  description: string;
   tone?: "default" | "muted";
 }) {
   return (
@@ -56,9 +54,6 @@ function ActivitySectionHeader({
       <div className="min-w-0">
         <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
           {title}
-        </div>
-        <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          {description}
         </div>
       </div>
     </div>
@@ -210,7 +205,6 @@ export function HistoryRecentView({
           <FeedbackPlaceholder
             variant={filterTokenPath || searchQuery || collectionFilter ? 'no-results' : 'empty'}
             title={filterTokenPath || searchQuery || collectionFilter ? 'No results' : 'No recent activity'}
-            description={filterTokenPath || searchQuery || collectionFilter ? 'Try a different search or clear filters.' : 'Make an edit to see changes here.'}
             secondaryAction={filterTokenPath || searchQuery || collectionFilter ? { label: 'Clear filters', onClick: () => { setSearchQuery(''); onClearFilter?.(); } } : undefined}
             align="start"
           />
@@ -220,7 +214,6 @@ export function HistoryRecentView({
               <>
                 <ActivitySectionHeader
                   title="Undo queue"
-                  description="Recent local edits you can still undo immediately."
                   tone="muted"
                 />
                 {filteredLocal.map(({ description, stepsToUndo }) => {
@@ -268,7 +261,6 @@ export function HistoryRecentView({
               <>
                 <ActivitySectionHeader
                   title="Saved activity"
-                  description="Changes recorded in the workspace history."
                 />
                 {filteredOps.map((op) => {
                   const isError = op.type.includes("error");

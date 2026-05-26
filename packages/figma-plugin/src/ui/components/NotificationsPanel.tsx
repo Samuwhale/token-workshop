@@ -267,7 +267,6 @@ export function NotificationsPanel({
         <FeedbackPlaceholder
           variant="no-results"
           title={`No ${INBOX_FILTER_OPTIONS.find((o) => o.value === filter)?.label.toLowerCase() ?? filter} notifications`}
-          description="Try a different filter."
           secondaryAction={{
             label: "View all",
             onClick: () => setFilter("all"),

@@ -9,7 +9,6 @@ export function SelectionInspectorLoadingState() {
         variant="empty"
         size="section"
         title="Loading selection"
-        description="Waiting for the current Figma selection to arrive."
       />
     </div>
   );

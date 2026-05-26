@@ -635,7 +635,6 @@ export function SettingsPanel({
         <div className="flex min-w-0 flex-col gap-5 px-3 py-3">
           <SettingsSection
             title="Preferences"
-            description="Defaults used while editing, inspecting, and copying tokens."
           >
             <SwitchRow
               checked={hideDeprecated}
@@ -646,7 +645,6 @@ export function SettingsPanel({
 
             <SettingsItem
               title="Color values"
-              description="Default notation for color fields and previews."
             >
               <div className="flex min-w-0 flex-col gap-1.5 [&_.tm-segmented-control]:w-full">
                 <SegmentedControl
@@ -671,7 +669,6 @@ export function SettingsPanel({
 
             <SettingsItem
               title="Copy format"
-              description="Format used by token copy shortcuts and contextual actions."
             >
               <div className="min-w-0 [&_.tm-segmented-control]:w-full">
                 <SegmentedControl
@@ -686,7 +683,6 @@ export function SettingsPanel({
 
             <SettingsItem
               title="Contrast background"
-              description="Preview background used by color contrast tools."
             >
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <input
@@ -718,7 +714,6 @@ export function SettingsPanel({
 
             <SettingsItem
               title="Undo history"
-              description="Maximum local undo steps to keep available."
             >
               <TextInput
                 size="sm"
@@ -741,7 +736,6 @@ export function SettingsPanel({
 
           <SettingsSection
             title="Connection"
-            description="Local Token Workshop server used for storage, history, and export."
           >
             <StatusBanner tone={connectionTone} title={connectionTitle}>
               <span className="break-all">{connectionDescription}</span>
@@ -799,11 +793,9 @@ export function SettingsPanel({
 
           <SettingsSection
             title="Export defaults"
-            description="Starting point for code handoff exports."
           >
             <SettingsItem
               title="Default platforms"
-              description="Preselected formats when opening export."
             >
               <div className="flex min-w-0 flex-wrap gap-1.5">
                 {PLATFORMS.map((platform) => (
@@ -824,7 +816,7 @@ export function SettingsPanel({
                 ))}
               </div>
             </SettingsItem>
-            <Field label="CSS selector" help="Used as the root selector for CSS variable exports.">
+            <Field label="CSS selector">
               <TextInput
                 type="text"
                 value={cssSelector}
@@ -838,7 +830,6 @@ export function SettingsPanel({
 
           <SettingsSection
             title="Setup and backups"
-            description="Documentation, onboarding, and local preference backups."
           >
             <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2">
               <Button onClick={handleOpenDocumentation} wrap>
@@ -982,7 +973,6 @@ export function SettingsPanel({
 
           <SettingsSection
             title="Workspace data"
-            description="Destructive recovery action for the current workspace."
           >
             {!showClearConfirm ? (
               <Button

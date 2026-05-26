@@ -91,7 +91,6 @@ export function VariableDiffReviewPanel({
   return (
     <ContextualReviewPanel
       title="Apply as Figma Variables"
-      description="Review changes before applying to Figma."
       onClose={onClose}
       footer={
         <>
@@ -168,7 +167,6 @@ export function PromoteReviewPanel({
   return (
     <ContextualReviewPanel
       title="Link to tokens"
-      description="Replace raw values with aliases?"
       onClose={onClose}
       footer={
         <>

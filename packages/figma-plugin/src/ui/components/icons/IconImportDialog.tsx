@@ -1060,9 +1060,7 @@ export function IconImportDialog({
     >
       <form
         ref={dialogRef}
-        className={`tm-modal-panel ${
-          mode === "library" ? "tm-modal-panel--wide" : "tm-modal-panel--dialog"
-        } min-h-[min(720px,calc(100vh_-_16px))]`}
+        className="tm-modal-panel tm-modal-panel--wide tm-icon-import-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="icon-import-title"
@@ -1090,7 +1088,7 @@ export function IconImportDialog({
           </Button>
         </div>
 
-        <div className="tm-modal-body gap-3">
+        <div className="tm-modal-body flex-1 gap-3">
           <SegmentedControl
             value={mode}
             options={IMPORT_MODES}
@@ -1142,7 +1140,7 @@ export function IconImportDialog({
                   <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
                     <Field
                       label="Iconify prefix"
-                      help="Open a collection directly, such as ph, mdi, or carbon. Prefixes use letters, numbers, hyphens, or underscores."
+                      help="Examples: ph, mdi, carbon."
                     >
                       <TextInput
                         value={publicLibrary.collection}
@@ -1461,10 +1459,7 @@ export function IconImportDialog({
                   disabled={busy}
                 />
               </Field>
-              <Field
-                label="Icon path"
-                help="Optional. Defaults from the file path."
-              >
+              <Field label="Icon path">
                 <TextInput
                   value={workspacePath}
                   onChange={(event) => setWorkspacePath(event.target.value)}
@@ -1477,7 +1472,7 @@ export function IconImportDialog({
           ) : null}
 
           {mode !== "selection" && mode !== "library" ? (
-            <Field label="Display name" help="Optional. Best for single-icon imports.">
+            <Field label="Display name">
               <TextInput
                 value={name}
                 onChange={(event) => setName(event.target.value)}

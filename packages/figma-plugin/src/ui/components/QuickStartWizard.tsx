@@ -275,13 +275,11 @@ function QuickStartShell({
 
 function NextStepButton({
   title,
-  description,
   onClick,
   disabled,
   icon,
 }: {
   title: string;
-  description: string;
   onClick: () => void;
   disabled?: boolean;
   icon: React.ReactNode;
@@ -299,9 +297,6 @@ function NextStepButton({
       <span className="min-w-0">
         <span className="block text-body font-medium text-[color:var(--color-figma-text)]">
           {title}
-        </span>
-        <span className="mt-0.5 block text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
-          {description}
         </span>
       </span>
     </button>
@@ -390,14 +385,10 @@ export function QuickStartWizard({
                 ? "Choose what to add next."
                 : "Choose what to add next."}
           </p>
-          <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Create a token, import tokens, or extract values from the canvas.
-          </p>
         </div>
         <div className="px-2 pb-2">
           <NextStepButton
             title="Create token"
-            description="Add one token and set its values for each mode."
             onClick={() => {
               if (effectiveCollectionId) {
                 onAuthorFirstToken?.(effectiveCollectionId);
@@ -409,7 +400,6 @@ export function QuickStartWizard({
           {onImportExistingSystem ? (
             <NextStepButton
               title="Import tokens"
-              description="Bring in Figma variables, styles, or token files."
               onClick={onImportExistingSystem}
               disabled={!connected}
               icon={<Upload size={13} strokeWidth={1.75} aria-hidden />}
@@ -418,11 +408,6 @@ export function QuickStartWizard({
           {onStartFromSelection ? (
             <NextStepButton
               title="Extract from selection"
-              description={
-                selectedNodeCount > 0
-                  ? "Turn selected layer values into tokens."
-                  : "Select a layer in Figma, then extract values."
-              }
               onClick={onStartFromSelection}
               disabled={!connected || selectedNodeCount === 0}
               icon={<MousePointer2 size={13} strokeWidth={1.75} aria-hidden />}

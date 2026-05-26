@@ -44,6 +44,11 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
     ref,
   ) {
     const hasValue = value.length > 0;
+    const accessibleLabel =
+      rest["aria-label"] ??
+      (typeof rest.placeholder === "string" && rest.placeholder.trim()
+        ? rest.placeholder
+        : "Search");
 
     return (
       <span
@@ -66,6 +71,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(
           value={value}
           onChange={onChange}
           disabled={disabled}
+          aria-label={accessibleLabel}
           {...rest}
           className={cx(
             `w-full ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES} hover:bg-[var(--surface-hover)] focus-visible:bg-[var(--color-figma-bg)] ${CONTROL_INPUT_DISABLED_CLASSES}`,

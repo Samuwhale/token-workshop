@@ -30,6 +30,7 @@ export function SegmentedControl<T extends string>({
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (disabled) {
+      event.preventDefault();
       return;
     }
 
@@ -81,7 +82,9 @@ export function SegmentedControl<T extends string>({
         adaptiveWrap
           ? "tm-segmented-control--adaptive"
           : "flex-nowrap overflow-x-auto"
-      } ${compact ? "tm-segmented-control--compact" : ""}`}
+      } ${compact ? "tm-segmented-control--compact" : ""} ${
+        disabled ? "tm-segmented-control--disabled" : ""
+      }`}
       role="radiogroup"
       aria-label={ariaLabel}
       aria-disabled={disabled || undefined}
@@ -96,15 +99,21 @@ export function SegmentedControl<T extends string>({
             role="radio"
             aria-checked={selected}
             disabled={disabled}
-            tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(option.value)}
+            tabIndex={disabled ? -1 : selected ? 0 : -1}
+            onClick={() => {
+              if (!disabled) {
+                onChange(option.value);
+              }
+            }}
             title={option.label}
             className={`tm-segmented-control__button inline-flex flex-1 basis-0 items-center justify-center overflow-hidden rounded-[3px] text-center font-medium leading-tight transition-colors ${CONTROL_FOCUS_ACCENT} ${
               compact
                 ? "min-h-7 min-w-[2.5rem] px-1.5 py-0.5 text-secondary"
                 : "min-h-7 min-w-[3rem] px-2 py-1 text-secondary"
             } ${
-              selected
+              disabled && selected
+                ? "bg-[var(--surface-muted)] text-[color:var(--color-figma-text-tertiary)] shadow-none"
+                : selected
                 ? "bg-[var(--surface-panel-header)] text-[color:var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--border-muted)]"
                 : disabled
                   ? "bg-transparent text-[color:var(--color-figma-text-tertiary)]"

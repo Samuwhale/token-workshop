@@ -2044,7 +2044,6 @@ export function IconPanel() {
       <FeedbackPlaceholder
         variant="disconnected"
         title="Connect to the local server"
-        description="Icons are stored in the workspace registry."
       />
     );
   }
@@ -2195,7 +2194,6 @@ export function IconPanel() {
         <FeedbackPlaceholder
           variant="empty"
           title="No icons yet"
-          description="Imported SVG icons will appear here."
           primaryAction={{
             label: "Import icons",
             onClick: () => setImportOpen(true),
@@ -2207,7 +2205,6 @@ export function IconPanel() {
             <FeedbackPlaceholder
               variant="no-results"
               title="No matching icons"
-              description="Change the search, status, or health filter."
             />
           ) : (
             <div className="min-w-0 flex-1 overflow-auto p-3 pb-4">

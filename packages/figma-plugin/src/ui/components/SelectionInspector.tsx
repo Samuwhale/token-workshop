@@ -1257,7 +1257,6 @@ export function SelectionInspector({
                   variant="empty"
                   size="section"
                   title="No bindable properties"
-                  description="Select a layer with design properties."
                   secondaryAction={
                     onGoToTokens
                       ? { label: "Go to Tokens", onClick: onGoToTokens }
@@ -1366,7 +1365,6 @@ export function SelectionInspector({
                         variant="no-results"
                         size="section"
                         title="No matching properties"
-                        description="Broaden or reset the filter."
                         secondaryAction={{
                           label: "Clear filter",
                           onClick: clearPropFilters,

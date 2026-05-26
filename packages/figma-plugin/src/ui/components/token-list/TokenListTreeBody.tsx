@@ -741,7 +741,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         variant="empty"
         size="section"
         title="Search all collections"
-        description="Search by name, value, type, or filter."
       />
     );
   }
@@ -753,7 +752,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         size="section"
         icon={<Spinner size="sm" />}
         title="Searching all collections"
-        description="Results will appear here."
       />
     );
   }
@@ -778,7 +776,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             variant="no-results"
             size="section"
             title="No tokens found across all collections"
-            description="Try a broader search or search one collection."
           />
           {searchQuery &&
             (() => {
@@ -916,7 +913,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
         <FeedbackPlaceholder
           variant="empty"
           title="Select a layer to inspect"
-          description="Bound tokens appear here."
           icon={<MousePointer2 size={18} strokeWidth={1.5} aria-hidden />}
         />
       </div>

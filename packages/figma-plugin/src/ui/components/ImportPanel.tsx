@@ -73,7 +73,6 @@ function ImportPanelRoot({
     return (
       <SecondaryPanel
         title="Import tokens"
-        description="Import from Figma or a token file."
         className="relative h-full"
         bodyClassName="items-center justify-center"
         actions={

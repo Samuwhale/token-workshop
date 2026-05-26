@@ -154,7 +154,6 @@ export function HistoryPanel({
       <FeedbackPlaceholder
         variant="disconnected"
         title="Not connected"
-        description="Connect to the token server to view activity."
         align="start"
       />
     );

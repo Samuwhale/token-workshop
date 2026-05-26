@@ -66,7 +66,6 @@ export function GitRepositoryPanel({
       <FeedbackPlaceholder
         variant="disconnected"
         title="Connect to the token server"
-        description="Connect to save and share versions."
         align="start"
       />
     );
@@ -134,7 +133,6 @@ export function GitRepositoryPanel({
       {confirmAction === 'git-pull' && (
         <GitPreviewModal
           title="Get updates"
-          subtitle="Incoming changes from your team."
           confirmLabel="Get updates"
           preview={git.pullPreview}
           loading={git.pullPreviewLoading}
@@ -155,7 +153,6 @@ export function GitRepositoryPanel({
       {confirmAction === 'git-push' && (
         <GitPreviewModal
           title={`Share changes${git.gitStatus?.branch ? ` (${git.gitStatus.branch})` : ''}`}
-          subtitle="Your changes to share with the team."
           confirmLabel="Share"
           preview={git.pushPreview}
           loading={git.pushPreviewLoading}
@@ -388,7 +385,6 @@ function RepositoryTimeline({
             variant="empty"
             size="section"
             title="No versions yet"
-            description="Save your changes to start tracking versions."
           />
         )}
 
@@ -514,7 +510,6 @@ function RepositoryTimeline({
 
 function GitPreviewModal({
   title,
-  subtitle,
   confirmLabel,
   preview,
   loading,
@@ -524,7 +519,6 @@ function GitPreviewModal({
   onConfirm,
 }: {
   title: string;
-  subtitle: string;
   confirmLabel: string;
   preview: GitPreview | null;
   loading: boolean;
@@ -588,7 +582,6 @@ function GitPreviewModal({
       <div ref={dialogRef} className="tm-modal-panel tm-modal-panel--wide" role="dialog" aria-modal="true" aria-labelledby="git-preview-dialog-title">
         <div className="tm-modal-header">
           <h3 id="git-preview-dialog-title" className="text-heading font-semibold text-[color:var(--color-figma-text)]">{title}</h3>
-          <p className="mt-1 text-secondary text-[color:var(--color-figma-text-secondary)]">{subtitle}</p>
         </div>
         <div className="tm-modal-body flex-1">
           {loading && (

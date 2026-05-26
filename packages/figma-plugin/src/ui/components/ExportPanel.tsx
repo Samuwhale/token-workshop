@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { STORAGE_KEYS, lsGet, lsGetJson, lsRemove } from '../shared/storage';
-import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 import { ConfirmModal } from './ConfirmModal';
 import { useDiffState } from '../hooks/useDiffState';
 import { useExportPresets, type ExportPreset } from '../hooks/useExportPresets';
@@ -20,7 +19,6 @@ interface ExportPanelProps {
 }
 
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
-  const help = usePanelHelp();
   const {
     collections,
   } = useCollectionStateContext();
@@ -174,22 +172,6 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         title="Export files"
         className="h-full"
         bodyClassName="gap-3"
-        actions={
-          <PanelHelpIcon
-            title="Export"
-            expanded={help.expanded}
-            onToggle={help.toggle}
-          />
-        }
-        beforeBody={
-          help.expanded ? (
-            <PanelHelpBanner
-              title="Export"
-              description="Choose file formats and scope."
-              onDismiss={help.dismiss}
-            />
-          ) : null
-        }
         footer={
           <ExportFooter
             mode="platforms"
