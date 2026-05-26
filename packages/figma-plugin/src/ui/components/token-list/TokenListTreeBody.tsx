@@ -4,7 +4,6 @@ import {
   ChevronUp,
   Layers,
   MousePointer2,
-  Plus,
   Settings2,
   X,
 } from "lucide-react";
@@ -409,7 +408,6 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
           Token
         </span>
         <div className="tm-token-table__header-actions">
-          <span className="tm-token-table__header-actions-label">Modes</span>
           <Button
             ref={addModeTriggerRef}
             onClick={() => {
@@ -426,49 +424,27 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             className="tm-token-table__header-action tm-token-table__add-mode text-[color:var(--color-figma-text-secondary)]"
             title={
               connected
-                ? "Add mode"
+                ? "Manage modes"
                 : "Connect to the token library before adding modes"
             }
-            aria-label="Add mode"
+            aria-label="Manage modes"
             aria-controls={
-              addModeMenuOpen ? "token-table-add-mode-dialog" : undefined
+              addModeMenuOpen ? "token-table-modes-dialog" : undefined
             }
             aria-haspopup="dialog"
             aria-expanded={addModeMenuOpen}
           >
-            <Plus size={12} strokeWidth={2} aria-hidden />
-            <span className="tm-token-table__header-action-label">Add mode</span>
+            <Settings2 size={12} strokeWidth={1.6} aria-hidden />
+            <span className="tm-token-table__header-action-label">Modes</span>
           </Button>
-          {props.navigation.onManageCollectionModes ? (
-            <Button
-              onClick={() =>
-                props.navigation.onManageCollectionModes?.(
-                  multiModeData.collection.id,
-                )
-              }
-              disabled={!connected}
-              variant="ghost"
-              size="sm"
-              className="tm-token-table__header-action text-[color:var(--color-figma-text-secondary)]"
-              title={
-                connected
-                  ? "Edit modes"
-                  : "Connect to the token library before managing modes"
-              }
-              aria-label="Edit modes"
-            >
-              <Settings2 size={12} strokeWidth={1.5} aria-hidden />
-              <span className="tm-token-table__header-action-label">Edit modes</span>
-            </Button>
-          ) : null}
         </div>
         {addModeMenuOpen && (
           <div
-            id="token-table-add-mode-dialog"
-            className="absolute right-2 top-full z-30 mt-0.5 w-52 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
+            id="token-table-modes-dialog"
+            className="absolute right-2 top-full z-30 mt-0.5 w-56 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]"
             onMouseDown={(e) => e.stopPropagation()}
             role="dialog"
-            aria-label="Add mode"
+            aria-label="Manage modes"
             onKeyDown={(event) => {
               if (event.key !== "Escape") {
                 return;
@@ -479,11 +455,37 @@ export function TokenListTreeBody(props: TokenListTreeBodyProps) {
             }}
           >
             <div className="flex flex-col gap-2 px-2 py-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="min-w-0 flex-1 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+                  Modes
+                </span>
+                {props.navigation.onManageCollectionModes ? (
+                  <Button
+                    onClick={() => {
+                      props.navigation.onManageCollectionModes?.(
+                        multiModeData.collection.id,
+                      );
+                      closeAddModeMenu();
+                    }}
+                    disabled={!connected}
+                    variant="ghost"
+                    size="sm"
+                    title={
+                      connected
+                        ? "Edit collection modes"
+                        : "Connect to the token library before managing modes"
+                    }
+                    aria-label="Edit collection modes"
+                  >
+                    Edit
+                  </Button>
+                ) : null}
+              </div>
               <label
                 htmlFor="token-table-new-mode-name"
-                className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]"
+                className="text-secondary text-[color:var(--color-figma-text-secondary)]"
               >
-                Add mode
+                New mode
               </label>
               <TextInput
                 id="token-table-new-mode-name"

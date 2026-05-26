@@ -253,7 +253,6 @@ export const TokenLeafNode = memo(
       allTokensFlat,
       collectionIdsByPath,
       pathToCollectionId,
-      perCollectionFlat,
     } = useTokenTreeSharedData();
     const {
       onEdit,
@@ -1568,7 +1567,6 @@ export const TokenLeafNode = memo(
               allTokensFlat={allTokensFlat}
               pathToCollectionId={pathToCollectionId}
               collectionIdsByPath={collectionIdsByPath}
-              perCollectionFlat={perCollectionFlat}
               preferredCollectionId={quickEditor.collectionId}
               anchorRect={quickEditor.anchor}
               onSave={(newVal, previousState) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Spinner } from './Spinner';
 import { hexToRgb, rgbToHex, hslToSrgb } from '@token-workshop/core';
 import {
@@ -34,7 +35,6 @@ interface ColorPickerProps {
   onClose: () => void;
   anchorRef?: React.RefObject<HTMLElement>;
   allTokensFlat?: Record<string, TokenMapEntry>;
-  inline?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -248,7 +248,7 @@ function parseInitialColor(value: string): { h: number; s: number; l: number; al
   return { h: 0, s: 0, l: 0, alpha: 1, initialSpace: 'hex' };
 }
 
-export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat, inline = false }: ColorPickerProps) {
+export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat }: ColorPickerProps) {
   // Parse initial color — supports both hex and CSS Color 4
   const init = parseInitialColor(value);
   const [hue, setHue] = useState(init.h);
@@ -286,7 +286,6 @@ export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat
 
   const [popoverPos, setPopoverPos] = useState<{ top: number; left: number } | null>(null);
   const updatePopoverPosition = useCallback(() => {
-    if (inline) return;
     const el = popoverRef.current;
     const anchor = anchorRef?.current;
     if (!anchor) return;
@@ -308,15 +307,13 @@ export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat
     left = clamp(left, margin, Math.max(margin, window.innerWidth - pickerWidth - margin));
 
     setPopoverPos({ top, left });
-  }, [anchorRef, inline]);
+  }, [anchorRef]);
 
   useLayoutEffect(() => {
-    if (inline) return;
     updatePopoverPosition();
-  }, [inline, updatePopoverPosition]);
+  }, [updatePopoverPosition]);
 
   useEffect(() => {
-    if (inline) return;
     updatePopoverPosition();
     window.addEventListener('resize', updatePopoverPosition);
     window.addEventListener('scroll', updatePopoverPosition, true);
@@ -324,7 +321,7 @@ export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat
       window.removeEventListener('resize', updatePopoverPosition);
       window.removeEventListener('scroll', updatePopoverPosition, true);
     };
-  }, [inline, updatePopoverPosition]);
+  }, [updatePopoverPosition]);
 
   // Current hex (no alpha)
   const hex6 = hslToHex(hue, sat, lit);
@@ -425,7 +422,6 @@ export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat
 
   // Click outside to close
   useEffect(() => {
-    if (inline) return;
     const handler = (e: MouseEvent) => {
       const target = e.target as Node;
       if (popoverRef.current?.contains(target) || anchorRef?.current?.contains(target)) {
@@ -437,7 +433,7 @@ export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [anchorRef, closeAndSave, inline]);
+  }, [anchorRef, closeAndSave]);
 
   // Draw color area
   useEffect(() => {
@@ -660,14 +656,18 @@ export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat
   const hueX = hue / 360;
   const alphaX = alpha;
 
-  return (
+  const picker = (
     <div
       ref={popoverRef}
       className={[
-        'flex flex-col gap-2 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2',
-        inline ? 'relative w-full shadow-none' : 'fixed z-50 shadow-[var(--shadow-popover)]',
+        'flex flex-col gap-2 overflow-y-auto rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2',
+        'fixed z-50 shadow-[var(--shadow-popover)]',
       ].join(' ')}
-      style={inline ? { width: '100%' } : { width: 240, ...(popoverPos ?? { top: 0, left: 0 }) }}
+      style={{
+        width: 240,
+        maxHeight: 'calc(100vh - 16px)',
+        ...(popoverPos ?? { top: 0, left: 0 }),
+      }}
     >
       {/* Color area */}
       <div
@@ -1034,4 +1034,6 @@ export function ColorPicker({ value, onChange, onClose, anchorRef, allTokensFlat
       )}
     </div>
   );
+
+  return createPortal(picker, document.body);
 }

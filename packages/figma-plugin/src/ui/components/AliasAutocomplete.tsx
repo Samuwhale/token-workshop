@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { readTokenCollectionModeValues } from '@token-workshop/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { tokenTypeBadgeClass } from '../../shared/types';
@@ -23,6 +30,7 @@ interface AliasAutocompleteProps {
   collectionDisplayNames?: Record<string, string>;
   previewModeName?: string;
   filterType?: string;
+  floatingStyle?: CSSProperties | null;
   onSelect: (path: string, selection?: ScopedTokenCandidate) => void;
   onClose: () => void;
 }
@@ -38,6 +46,7 @@ export function AliasAutocomplete({
   collectionDisplayNames,
   previewModeName,
   filterType,
+  floatingStyle,
   onSelect,
   onClose,
 }: AliasAutocompleteProps) {
@@ -265,9 +274,21 @@ export function AliasAutocomplete({
     el?.scrollIntoView({ block: 'nearest' });
   }, [activeIdx]);
 
+  const containerClassName = `${
+    floatingStyle
+      ? "fixed z-[70]"
+      : "absolute z-50 mt-1 left-0 right-0"
+  } rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)]`;
+  const listClassName = `${containerClassName} overflow-y-auto ${
+    floatingStyle ? "" : "max-h-48"
+  }`;
+
   if (entries.length === 0 && ambiguousEntries.length === 0) {
     return (
-      <div className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] py-2 px-3 text-secondary text-[color:var(--color-figma-text-secondary)]">
+      <div
+        className={`${containerClassName} py-2 px-3 text-secondary text-[color:var(--color-figma-text-secondary)]`}
+        style={floatingStyle ?? undefined}
+      >
         No matching {filterType ? `${filterType} ` : ""}tokens. Create the target token first, or keep typing to find another reference.
       </div>
     );
@@ -276,7 +297,8 @@ export function AliasAutocomplete({
   return (
     <div
       ref={listRef}
-      className="absolute z-50 mt-1 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-[var(--shadow-popover)] overflow-y-auto max-h-48"
+      className={listClassName}
+      style={floatingStyle ?? undefined}
     >
       {hasRecent && !query.trim() && (
         <div className="px-2 py-1 text-secondary font-medium text-[color:var(--color-figma-text-tertiary)]">

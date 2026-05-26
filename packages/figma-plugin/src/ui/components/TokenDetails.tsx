@@ -344,7 +344,6 @@ export function TokenDetails({
     modeValues,
     setModeValues,
   });
-
   const valueEditorContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollPositionsRef = useRef(new Map<string, number>());
@@ -1679,6 +1678,72 @@ export function TokenDetails({
         ) : null}
       </div>
     ) : undefined;
+  const modeRows = modeValue.modes.map((modeItem, modeIdx) => {
+    const modeVal = modeItem.value;
+    const inheritedValue = extendsPath
+      ? getStoredModeValue(
+          extendsTokenEntry,
+          extendsCollection,
+          modeItem.name,
+        )
+      : undefined;
+    const initialModeVal =
+      modeIdx === 0
+        ? initialFieldsSnapshot?.value
+        : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[
+            modeItem.name
+          ];
+    const isModeModified =
+      initialModeVal !== undefined &&
+      stableStringify(modeVal) !== stableStringify(initialModeVal);
+    const copyActions =
+      fieldEditable && modeValue.modes.length > 1
+        ? [
+            ...modeValue.modes.flatMap((sourceMode, sourceIdx) => {
+              if (sourceIdx === modeIdx) {
+                return [];
+              }
+              if (isEmptyModeValue(sourceMode.value)) {
+                return [];
+              }
+              return [
+                {
+                  key: `from-${sourceMode.name}`,
+                  label: `Copy from ${sourceMode.name}`,
+                  onClick: () => {
+                    modeItem.setValue(cloneValue(sourceMode.value));
+                  },
+                },
+              ];
+            }),
+            ...(!isEmptyModeValue(modeVal)
+              ? [
+                  {
+                    key: "to-others",
+                    label: `Copy ${modeItem.name} to other modes`,
+                    onClick: () => {
+                      const sourceValue = modeItem.value;
+                      if (sourceValue == null) return;
+                      modeValue.modes.forEach((destMode, destIdx) => {
+                        if (destIdx === modeIdx) return;
+                        destMode.setValue(cloneValue(sourceValue));
+                      });
+                    },
+                  },
+                ]
+              : []),
+          ]
+        : [];
+
+    return {
+      mode: modeItem,
+      modeIdx,
+      modeVal,
+      inheritedValue,
+      isModeModified,
+      copyActions,
+    };
+  });
   const referenceCount =
     (ancestors.isEmpty ? 0 : ancestors.chains.length) + dependents.length;
   const referencesLabel =
@@ -1980,77 +2045,24 @@ export function TokenDetails({
             <div className="tm-token-details__mode-list">
               <Stack
                 gap={1}
+                className="tm-token-details__mode-editors"
                 title={
                   modeValue.modes.length >= 2
                     ? valueFormatHint(tokenType) || undefined
                     : undefined
                 }
               >
-                {modeValue.modes.map((mode, modeIdx) => {
-                  const modeVal = mode.value;
-                  const inheritedValue = extendsPath
-                    ? getStoredModeValue(
-                        extendsTokenEntry,
-                        extendsCollection,
-                        mode.name,
-                      )
-                    : undefined;
-                  const initialModeVal =
-                    modeIdx === 0
-                      ? initialFieldsSnapshot?.value
-                      : initialFieldsSnapshot?.modeValues[ownerCollectionId]?.[
-                          mode.name
-                        ];
-                  const isModeModified =
-                    initialModeVal !== undefined &&
-                    stableStringify(modeVal) !==
-                      stableStringify(initialModeVal);
-                  const copyActions =
-                    fieldEditable && modeValue.modes.length > 1
-                      ? [
-                          ...modeValue.modes.flatMap((sourceMode, sourceIdx) => {
-                            if (sourceIdx === modeIdx) {
-                              return [];
-                            }
-                            if (isEmptyModeValue(sourceMode.value)) {
-                              return [];
-                            }
-                            return [
-                              {
-                                key: `from-${sourceMode.name}`,
-                                label: `Copy from ${sourceMode.name}`,
-                                onClick: () => {
-                                  mode.setValue(cloneValue(sourceMode.value));
-                                },
-                              },
-                            ];
-                          }),
-                          ...(!isEmptyModeValue(modeVal)
-                            ? [
-                                {
-                                  key: "to-others",
-                                  label: `Copy ${mode.name} to other modes`,
-                                  onClick: () => {
-                                    const sourceValue = mode.value;
-                                    if (sourceValue == null) return;
-                                    modeValue.modes.forEach((destMode, destIdx) => {
-                                      if (destIdx === modeIdx) return;
-                                      destMode.setValue(cloneValue(sourceValue));
-                                    });
-                                  },
-                                },
-                              ]
-                            : []),
-                        ]
-                      : [];
-                  return (
+                {modeRows.map((row) => (
+                  <div
+                    key={`${ownerCollectionId}:${tokenPath}:${row.mode.name}:editor`}
+                    className="tm-token-details__mode-editor"
+                  >
                     <TokenDetailsModeRow
-                      key={`${ownerCollectionId}:${tokenPath}:${mode.name}`}
-                      modeName={mode.name}
+                      modeName={row.mode.name}
                       tokenType={tokenType}
-                      value={modeVal}
+                      value={row.modeVal}
                       editable={fieldEditable}
-                      onChange={fieldEditable ? mode.setValue : undefined}
+                      onChange={fieldEditable ? row.mode.setValue : undefined}
                       allTokensFlat={allTokensFlat}
                       pathToCollectionId={pathToCollectionId}
                       collectionIdsByPath={collectionIdsByPath}
@@ -2058,20 +2070,20 @@ export function TokenDetails({
                       preferredCollectionId={ownerCollectionId}
                       collectionDisplayNames={collectionDisplayNames}
                       showModeLabel
-                      autoFocus={modeIdx === 0 && !isCreateMode && fieldEditable}
-                      inheritedValue={inheritedValue}
+                      autoFocus={row.modeIdx === 0 && !isCreateMode && fieldEditable}
+                      inheritedValue={row.inheritedValue}
                       availableFonts={availableFonts}
                       fontWeightsByFamily={fontWeightsByFamily}
-                      fontFamilyRef={modeIdx === 0 ? fontFamilyRef : undefined}
-                      fontSizeRef={modeIdx === 0 ? fontSizeRef : undefined}
-                      modified={isModeModified && !isCreateMode}
+                      fontFamilyRef={row.modeIdx === 0 ? fontFamilyRef : undefined}
+                      fontSizeRef={row.modeIdx === 0 ? fontSizeRef : undefined}
+                      modified={row.isModeModified && !isCreateMode}
                       onNavigateToToken={(path, collectionId) =>
                         onNavigateToToken?.(path, collectionId)
                       }
-                      copyActions={copyActions}
+                      copyActions={row.copyActions}
                     />
-                  );
-                })}
+                  </div>
+                ))}
               </Stack>
             </div>
 

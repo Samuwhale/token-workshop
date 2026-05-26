@@ -1179,11 +1179,11 @@ export function IconImportPanel({
 
   return (
     <form
-      className="flex min-w-0 flex-col gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] p-2"
+      className="flex min-h-full min-w-0 flex-col gap-3"
       aria-label="Add icons"
       onSubmit={handleSubmit}
     >
-        <div className="flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
           <ImportModePicker
             value={mode}
             disabled={busy}
@@ -1632,7 +1632,7 @@ export function IconImportPanel({
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-end justify-end gap-2">
+        <div className="sticky bottom-0 z-10 flex min-w-0 flex-wrap items-end justify-end gap-2 border-t border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg)] py-2">
           {mode === "library" ? (
             <PublicSelectionSummary
               selectedIconCount={selectedPublicIconCount}

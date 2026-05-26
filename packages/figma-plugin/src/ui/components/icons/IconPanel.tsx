@@ -24,10 +24,10 @@ import {
   ArrowLeft,
   Download,
   MousePointer2,
+  Plus,
   RefreshCw,
   Replace,
   Shapes,
-  SlidersHorizontal,
   UploadCloud,
 } from "lucide-react";
 import { useConnectionContext } from "../../contexts/ConnectionContext";
@@ -67,7 +67,7 @@ import {
 type IconStatusFilter = "all" | IconStatus;
 type IconSlotPreferredMode = "all" | "matching";
 type IconAuditGridMeta = { count: number; hasError: boolean };
-type IconWorkspaceMode = "library" | "add" | "tools";
+type IconWorkspaceSurface = "library" | "add" | "review";
 const ICON_CONTENTS_TIMEOUT_MS = 15_000;
 type IconCanvasActionRequest =
   | Omit<InsertIconMessage, "correlationId">
@@ -177,12 +177,6 @@ const SLOT_PREFERRED_MODE_OPTIONS: Array<{ value: IconSlotPreferredMode; label: 
   { value: "matching", label: "Matching" },
 ];
 
-const ICON_WORKSPACE_MODE_OPTIONS: Array<{ value: IconWorkspaceMode; label: string }> = [
-  { value: "library", label: "Library" },
-  { value: "add", label: "Add" },
-  { value: "tools", label: "Tools" },
-];
-
 function formatIconCount(count: number): string {
   return `${count} ${count === 1 ? "icon" : "icons"}`;
 }
@@ -246,6 +240,14 @@ function statusFilterLabel(
 ): string {
   const base = STATUS_FILTERS.find((option) => option.value === filter)?.label ?? filter;
   return `${base} ${counts[filter]}`;
+}
+
+function iconReviewCount(icons: ManagedIcon[], defaultIconSize: number): number {
+  return icons.filter((icon) => iconPrimaryHealthFilter(icon, defaultIconSize)).length;
+}
+
+function reviewActionLabel(count: number): string {
+  return count > 0 ? `Manage ${count}` : "Manage";
 }
 
 function publishIconsInFigma(
@@ -704,12 +706,18 @@ function IconLibraryFilters({
               </IconFilterButton>
             );
           })}
-          {activeFilter !== "all" ? (
-            <IconFilterButton active={false} onClick={() => onFilterChange("all")}>
-              Clear
-            </IconFilterButton>
-          ) : null}
         </div>
+      ) : null}
+      {activeStatusFilter !== "all" || activeFilter !== "all" ? (
+        <IconFilterButton
+          active={false}
+          onClick={() => {
+            onStatusFilterChange("all");
+            onFilterChange("all");
+          }}
+        >
+          Clear
+        </IconFilterButton>
       ) : null}
     </div>
   );
@@ -1043,7 +1051,7 @@ function IconDetailPanel({
   onUpdateStatus: (status: IconStatus) => void;
   onViewHealthFilter?: (filter: IconHealthFilter) => void;
   onBack?: () => void;
-  variant?: "compact" | "full";
+  variant?: "compact" | "full" | "side";
 }) {
   const publicSource = icon.source.kind === "public-library" ? icon.source : null;
   const [showDeveloperDetails, setShowDeveloperDetails] = useState(false);
@@ -1174,7 +1182,13 @@ function IconDetailPanel({
   }
 
   return (
-    <section className="flex min-h-0 shrink-0 flex-col gap-3 border-t border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+    <section
+      className={
+        variant === "side"
+          ? "flex min-h-full flex-col gap-3 bg-[var(--color-figma-bg-secondary)] p-3"
+          : "flex min-h-0 shrink-0 flex-col gap-3 border-t border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3"
+      }
+    >
       <div className="flex min-w-0 items-center gap-3">
         {onBack ? (
           <Button
@@ -1501,6 +1515,40 @@ function IconDetailPanel({
   );
 }
 
+function IconLibraryEmptyState({
+  onAdd,
+  onOpenReview,
+}: {
+  onAdd: () => void;
+  onOpenReview: () => void;
+}) {
+  return (
+    <div className="flex min-h-full min-w-0 flex-col items-center justify-center gap-3 px-3 py-8 text-center">
+      <div className="flex size-12 items-center justify-center rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]">
+        <Shapes size={24} strokeWidth={1.5} aria-hidden />
+      </div>
+      <div className="flex max-w-[18rem] flex-col gap-1">
+        <div className="text-body font-medium text-[color:var(--color-figma-text)]">
+          Build your icon library
+        </div>
+        <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+          Add icons from Figma selection, public libraries, SVG files, or the local workspace.
+        </p>
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button type="button" variant="primary" size="sm" onClick={onAdd}>
+          <Plus size={13} strokeWidth={1.5} aria-hidden />
+          Add icons
+        </Button>
+        <Button type="button" variant="secondary" size="sm" onClick={onOpenReview}>
+          <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+          Manage
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function IconPanel() {
   const { connected, serverUrl } = useConnectionContext();
   const { selectedNodes } = useSelectionContext();
@@ -1510,8 +1558,7 @@ export function IconPanel() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<IconStatusFilter>("all");
   const [healthFilter, setHealthFilter] = useState<IconHealthFilter>("all");
-  const [workspaceMode, setWorkspaceMode] = useState<IconWorkspaceMode>("library");
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [workspaceSurface, setWorkspaceSurface] = useState<IconWorkspaceSurface>("library");
   const [slotPreferredMode, setSlotPreferredMode] = useState<IconSlotPreferredMode>("all");
   const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
@@ -1630,8 +1677,10 @@ export function IconPanel() {
     () => getIconHealthSummary(icons, defaultIconSize),
     [defaultIconSize, icons],
   );
-  const activeFilterCount =
-    (statusFilter === "all" ? 0 : 1) + (healthFilter === "all" ? 0 : 1);
+  const reviewCount = useMemo(
+    () => iconReviewCount(icons, defaultIconSize),
+    [defaultIconSize, icons],
+  );
   const statusCounts = useMemo<Record<IconStatusFilter, number>>(
     () => {
       const counts: Record<IconStatusFilter, number> = {
@@ -1982,6 +2031,7 @@ export function IconPanel() {
 
   const handleViewHealthFilter = useCallback((filter: IconHealthFilter) => {
     setHealthFilter(filter);
+    setWorkspaceSurface("library");
   }, []);
 
   const handleInsertIcon = useCallback(async (icon: ManagedIcon) => {
@@ -2240,8 +2290,7 @@ export function IconPanel() {
       setStatusFilter("all");
       setHealthFilter("all");
     }
-    setWorkspaceMode("library");
-    setFiltersOpen(false);
+    setWorkspaceSurface("library");
     dispatchToast(
       `Imported ${formatIconCount(importedIcons.length)}.`,
       "success",
@@ -2261,25 +2310,14 @@ export function IconPanel() {
     <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
       {!error && (!loading || registry) ? (
         <div className="flex shrink-0 flex-col gap-2 border-b border-[color:var(--color-figma-border)] px-3 py-2">
-          {icons.length > 0 ? (
+          {workspaceSurface === "library" ? (
             <>
               <div className="flex min-w-0 items-center gap-2">
-                <div className="min-w-0 flex-1 [&_.tm-segmented-control]:w-full">
-                  <SegmentedControl
-                    value={workspaceMode}
-                    options={ICON_WORKSPACE_MODE_OPTIONS}
-                    onChange={(mode) => {
-                      setWorkspaceMode(mode);
-                      if (mode !== "library") {
-                        setFiltersOpen(false);
-                      }
-                    }}
-                    ariaLabel="Icons workspace mode"
-                    size="compact"
-                  />
+                <div className="min-w-0 flex-1 text-body font-medium text-[color:var(--color-figma-text)]">
+                  Icons
                 </div>
                 <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  {workspaceMode === "library" && filteredIcons.length !== icons.length
+                  {icons.length > 0 && filteredIcons.length !== icons.length
                     ? `${filteredIcons.length} of ${icons.length}`
                     : formatIconCount(icons.length)}
                 </div>
@@ -2297,67 +2335,76 @@ export function IconPanel() {
                 </Button>
               </div>
 
-              {workspaceMode === "library" ? (
-                <>
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <SearchField
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      onClear={() => setQuery("")}
-                      placeholder="Search icons"
-                      size="sm"
-                      containerClassName="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setFiltersOpen((current) => !current)}
-                      aria-expanded={filtersOpen}
-                      className="px-1.5"
-                    >
-                      <SlidersHorizontal size={13} strokeWidth={1.5} aria-hidden />
-                      Filters{activeFilterCount > 0 ? ` ${activeFilterCount}` : ""}
-                    </Button>
-                    <IconPublishButton
-                      iconsToPublishCount={iconsToPublish.length}
-                      publishing={publishing}
-                      publishProgress={publishProgress}
-                      onPublish={() => void handlePublish()}
-                    />
-                    {activeFilterCount > 0 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setStatusFilter("all");
-                          setHealthFilter("all");
-                        }}
-                        className="px-1.5"
-                      >
-                        Clear
-                      </Button>
-                    ) : null}
-                  </div>
+              <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                {icons.length > 0 ? (
+                  <SearchField
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    onClear={() => setQuery("")}
+                    placeholder="Search icons"
+                    size="sm"
+                    containerClassName="min-w-[9rem] flex-1"
+                  />
+                ) : null}
+                <Button
+                  type="button"
+                  variant={icons.length === 0 ? "primary" : "secondary"}
+                  size="sm"
+                  onClick={() => setWorkspaceSurface("add")}
+                >
+                  <Plus size={13} strokeWidth={1.5} aria-hidden />
+                  Add icons
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setWorkspaceSurface("review")}
+                  title="Audit usage, export icons, and check sources"
+                >
+                  <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+                  {reviewActionLabel(reviewCount)}
+                </Button>
+                <IconPublishButton
+                  iconsToPublishCount={iconsToPublish.length}
+                  publishing={publishing}
+                  publishProgress={publishProgress}
+                  onPublish={() => void handlePublish()}
+                />
+              </div>
 
-                  {filtersOpen ? (
-                    <IconLibraryFilters
-                      statusCounts={statusCounts}
-                      summary={healthSummary}
-                      activeStatusFilter={statusFilter}
-                      activeFilter={healthFilter}
-                      onStatusFilterChange={setStatusFilter}
-                      onFilterChange={setHealthFilter}
-                    />
-                  ) : null}
-                </>
+              {icons.length > 0 ? (
+                <IconLibraryFilters
+                  statusCounts={statusCounts}
+                  summary={healthSummary}
+                  activeStatusFilter={statusFilter}
+                  activeFilter={healthFilter}
+                  onStatusFilterChange={setStatusFilter}
+                  onFilterChange={setHealthFilter}
+                />
               ) : null}
             </>
           ) : (
             <div className="flex min-w-0 items-center gap-1.5">
-              <div className="min-w-0 flex-1 text-body font-medium text-[color:var(--color-figma-text)]">
-                Add icons
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setWorkspaceSurface("library")}
+                aria-label="Back to icon library"
+                className="px-1.5"
+              >
+                <ArrowLeft size={14} strokeWidth={1.75} aria-hidden />
+              </Button>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-body font-medium text-[color:var(--color-figma-text)]">
+                  {workspaceSurface === "add" ? "Add icons" : "Review and handoff"}
+                </div>
+                <div className="truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  {workspaceSurface === "add"
+                    ? "Selection, public libraries, SVG files, or workspace paths"
+                    : "Audit usage, export assets, and check source updates"}
+                </div>
               </div>
               <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
                 {formatIconCount(icons.length)}
@@ -2396,7 +2443,7 @@ export function IconPanel() {
           title="Loading icons"
           icon={<RefreshCw size={16} strokeWidth={1.5} aria-hidden />}
         />
-      ) : icons.length === 0 ? (
+      ) : workspaceSurface === "add" ? (
         <div className="min-h-0 flex-1 overflow-auto p-3">
           <IconImportPanel
             serverUrl={serverUrl}
@@ -2404,92 +2451,125 @@ export function IconPanel() {
             existingLinkedIconPaths={existingLinkedIconPaths}
             defaultIconSize={defaultIconSize}
             cancelable={false}
-            onCancel={() => undefined}
+            onCancel={() => setWorkspaceSurface("library")}
             onImported={handleIconsImported}
           />
         </div>
-      ) : workspaceMode === "add" ? (
+      ) : workspaceSurface === "review" ? (
         <div className="min-h-0 flex-1 overflow-auto p-3">
-          <IconImportPanel
-            serverUrl={serverUrl}
-            existingIconPaths={existingIconPaths}
-            existingLinkedIconPaths={existingLinkedIconPaths}
-            defaultIconSize={defaultIconSize}
-            onCancel={() => setWorkspaceMode("library")}
-            onImported={handleIconsImported}
-          />
-        </div>
-      ) : workspaceMode === "tools" ? (
-        <div className="min-h-0 flex-1 overflow-auto p-3">
-          <div className="flex min-w-0 flex-col gap-3">
-            <IconUsageAuditPanel
-              scope={auditScope}
-              loading={auditLoading}
-              result={auditResult}
-              onScopeChange={(scope) => {
-                setAuditScope(scope);
-                setAuditResult(null);
-              }}
-              onRun={() => void handleAuditUsage()}
-            />
-            <IconAuditFindingsList
-              result={auditResult}
-              onFocusFinding={handleFocusAuditFinding}
-              onRefreshPreferredValues={handleRefreshPreferredValues}
-              repairBusy={canvasActionBusy}
-            />
-            <IconLibraryActions
-              exportableIconCount={exportableIconCount}
-              exporting={exporting}
-              checkingSources={checkingSources}
-              sourceUpdateReport={sourceUpdateReport}
-              onExport={() => void handleExportIcons()}
-              onCheckSources={() => void handleCheckSourceUpdates()}
-            />
+          <div className="flex min-w-0 flex-col gap-4">
+            <section className="flex min-w-0 flex-col gap-2">
+              <div className="text-body font-medium text-[color:var(--color-figma-text)]">
+                Audit usage
+              </div>
+              <IconUsageAuditPanel
+                scope={auditScope}
+                loading={auditLoading}
+                result={auditResult}
+                onScopeChange={(scope) => {
+                  setAuditScope(scope);
+                  setAuditResult(null);
+                }}
+                onRun={() => void handleAuditUsage()}
+              />
+              <IconAuditFindingsList
+                result={auditResult}
+                onFocusFinding={handleFocusAuditFinding}
+                onRefreshPreferredValues={handleRefreshPreferredValues}
+                repairBusy={canvasActionBusy}
+              />
+            </section>
+
+            <section className="flex min-w-0 flex-col gap-2">
+              <div className="text-body font-medium text-[color:var(--color-figma-text)]">
+                Handoff and sources
+              </div>
+              <IconLibraryActions
+                exportableIconCount={exportableIconCount}
+                exporting={exporting}
+                checkingSources={checkingSources}
+                sourceUpdateReport={sourceUpdateReport}
+                onExport={() => void handleExportIcons()}
+                onCheckSources={() => void handleCheckSourceUpdates()}
+              />
+            </section>
           </div>
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
-          {filteredIcons.length === 0 ? (
+          {icons.length === 0 ? (
+            <IconLibraryEmptyState
+              onAdd={() => setWorkspaceSurface("add")}
+              onOpenReview={() => setWorkspaceSurface("review")}
+            />
+          ) : filteredIcons.length === 0 ? (
             <FeedbackPlaceholder
               variant="no-results"
               title="No matching icons"
             />
           ) : (
-            <div className="min-w-0 flex-1 overflow-auto p-3 pb-4">
-              <IconGrid
-                icons={filteredIcons}
-                iconContent={iconContent}
-                selectedIconId={selectedIcon?.id ?? null}
-                auditByIconId={auditByIconId}
-                canvasActionBusy={canvasActionBusy}
-                onSelectIcon={setSelectedIconId}
-                onInsertIcon={(icon) => void handleInsertIcon(icon)}
-              />
+            <div className="flex min-h-0 flex-1 flex-col min-[640px]:flex-row">
+              <div className="min-w-0 flex-1 overflow-auto p-3 pb-4">
+                <IconGrid
+                  icons={filteredIcons}
+                  iconContent={iconContent}
+                  selectedIconId={selectedIcon?.id ?? null}
+                  auditByIconId={auditByIconId}
+                  canvasActionBusy={canvasActionBusy}
+                  onSelectIcon={setSelectedIconId}
+                  onInsertIcon={(icon) => void handleInsertIcon(icon)}
+                />
+              </div>
+              {selectedIcon ? (
+                <div className="hidden min-h-0 w-[18rem] shrink-0 overflow-auto border-l border-[color:var(--color-figma-border)] min-[640px]:block">
+                  <IconDetailPanel
+                    icon={selectedIcon}
+                    content={iconContent[selectedIcon.id]?.content}
+                    selectionCount={selectedNodes.length}
+                    iconSlotActions={iconSlotActions}
+                    iconSlotSetupActions={iconSlotSetupActions}
+                    slotPreferredMode={slotPreferredMode}
+                    slotPreferredCount={slotPreferredIconRecords.length}
+                    defaultIconSize={defaultIconSize}
+                    canvasActionBusy={canvasActionBusy}
+                    statusActionBusy={statusActionBusy}
+                    onInsert={handleInsert}
+                    onReplaceSelection={handleReplaceSelection}
+                    onSetIconSlot={handleSetIconSlot}
+                    onCreateIconSlot={handleCreateIconSlot}
+                    onSlotPreferredModeChange={setSlotPreferredMode}
+                    onUpdateStatus={handleUpdateIconStatus}
+                    onViewHealthFilter={handleViewHealthFilter}
+                    variant="side"
+                  />
+                </div>
+              ) : null}
             </div>
           )}
           {selectedIcon ? (
-            <IconDetailPanel
-              icon={selectedIcon}
-              content={iconContent[selectedIcon.id]?.content}
-              selectionCount={selectedNodes.length}
-              iconSlotActions={iconSlotActions}
-              iconSlotSetupActions={iconSlotSetupActions}
-              slotPreferredMode={slotPreferredMode}
-              slotPreferredCount={slotPreferredIconRecords.length}
-              defaultIconSize={defaultIconSize}
-              canvasActionBusy={canvasActionBusy}
-              statusActionBusy={statusActionBusy}
-              onInsert={handleInsert}
-              onReplaceSelection={handleReplaceSelection}
-              onSetIconSlot={handleSetIconSlot}
-              onCreateIconSlot={handleCreateIconSlot}
-              onSlotPreferredModeChange={setSlotPreferredMode}
-              onUpdateStatus={handleUpdateIconStatus}
-              onViewHealthFilter={handleViewHealthFilter}
-              onBack={() => setSelectedIconId(null)}
-              variant="compact"
-            />
+            <div className="min-[640px]:hidden">
+              <IconDetailPanel
+                icon={selectedIcon}
+                content={iconContent[selectedIcon.id]?.content}
+                selectionCount={selectedNodes.length}
+                iconSlotActions={iconSlotActions}
+                iconSlotSetupActions={iconSlotSetupActions}
+                slotPreferredMode={slotPreferredMode}
+                slotPreferredCount={slotPreferredIconRecords.length}
+                defaultIconSize={defaultIconSize}
+                canvasActionBusy={canvasActionBusy}
+                statusActionBusy={statusActionBusy}
+                onInsert={handleInsert}
+                onReplaceSelection={handleReplaceSelection}
+                onSetIconSlot={handleSetIconSlot}
+                onCreateIconSlot={handleCreateIconSlot}
+                onSlotPreferredModeChange={setSlotPreferredMode}
+                onUpdateStatus={handleUpdateIconStatus}
+                onViewHealthFilter={handleViewHealthFilter}
+                onBack={() => setSelectedIconId(null)}
+                variant="compact"
+              />
+            </div>
           ) : null}
         </div>
       )}

@@ -96,9 +96,9 @@ import {
 import type { GeneratorEditorMode } from "../components/generators/generatorEditorTypes";
 
 const DEFAULT_CREATE_TYPE = "color";
-const LIBRARY_MAIN_PANE_MIN_WIDTH = 280;
-const CONTEXTUAL_PANEL_MIN_WIDTH = 260;
-const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 480;
+const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
+const CONTEXTUAL_PANEL_MIN_WIDTH = 320;
+const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 640;
 const LazyGeneratorsPanel = lazy(() =>
   Promise.resolve({ default: GeneratorsPanel }),
 );
@@ -292,9 +292,9 @@ export function PanelRouter({
 }): ReactNode {
   const sideEditorBoundary = useResizableBoundary({
     storageKey: STORAGE_KEYS.SIDE_EDITOR_WIDTH,
-    defaultSize: 340,
-    min: 240,
-    max: 560,
+    defaultSize: 520,
+    min: 320,
+    max: 760,
     axis: "x",
     mode: "px",
     measureFrom: "end",
@@ -1616,9 +1616,13 @@ export function PanelRouter({
     header?: ReactNode;
     contextualPanel?: ReactNode;
   }): ReactNode {
+    const requestedContextualWidth =
+      activeEditorSurface === "token-details"
+        ? Math.max(sideEditorBoundary.size, 520)
+        : sideEditorBoundary.size;
     const contextualPanelLayout = resolveContextualPanelLayout({
       shellWidth: libraryShellWidth,
-      requestedWidth: sideEditorBoundary.size,
+      requestedWidth: requestedContextualWidth,
       hasContextualPanel:
         contextualPanel !== undefined && contextualPanel !== null,
     });
