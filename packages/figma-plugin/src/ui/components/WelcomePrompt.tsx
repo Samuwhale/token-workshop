@@ -21,10 +21,10 @@ type StartHereBranchCopy = {
 
 const START_HERE_BRANCH_COPY: Record<StartHereBranch, StartHereBranchCopy> = {
   root: {
-    title: "Start your token library",
+    title: "Start token library",
   },
   "start-new": {
-    title: "Create your first collection",
+    title: "Create collection",
   },
 };
 
@@ -35,12 +35,12 @@ function getStartHereBranchCopy(
 ): StartHereBranchCopy {
   if (branch === "start-new" && !connected) {
     return {
-      title: "Connect to your token library",
+      title: "Connect token library",
     };
   }
   if (branch === "start-new" && hasCollections) {
     return {
-      title: "Add to your library",
+      title: "Add collection",
     };
   }
   return START_HERE_BRANCH_COPY[branch];
@@ -179,18 +179,18 @@ export function WelcomePrompt({
   const renderRoot = () => (
     <div>
       <ActionRow
-        title={hasCollections ? "Add to this library" : "Create your first collection"}
+        title={hasCollections ? "Add collection" : "Create collection"}
         onClick={() => setBranch("start-new")}
         emphasized
         icon={<Plus size={14} strokeWidth={1.75} aria-hidden />}
       />
       <ActionRow
-        title="Import existing tokens"
+        title="Import tokens"
         onClick={() => handleRequiresConnection(onImportExistingSystem)}
         icon={<Upload size={14} strokeWidth={1.75} aria-hidden />}
       />
       <ActionRow
-        title="Start from current selection"
+        title="Extract from selection"
         disabled={connected && collectionIds.length > 0 && selectedNodeCount === 0}
         onClick={handleStartFromSelection}
         icon={<MousePointer2 size={14} strokeWidth={1.75} aria-hidden />}

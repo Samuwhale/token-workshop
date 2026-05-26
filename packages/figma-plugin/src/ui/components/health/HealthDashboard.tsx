@@ -229,10 +229,10 @@ export function HealthDashboard({
   const statusDetail = validationError
     ? validationError
     : !unusedReady
-      ? `${scopeLabel} Checking Figma usage before marking unused tokens clear.`
+      ? `${scopeLabel} Checking Figma usage.`
     : totalIssueCount === 0
-      ? `${scopeLabel} No blocking review items found.`
-      : `${totalIssueCount} review item${totalIssueCount === 1 ? "" : "s"} found. Resolve blockers first; cleanup can wait until the library is stable.`;
+      ? `${scopeLabel} No review items.`
+      : `${totalIssueCount} review item${totalIssueCount === 1 ? "" : "s"} found. Fix blockers first. Cleanup can wait.`;
 
   return (
     <div className="tm-health-dashboard" style={{ scrollbarWidth: "thin" }}>

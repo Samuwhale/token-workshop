@@ -267,7 +267,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                 </button>
               </div>
 
-              {/* "What does this mean?" expandable help */}
+              {/* Conflict help */}
               <div className="border-b border-[var(--color-figma-border)]">
                 <button
                   onClick={() => setConflictHelpOpen(o => !o)}
@@ -277,29 +277,28 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 transition-transform ${conflictHelpOpen ? 'rotate-90' : ''}`} aria-hidden="true">
                     <path d="M2 1l4 3-4 3V1z" />
                   </svg>
-                  <span>What does this mean?</span>
+                  <span>Conflict details</span>
                 </button>
                 {conflictHelpOpen && (
                   <div className="px-3 pb-2.5 pt-1 text-secondary text-[color:var(--color-figma-text-secondary)] flex flex-col gap-1.5 bg-[var(--color-figma-bg-secondary)]">
-                    <p>You and someone else edited the same token file at the same time. The server can&rsquo;t automatically decide which edits to keep, so it&rsquo;s asking you.</p>
-                    <p>For each conflicting section, choose:</p>
+                    <p>The same token file changed locally and on the shared server. Choose which edits to keep.</p>
+                    <p>For each conflicting section:</p>
                     <ul className="flex flex-col gap-1 pl-3">
                       <li className="flex items-start gap-1.5">
-                        <span className="text-[color:var(--color-figma-text-success)] font-semibold shrink-0 mt-px">Your version</span>
-                        <span>— the edits you made locally (keep your work)</span>
+                        <span className="text-[color:var(--color-figma-text-success)] font-semibold shrink-0 mt-px">Local version</span>
+                        <span>— local edits</span>
                       </li>
                       <li className="flex items-start gap-1.5">
                         <span className="text-[color:var(--color-figma-text-accent)] font-semibold shrink-0 mt-px">Server version</span>
-                        <span>— what&rsquo;s already saved on the shared server (keep their work)</span>
+                        <span>— shared server edits</span>
                       </li>
                     </ul>
-                    <p>After choosing, click <strong className="text-[color:var(--color-figma-text)]">Apply my choices</strong> to save the result.</p>
                   </div>
                 )}
               </div>
 
               <div className="px-3 py-2 text-secondary text-[color:var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between gap-2">
-                <span>For each section, choose which version to keep.</span>
+                <span>Choose a version for each section.</span>
                 <span className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => git.setConflictChoices(() => {
@@ -368,7 +367,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                               }`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className={`text-secondary font-semibold ${choice === 'ours' ? 'text-[color:var(--color-figma-text-success)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>Your version</span>
+                                <span className={`text-secondary font-semibold ${choice === 'ours' ? 'text-[color:var(--color-figma-text-success)]' : 'text-[color:var(--color-figma-text-secondary)]'}`}>Local version</span>
                                 {choice === 'ours' && (
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                 )}

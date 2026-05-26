@@ -12,7 +12,7 @@ import { Button, IconButton } from "../primitives";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
 type PrereqPhase = "connect" | "create-collection" | null;
-const QUICK_START_TITLE = "Start a token library";
+const QUICK_START_TITLE = "Start token library";
 
 interface QuickStartWizardProps {
   serverUrl: string;
@@ -46,10 +46,10 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose, closeLabel }: {
     <div className="flex flex-col gap-3">
       <div>
         <p className="text-body font-medium text-[color:var(--color-figma-text)]">
-          Connect to your token library
+          Connect token library
         </p>
         <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Ask the library owner to start the shared token server for this file, then retry here.
+          Start the shared token server for this file, then retry.
         </p>
       </div>
 
@@ -60,7 +60,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose, closeLabel }: {
           aria-expanded={showServerDetails}
           className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
         >
-          For developers: start the server
+          Server command
         </button>
         {showServerDetails ? (
           <div className="mt-2 flex flex-col gap-2">
@@ -68,7 +68,7 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose, closeLabel }: {
               npx token-workshop --dir ./tokens
             </code>
             <div className="flex flex-wrap items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              <span>Looking for</span>
+              <span>URL</span>
               <code className="font-mono rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[color:var(--color-figma-text)]">
                 {serverUrl}
               </code>
@@ -137,7 +137,7 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
     <div className="flex flex-col gap-3">
       <div>
         <p className="text-body font-medium text-[color:var(--color-figma-text)]">
-          Create your first collection
+          Create collection
         </p>
         <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
           Choose the contexts this collection needs. Tokens get one value per mode.
@@ -431,7 +431,7 @@ export function QuickStartWizard({
             onClick={onComplete}
             className="text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
           >
-            Done for now
+            Done
           </button>
         </div>
       </div>

@@ -575,7 +575,7 @@ export function SnapshotsSource({ serverUrl, onPushUndo, onRefreshTokens, collec
               <polyline points="7 3 7 8 15 8" />
             </svg>
             <p className="text-body text-[color:var(--color-figma-text-secondary)]">
-              Save your current workspace before making changes. Come back to compare or restore collections, modes, resolvers, and generators anytime.
+              Save a checkpoint before changes to compare or restore collections, modes, resolvers, and generators.
             </p>
           </div>
         )}

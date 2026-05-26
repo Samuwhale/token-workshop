@@ -22,24 +22,22 @@ import type {
 import { requestPluginMessage } from "../../shared/pluginMessaging";
 import {
   ArrowLeft,
-  AlertTriangle,
-  CheckCircle2,
   Download,
   MousePointer2,
   RefreshCw,
   Replace,
   Shapes,
+  SlidersHorizontal,
   UploadCloud,
 } from "lucide-react";
 import { useConnectionContext } from "../../contexts/ConnectionContext";
 import { useSelectionContext } from "../../contexts/InspectContext";
 import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
-import { PanelContentHeader } from "../PanelContentHeader";
 import { Button, SearchField, SegmentedControl } from "../../primitives";
 import { apiFetch, createFetchSignal } from "../../shared/apiFetch";
 import { dispatchToast } from "../../shared/toastBus";
 import { downloadBlob, getErrorMessage, isAbortError } from "../../shared/utils";
-import { IconImportDialog } from "./IconImportDialog";
+import { IconImportPanel } from "./IconImportDialog";
 import {
   svgDataUrl,
 } from "./iconUiUtils";
@@ -67,8 +65,9 @@ import {
 } from "./iconHealth";
 
 type IconStatusFilter = "all" | IconStatus;
-type IconWorkspaceView = "library" | "audit";
 type IconSlotPreferredMode = "all" | "matching";
+type IconAuditGridMeta = { count: number; hasError: boolean };
+type IconWorkspaceMode = "library" | "add" | "tools";
 const ICON_CONTENTS_TIMEOUT_MS = 15_000;
 type IconCanvasActionRequest =
   | Omit<InsertIconMessage, "correlationId">
@@ -160,11 +159,6 @@ const STATUS_FILTERS: Array<{ value: IconStatusFilter; label: string }> = [
   { value: "blocked", label: "Blocked" },
 ];
 
-const ICON_WORKSPACE_VIEWS: Array<{ value: IconWorkspaceView; label: string }> = [
-  { value: "library", label: "Browse" },
-  { value: "audit", label: "Audit" },
-];
-
 const STATUS_CLASS: Record<IconStatus, string> = {
   draft: "bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]",
   published: "bg-[var(--color-figma-success)]/10 text-[color:var(--color-figma-text-success)]",
@@ -181,6 +175,12 @@ const AUDIT_SCOPE_OPTIONS: Array<{ value: IconUsageAuditScope; label: string }> 
 const SLOT_PREFERRED_MODE_OPTIONS: Array<{ value: IconSlotPreferredMode; label: string }> = [
   { value: "all", label: "All icons" },
   { value: "matching", label: "Matching" },
+];
+
+const ICON_WORKSPACE_MODE_OPTIONS: Array<{ value: IconWorkspaceMode; label: string }> = [
+  { value: "library", label: "Library" },
+  { value: "add", label: "Add" },
+  { value: "tools", label: "Tools" },
 ];
 
 function formatIconCount(count: number): string {
@@ -238,6 +238,14 @@ function sourceLabel(icon: ManagedIcon): string {
 
 function shortHash(hash: string): string {
   return hash.replace(/^sha256:/, "").slice(0, 10);
+}
+
+function statusFilterLabel(
+  filter: IconStatusFilter,
+  counts: Record<IconStatusFilter, number>,
+): string {
+  const base = STATUS_FILTERS.find((option) => option.value === filter)?.label ?? filter;
+  return `${base} ${counts[filter]}`;
 }
 
 function publishIconsInFigma(
@@ -513,6 +521,7 @@ function IconGrid({
   icons,
   iconContent,
   selectedIconId,
+  auditByIconId,
   canvasActionBusy,
   onSelectIcon,
   onInsertIcon,
@@ -520,6 +529,7 @@ function IconGrid({
   icons: ManagedIcon[];
   iconContent: Record<string, IconContentCacheItem>;
   selectedIconId: string | null;
+  auditByIconId: Record<string, IconAuditGridMeta>;
   canvasActionBusy: boolean;
   onSelectIcon: (iconId: string) => void;
   onInsertIcon: (icon: ManagedIcon) => void;
@@ -529,6 +539,15 @@ function IconGrid({
       {icons.map((icon) => {
         const selected = icon.id === selectedIconId;
         const attentionLabel = iconAttentionLabel(icon);
+        const auditMeta = auditByIconId[icon.id];
+        const markerLabel = auditMeta
+          ? formatHealthCount(auditMeta.count, "audit finding")
+          : attentionLabel;
+        const markerClass = auditMeta
+          ? auditMeta.hasError
+            ? "bg-[var(--workspace-danger)]"
+            : "bg-[var(--color-figma-warning)]"
+          : iconAttentionClass(icon);
         const canInsert = iconCanUseOnCanvas(icon);
         return (
           <div
@@ -544,7 +563,7 @@ function IconGrid({
               onClick={() => onSelectIcon(icon.id)}
               aria-pressed={selected}
               className="flex h-full min-h-[112px] w-full min-w-0 flex-col items-center gap-1.5 rounded-md p-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)]"
-              title={`${icon.name} · ${icon.path}${attentionLabel ? ` · ${attentionLabel}` : ""}`}
+              title={`${icon.name} · ${icon.path}${markerLabel ? ` · ${markerLabel}` : ""}`}
             >
               <span className="flex h-12 w-full items-center justify-center rounded bg-[var(--color-figma-bg-secondary)] group-hover:bg-[var(--color-figma-bg)]">
                 <IconPreview icon={icon} content={iconContent[icon.id]?.content} />
@@ -573,11 +592,11 @@ function IconGrid({
             >
               <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
             </button>
-            {attentionLabel ? (
+            {markerLabel ? (
               <span
-                className={`absolute right-1.5 top-1.5 size-1.5 rounded-full ${iconAttentionClass(icon)}`}
-                title={attentionLabel}
-                aria-label={attentionLabel}
+                className={`absolute right-1.5 top-1.5 size-1.5 rounded-full ${markerClass}`}
+                title={markerLabel}
+                aria-label={markerLabel}
               />
             ) : null}
           </div>
@@ -587,13 +606,49 @@ function IconGrid({
   );
 }
 
-function IconHealthStrip({
+function IconFilterButton({
+  active,
+  disabled = false,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  children: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={`min-h-6 rounded px-2 text-left text-secondary leading-none transition-colors ${
+        active
+          ? "bg-[var(--surface-selected)] text-[color:var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-accent)]"
+          : disabled
+            ? "cursor-not-allowed text-[color:var(--color-figma-text-tertiary)] opacity-55"
+            : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function IconLibraryFilters({
+  statusCounts,
   summary,
+  activeStatusFilter,
   activeFilter,
+  onStatusFilterChange,
   onFilterChange,
 }: {
+  statusCounts: Record<IconStatusFilter, number>;
   summary: IconHealthSummary;
+  activeStatusFilter: IconStatusFilter;
   activeFilter: IconHealthFilter;
+  onStatusFilterChange: (filter: IconStatusFilter) => void;
   onFilterChange: (filter: IconHealthFilter) => void;
 }) {
   const issueCount =
@@ -603,59 +658,151 @@ function IconHealthStrip({
     summary.frameIssues +
     summary.colorReview;
 
-  if (issueCount === 0) {
-    return (
-      <div className="flex min-w-0 items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-        <CheckCircle2 size={13} strokeWidth={1.5} aria-hidden />
-        <span className="truncate">Library health is clear.</span>
-      </div>
-    );
-  }
-
   const healthItems: Array<{
     filter: IconHealthFilter;
     count: number;
     label: string;
   }> = [
-    { filter: "publish", count: summary.needsPublish, label: "to publish" },
-    { filter: "blocked", count: summary.blocked, label: "blocked" },
-    { filter: "quality", count: summary.qualityReview, label: "to review" },
-    { filter: "frame", count: summary.frameIssues, label: "frame issue" },
-    { filter: "color", count: summary.colorReview, label: "color review" },
+    { filter: "publish", count: summary.needsPublish, label: "Publish" },
+    { filter: "blocked", count: summary.blocked, label: "Blocked" },
+    { filter: "quality", count: summary.qualityReview, label: "Review" },
+    { filter: "frame", count: summary.frameIssues, label: "Frame" },
+    { filter: "color", count: summary.colorReview, label: "Color" },
   ];
   const items = healthItems.filter((item) => item.count > 0);
+  const visibleStatusFilters = STATUS_FILTERS.filter(
+    (option) =>
+      option.value === "all" ||
+      statusCounts[option.value] > 0 ||
+      activeStatusFilter === option.value,
+  );
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
-      <AlertTriangle size={13} strokeWidth={1.5} aria-hidden />
-      {items.map((item) => {
-        const selected = activeFilter === item.filter;
-        return (
-          <button
-            key={item.filter}
-            type="button"
-            onClick={() => onFilterChange(selected ? "all" : item.filter)}
-            aria-pressed={selected}
-            className={`min-h-5 rounded px-1.5 text-left leading-none transition-colors ${
-              selected
-                ? "bg-[var(--color-figma-warning)]/15 text-[color:var(--color-figma-text-warning)]"
-                : "text-[color:var(--color-figma-text-warning)] hover:bg-[var(--color-figma-warning)]/10"
-            }`}
+    <div className="flex min-w-0 flex-wrap items-center gap-1">
+      <div className="flex min-w-0 max-w-full gap-1 overflow-x-auto pb-0.5">
+        {visibleStatusFilters.map((option) => (
+          <IconFilterButton
+            key={option.value}
+            active={activeStatusFilter === option.value}
+            onClick={() => onStatusFilterChange(option.value)}
           >
-            {formatHealthCount(item.count, item.label)}
-          </button>
-        );
-      })}
-      {activeFilter !== "all" ? (
-        <button
-          type="button"
-          onClick={() => onFilterChange("all")}
-          className="min-h-5 rounded px-1.5 leading-none text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)]"
-        >
-          Clear
-        </button>
+            {statusFilterLabel(option.value, statusCounts)}
+          </IconFilterButton>
+        ))}
+      </div>
+      {issueCount > 0 ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
+          {items.map((item) => {
+            const selected = activeFilter === item.filter;
+            return (
+              <IconFilterButton
+                key={item.filter}
+                active={selected}
+                onClick={() => onFilterChange(selected ? "all" : item.filter)}
+              >
+                {`${item.label} ${item.count}`}
+              </IconFilterButton>
+            );
+          })}
+          {activeFilter !== "all" ? (
+            <IconFilterButton active={false} onClick={() => onFilterChange("all")}>
+              Clear
+            </IconFilterButton>
+          ) : null}
+        </div>
       ) : null}
     </div>
+  );
+}
+
+function IconLibraryActions({
+  exportableIconCount,
+  exporting,
+  checkingSources,
+  sourceUpdateReport,
+  onExport,
+  onCheckSources,
+}: {
+  exportableIconCount: number;
+  exporting: boolean;
+  checkingSources: boolean;
+  sourceUpdateReport: IconSourceUpdateReport | null;
+  onExport: () => void;
+  onCheckSources: () => void;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onExport}
+          disabled={exporting || exportableIconCount === 0}
+          title={
+            exportableIconCount > 0
+              ? "Export SVGs, React components, manifests, and attribution"
+              : "Import or unblock icons before exporting"
+          }
+        >
+          <Download size={13} strokeWidth={1.5} aria-hidden />
+          {exporting ? "Exporting" : "Export"}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onCheckSources}
+          disabled={checkingSources}
+          title="Check source updates"
+        >
+          <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+          {checkingSources ? "Checking" : "Check sources"}
+        </Button>
+      </div>
+      {sourceUpdateReport ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+          <span>{formatHealthCount(sourceUpdateReport.summary.checked, "source checked")}</span>
+          <span>{formatHealthCount(sourceUpdateReport.summary.changed, "artwork update")}</span>
+          <span>{formatHealthCount(sourceUpdateReport.summary.metadataChanged, "metadata update")}</span>
+          <span>{formatHealthCount(sourceUpdateReport.summary.unavailable, "unavailable source")}</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function IconPublishButton({
+  iconsToPublishCount,
+  publishing,
+  publishProgress,
+  onPublish,
+}: {
+  iconsToPublishCount: number;
+  publishing: boolean;
+  publishProgress: { current: number; total: number } | null;
+  onPublish: () => void;
+}) {
+  if (iconsToPublishCount === 0 && !publishing && !publishProgress) {
+    return null;
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="primary"
+      size="sm"
+      onClick={onPublish}
+      disabled={publishing || iconsToPublishCount === 0}
+      title="Publish changed icons to Figma components"
+    >
+      <UploadCloud size={13} strokeWidth={1.5} aria-hidden />
+      {publishProgress
+        ? `${publishProgress.current}/${publishProgress.total}`
+        : publishing
+          ? "Publishing"
+          : `Publish ${iconsToPublishCount}`}
+    </Button>
   );
 }
 
@@ -687,62 +834,70 @@ function auditSeverityClass(severity: IconUsageAuditFinding["severity"]): string
   }
 }
 
+function auditSummaryItems(result: IconUsageAuditResultMessage): string[] {
+  const items = [
+    [result.summary.unmanagedComponents, "unmanaged component"],
+    [result.summary.unpromotedIconSlots, "property to set up"],
+    [result.summary.rawIconLayers, "raw layer"],
+    [result.summary.frameIssues, "size issue"],
+    [result.summary.colorIssues, "color issue"],
+    [result.summary.preferredValueIssues, "preferred value issue"],
+    [result.summary.policyViolations, "policy issue"],
+    [result.summary.blockedUsages, "blocked use"],
+    [result.summary.unusedIcons, "unused icon"],
+    [result.summary.staleComponents, "stale sync"],
+  ] as const;
+
+  return items
+    .filter(([count]) => count > 0)
+    .map(([count, label]) => formatHealthCount(count, label));
+}
+
 function IconUsageAuditPanel({
   scope,
   loading,
   result,
   onScopeChange,
   onRun,
-  onFocusFinding,
-  onRefreshPreferredValues,
-  repairBusy,
 }: {
   scope: IconUsageAuditScope;
   loading: boolean;
   result: IconUsageAuditResultMessage | null;
   onScopeChange: (scope: IconUsageAuditScope) => void;
   onRun: () => void;
-  onFocusFinding: (finding: IconUsageAuditFinding) => void;
-  onRefreshPreferredValues: (finding: IconUsageAuditFinding) => void;
-  repairBusy: boolean;
 }) {
-  const [findingLimit, setFindingLimit] = useState(8);
   const findings = result?.findings ?? [];
-  const visibleFindings = findings.slice(0, findingLimit);
-
-  useEffect(() => {
-    setFindingLimit(8);
-  }, [result]);
+  const summaryItems = result && !result.error ? auditSummaryItems(result) : [];
 
   return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
-      <div className="flex min-w-0 flex-col gap-2">
-        <SegmentedControl
-          value={scope}
-          options={AUDIT_SCOPE_OPTIONS}
-          onChange={onScopeChange}
-          ariaLabel="Icon audit scope"
-          size="compact"
-        />
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={onRun}
-            disabled={loading}
-          >
-            <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-            {loading ? "Auditing" : "Audit usage"}
-          </Button>
-          {result ? (
-            <div className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
-              {findings.length === 0
-                ? `No issues across ${result.scannedNodes} layers`
-                : `${formatHealthCount(findings.length, "finding")} across ${result.scannedNodes} layers`}
-            </div>
-          ) : null}
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="min-w-[13rem] [&_.tm-segmented-control]:w-full">
+          <SegmentedControl
+            value={scope}
+            options={AUDIT_SCOPE_OPTIONS}
+            onChange={onScopeChange}
+            ariaLabel="Icon audit scope"
+            size="compact"
+          />
         </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={onRun}
+          disabled={loading}
+        >
+          <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+          {loading ? "Auditing" : "Audit"}
+        </Button>
+        {result && !result.error ? (
+          <div className="min-w-0 truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
+            {findings.length === 0
+              ? `${result.scannedNodes} layers checked`
+              : `${formatHealthCount(findings.length, "finding")} / ${result.scannedNodes} layers`}
+          </div>
+        ) : null}
       </div>
 
       {result?.error ? (
@@ -751,79 +906,99 @@ function IconUsageAuditPanel({
         </p>
       ) : null}
 
-      {result && !result.error && findings.length > 0 ? (
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            <span>{formatHealthCount(result.summary.managedInstances, "managed use")}</span>
-            <span>{formatHealthCount(result.summary.unmanagedComponents, "unmanaged component")}</span>
-            <span>{formatHealthCount(result.summary.unpromotedIconSlots, "property to set up")}</span>
-            <span>{formatHealthCount(result.summary.rawIconLayers, "raw layer")}</span>
-            <span>{formatHealthCount(result.summary.frameIssues, "size issue")}</span>
-            <span>{formatHealthCount(result.summary.colorIssues, "color issue")}</span>
-            <span>{formatHealthCount(result.summary.preferredValueIssues, "preferred value issue")}</span>
-            <span>{formatHealthCount(result.summary.policyViolations, "policy issue")}</span>
-            <span>{formatHealthCount(result.summary.blockedUsages, "blocked use")}</span>
-            <span>{formatHealthCount(result.summary.unusedIcons, "unused icon")}</span>
-            <span>{formatHealthCount(result.summary.staleComponents, "stale sync")}</span>
-          </div>
-          {visibleFindings.map((finding) => (
-            <div key={finding.id} className="flex min-w-0 items-start gap-2 text-secondary">
-              <button
-                type="button"
-                onClick={() => onFocusFinding(finding)}
-                disabled={!finding.nodeId}
-                className={`mt-[-2px] flex size-6 shrink-0 items-center justify-center rounded transition-colors ${
-                  finding.nodeId
-                    ? "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
-                    : "cursor-default text-[color:var(--color-figma-text-tertiary)] opacity-50"
-                }`}
-                aria-label={finding.nodeName ? `Focus ${finding.nodeName}` : "No canvas layer to focus"}
-                title={finding.nodeName ? `Focus ${finding.nodeName}` : "No canvas layer to focus"}
-              >
-                <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
-              </button>
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5">
-                  <span className={`shrink-0 font-medium ${auditSeverityClass(finding.severity)}`}>
-                    {auditActionLabel(finding.action)}
-                  </span>
-                  {finding.pageName || finding.nodeName ? (
-                    <span className="min-w-0 truncate text-[color:var(--color-figma-text-tertiary)]">
-                      {[finding.pageName, finding.nodeName].filter(Boolean).join(" / ")}
-                    </span>
-                  ) : null}
-                </div>
-                <span className="min-w-0 text-[color:var(--color-figma-text-secondary)]">
-                  {finding.message}
-                </span>
-                {finding.type === "stale-preferred-values" && finding.nodeId ? (
-                  <div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRefreshPreferredValues(finding)}
-                      disabled={repairBusy}
-                    >
-                      <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-                      Refresh values
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            </div>
+      {summaryItems.length > 0 ? (
+        <div className="flex min-w-0 flex-wrap gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+          {summaryItems.map((item) => (
+            <span key={item}>{item}</span>
           ))}
-          {findings.length > visibleFindings.length ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setFindingLimit((current) => current + 12)}
-            >
-              Show {Math.min(12, findings.length - visibleFindings.length)} more
-            </Button>
-          ) : null}
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+function IconAuditFindingsList({
+  result,
+  onFocusFinding,
+  onRefreshPreferredValues,
+  repairBusy,
+}: {
+  result: IconUsageAuditResultMessage | null;
+  onFocusFinding: (finding: IconUsageAuditFinding) => void;
+  onRefreshPreferredValues: (finding: IconUsageAuditFinding) => void;
+  repairBusy: boolean;
+}) {
+  const [findingLimit, setFindingLimit] = useState(8);
+  const findings = result?.error ? [] : result?.findings ?? [];
+  const visibleFindings = findings.slice(0, findingLimit);
+
+  useEffect(() => {
+    setFindingLimit(8);
+  }, [result]);
+
+  if (findings.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      {visibleFindings.map((finding) => (
+        <div key={finding.id} className="flex min-w-0 items-start gap-2 text-secondary">
+          <button
+            type="button"
+            onClick={() => onFocusFinding(finding)}
+            disabled={!finding.nodeId}
+            className={`mt-[-2px] flex size-6 shrink-0 items-center justify-center rounded transition-colors ${
+              finding.nodeId
+                ? "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
+                : "cursor-default text-[color:var(--color-figma-text-tertiary)] opacity-50"
+            }`}
+            aria-label={finding.nodeName ? `Focus ${finding.nodeName}` : "No canvas layer to focus"}
+            title={finding.nodeName ? `Focus ${finding.nodeName}` : "No canvas layer to focus"}
+          >
+            <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
+          </button>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex min-w-0 flex-wrap gap-x-2 gap-y-0.5">
+              <span className={`shrink-0 font-medium ${auditSeverityClass(finding.severity)}`}>
+                {auditActionLabel(finding.action)}
+              </span>
+              {finding.pageName || finding.nodeName ? (
+                <span className="min-w-0 truncate text-[color:var(--color-figma-text-tertiary)]">
+                  {[finding.pageName, finding.nodeName].filter(Boolean).join(" / ")}
+                </span>
+              ) : null}
+            </div>
+            <span className="min-w-0 text-[color:var(--color-figma-text-secondary)]">
+              {finding.message}
+            </span>
+            {finding.type === "stale-preferred-values" && finding.nodeId ? (
+              <div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onRefreshPreferredValues(finding)}
+                  disabled={repairBusy}
+                >
+                  <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+                  Refresh values
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ))}
+      {findings.length > visibleFindings.length ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setFindingLimit((current) => current + 12)}
+          className="self-start px-1.5"
+        >
+          Show {Math.min(12, findings.length - visibleFindings.length)} more
+        </Button>
       ) : null}
     </div>
   );
@@ -872,7 +1047,6 @@ function IconDetailPanel({
 }) {
   const publicSource = icon.source.kind === "public-library" ? icon.source : null;
   const [showDeveloperDetails, setShowDeveloperDetails] = useState(false);
-  const [showStatusActions, setShowStatusActions] = useState(false);
   const restoreStatus = restoredIconStatus(icon);
   const canRestore = icon.quality.state !== "blocked";
   const rows: Array<[string, string]> = [
@@ -1106,7 +1280,7 @@ function IconDetailPanel({
             />
           </div>
           <p className="m-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-            Property menu will use {slotPreferredModeLabel(slotPreferredMode)} ({slotPreferredCount}).
+            Preferred values: {slotPreferredModeLabel(slotPreferredMode)} ({slotPreferredCount}).
           </p>
           {iconSlotSetupActions.map((action) => (
             <Button
@@ -1134,59 +1308,45 @@ function IconDetailPanel({
         </div>
       ) : null}
 
-      <div className="flex min-w-0 flex-col gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowStatusActions((current) => !current)}
-          aria-expanded={showStatusActions}
-          className="self-start px-1.5"
-        >
-          Manage status
-        </Button>
-        {showStatusActions ? (
-          <div className="flex flex-wrap gap-1.5">
-            {icon.status === "deprecated" || icon.status === "blocked" ? (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => onUpdateStatus(restoreStatus)}
-                disabled={statusActionBusy || !canRestore}
-                title={
-                  canRestore
-                    ? `Restore this icon as ${restoreStatus}`
-                    : "Fix blocked quality issues before restoring this icon"
-                }
-              >
-                <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-                Restore
-              </Button>
-            ) : null}
-            {icon.status !== "deprecated" ? (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => onUpdateStatus("deprecated")}
-                disabled={statusActionBusy}
-              >
-                Deprecate
-              </Button>
-            ) : null}
-            {icon.status !== "blocked" ? (
-              <Button
-                type="button"
-                variant="danger"
-                size="sm"
-                onClick={() => onUpdateStatus("blocked")}
-                disabled={statusActionBusy}
-              >
-                Block
-              </Button>
-            ) : null}
-          </div>
+      <div className="flex flex-wrap gap-1.5">
+        {icon.status === "deprecated" || icon.status === "blocked" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => onUpdateStatus(restoreStatus)}
+            disabled={statusActionBusy || !canRestore}
+            title={
+              canRestore
+                ? `Restore this icon as ${restoreStatus}`
+                : "Fix blocked quality issues before restoring this icon"
+            }
+          >
+            <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+            Restore
+          </Button>
+        ) : null}
+        {icon.status !== "deprecated" ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => onUpdateStatus("deprecated")}
+            disabled={statusActionBusy}
+          >
+            Deprecate
+          </Button>
+        ) : null}
+        {icon.status !== "blocked" ? (
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            onClick={() => onUpdateStatus("blocked")}
+            disabled={statusActionBusy}
+          >
+            Block
+          </Button>
         ) : null}
       </div>
 
@@ -1242,7 +1402,7 @@ function IconDetailPanel({
         <div className="flex min-w-0 flex-col gap-1 text-secondary">
           {publicSource.license.attributionRequired ? (
             <p className="m-0 rounded bg-[var(--color-figma-warning)]/10 px-2 py-1.5 text-[color:var(--color-figma-text-warning)]">
-              This source requires attribution. Keep it visible in handoff and export review.
+              This source requires attribution. Keep it in exports.
             </p>
           ) : null}
           <a
@@ -1281,7 +1441,7 @@ function IconDetailPanel({
               onClick={() => onViewHealthFilter("frame")}
               className="self-start px-1.5"
             >
-              View all frame issues
+              Filter frame
             </Button>
           ) : null}
         </div>
@@ -1301,7 +1461,7 @@ function IconDetailPanel({
                 onClick={() => onViewHealthFilter(detailHealthFilter)}
                 className="px-1.5"
               >
-                View all
+                Filter
               </Button>
             ) : null}
           </div>
@@ -1350,15 +1510,14 @@ export function IconPanel() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<IconStatusFilter>("all");
   const [healthFilter, setHealthFilter] = useState<IconHealthFilter>("all");
-  const [workspaceView, setWorkspaceView] = useState<IconWorkspaceView>("library");
+  const [workspaceMode, setWorkspaceMode] = useState<IconWorkspaceMode>("library");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [slotPreferredMode, setSlotPreferredMode] = useState<IconSlotPreferredMode>("all");
   const [selectedIconId, setSelectedIconId] = useState<string | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [checkingSources, setCheckingSources] = useState(false);
   const [sourceUpdateReport, setSourceUpdateReport] = useState<IconSourceUpdateReport | null>(null);
-  const [showLibraryActions, setShowLibraryActions] = useState(false);
   const [canvasActionBusy, setCanvasActionBusy] = useState(false);
   const [statusActionBusy, setStatusActionBusy] = useState(false);
   const [auditScope, setAuditScope] = useState<IconUsageAuditScope>("selection");
@@ -1471,6 +1630,40 @@ export function IconPanel() {
     () => getIconHealthSummary(icons, defaultIconSize),
     [defaultIconSize, icons],
   );
+  const activeFilterCount =
+    (statusFilter === "all" ? 0 : 1) + (healthFilter === "all" ? 0 : 1);
+  const statusCounts = useMemo<Record<IconStatusFilter, number>>(
+    () => {
+      const counts: Record<IconStatusFilter, number> = {
+        all: 0,
+        draft: 0,
+        published: 0,
+        deprecated: 0,
+        blocked: 0,
+      };
+      for (const icon of icons) {
+        counts.all += 1;
+        counts[icon.status] += 1;
+      }
+      return counts;
+    },
+    [icons],
+  );
+  const auditByIconId = useMemo<Record<string, IconAuditGridMeta>>(() => {
+    const findings = auditResult?.error ? [] : auditResult?.findings ?? [];
+    const next: Record<string, IconAuditGridMeta> = {};
+    for (const finding of findings) {
+      if (!finding.iconId) {
+        continue;
+      }
+      const current = next[finding.iconId] ?? { count: 0, hasError: false };
+      next[finding.iconId] = {
+        count: current.count + 1,
+        hasError: current.hasError || finding.severity === "error",
+      };
+    }
+    return next;
+  }, [auditResult]);
   const existingIconPaths = useMemo(
     () => new Set(icons.map((icon) => icon.path.toLowerCase())),
     [icons],
@@ -1788,7 +1981,6 @@ export function IconPanel() {
   }, [applyRegistry, selectedIcon, serverUrl, statusActionBusy]);
 
   const handleViewHealthFilter = useCallback((filter: IconHealthFilter) => {
-    setWorkspaceView("library");
     setHealthFilter(filter);
   }, []);
 
@@ -2039,6 +2231,23 @@ export function IconPanel() {
     }, "*");
   }, []);
 
+  const handleIconsImported = useCallback((nextRegistry: IconRegistryFile, importedIcons: ManagedIcon[]) => {
+    applyRegistry(nextRegistry);
+    const firstIcon = importedIcons[0];
+    if (firstIcon) {
+      setSelectedIconId(firstIcon.id);
+      setQuery("");
+      setStatusFilter("all");
+      setHealthFilter("all");
+    }
+    setWorkspaceMode("library");
+    setFiltersOpen(false);
+    dispatchToast(
+      `Imported ${formatIconCount(importedIcons.length)}.`,
+      "success",
+    );
+  }, [applyRegistry]);
+
   if (!connected) {
     return (
       <FeedbackPlaceholder
@@ -2050,128 +2259,125 @@ export function IconPanel() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
-      <PanelContentHeader
-        primaryAction={{
-          label: "Import",
-          onClick: () => setImportOpen(true),
-        }}
-      />
+      {!error && (!loading || registry) ? (
+        <div className="flex shrink-0 flex-col gap-2 border-b border-[color:var(--color-figma-border)] px-3 py-2">
+          {icons.length > 0 ? (
+            <>
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="min-w-0 flex-1 [&_.tm-segmented-control]:w-full">
+                  <SegmentedControl
+                    value={workspaceMode}
+                    options={ICON_WORKSPACE_MODE_OPTIONS}
+                    onChange={(mode) => {
+                      setWorkspaceMode(mode);
+                      if (mode !== "library") {
+                        setFiltersOpen(false);
+                      }
+                    }}
+                    ariaLabel="Icons workspace mode"
+                    size="compact"
+                  />
+                </div>
+                <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  {workspaceMode === "library" && filteredIcons.length !== icons.length
+                    ? `${filteredIcons.length} of ${icons.length}`
+                    : formatIconCount(icons.length)}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void loadIcons()}
+                  disabled={loading}
+                  aria-label="Refresh icons"
+                  title="Refresh icons"
+                  className="px-1.5"
+                >
+                  <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
+                </Button>
+              </div>
 
-      <div className="flex shrink-0 flex-col gap-2 border-b border-[color:var(--color-figma-border)] px-3 py-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <SegmentedControl
-            value={workspaceView}
-            options={ICON_WORKSPACE_VIEWS}
-            onChange={setWorkspaceView}
-            ariaLabel="Icons workspace view"
-            size="compact"
-          />
-          <div className="ml-auto flex min-w-0 items-center gap-1.5">
-            <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-              {formatIconCount(filteredIcons.length)}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => void loadIcons()}
-              disabled={loading}
-              title="Refresh icons"
-              className="px-1.5"
-            >
-              <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-              {loading ? "Refreshing" : "Refresh"}
-            </Button>
-          </div>
-        </div>
+              {workspaceMode === "library" ? (
+                <>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <SearchField
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      onClear={() => setQuery("")}
+                      placeholder="Search icons"
+                      size="sm"
+                      containerClassName="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setFiltersOpen((current) => !current)}
+                      aria-expanded={filtersOpen}
+                      className="px-1.5"
+                    >
+                      <SlidersHorizontal size={13} strokeWidth={1.5} aria-hidden />
+                      Filters{activeFilterCount > 0 ? ` ${activeFilterCount}` : ""}
+                    </Button>
+                    <IconPublishButton
+                      iconsToPublishCount={iconsToPublish.length}
+                      publishing={publishing}
+                      publishProgress={publishProgress}
+                      onPublish={() => void handlePublish()}
+                    />
+                    {activeFilterCount > 0 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setStatusFilter("all");
+                          setHealthFilter("all");
+                        }}
+                        className="px-1.5"
+                      >
+                        Clear
+                      </Button>
+                    ) : null}
+                  </div>
 
-        <SearchField
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          onClear={() => setQuery("")}
-          placeholder="Search icons"
-          size="sm"
-        />
-
-        <SegmentedControl
-          value={statusFilter}
-          options={STATUS_FILTERS}
-          onChange={setStatusFilter}
-          ariaLabel="Icon status"
-          size="compact"
-        />
-
-        <IconHealthStrip
-          summary={healthSummary}
-          activeFilter={healthFilter}
-          onFilterChange={setHealthFilter}
-        />
-
-        <div className="flex min-w-0 flex-col gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowLibraryActions((current) => !current)}
-            aria-expanded={showLibraryActions}
-            className="self-start px-1.5"
-          >
-            Library actions
-          </Button>
-          {showLibraryActions ? (
-            <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
+                  {filtersOpen ? (
+                    <IconLibraryFilters
+                      statusCounts={statusCounts}
+                      summary={healthSummary}
+                      activeStatusFilter={statusFilter}
+                      activeFilter={healthFilter}
+                      onStatusFilterChange={setStatusFilter}
+                      onFilterChange={setHealthFilter}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </>
+          ) : (
+            <div className="flex min-w-0 items-center gap-1.5">
+              <div className="min-w-0 flex-1 text-body font-medium text-[color:var(--color-figma-text)]">
+                Add icons
+              </div>
+              <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                {formatIconCount(icons.length)}
+              </div>
               <Button
                 type="button"
-                variant="secondary"
+                variant="ghost"
                 size="sm"
-                onClick={() => void handlePublish()}
-                disabled={publishing || iconsToPublish.length === 0}
-              >
-                <UploadCloud size={13} strokeWidth={1.5} aria-hidden />
-                {publishProgress
-                  ? `${publishProgress.current}/${publishProgress.total}`
-                  : publishing
-                    ? "Publishing"
-                    : `Publish ${iconsToPublish.length || ""}`.trim()}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => void handleExportIcons()}
-                disabled={exporting || exportableIconCount === 0}
-                title={
-                  exportableIconCount > 0
-                    ? "Export SVGs, React components, manifests, and attribution metadata"
-                    : "Import or unblock icons before exporting"
-                }
-              >
-                <Download size={13} strokeWidth={1.5} aria-hidden />
-                {exporting ? "Exporting" : "Export"}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => void handleCheckSourceUpdates()}
-                disabled={checkingSources || icons.length === 0}
-                title="Check local SVG and public icon sources for updates"
+                onClick={() => void loadIcons()}
+                disabled={loading}
+                aria-label="Refresh icons"
+                title="Refresh icons"
+                className="px-1.5"
               >
                 <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-                {checkingSources ? "Checking" : "Check sources"}
               </Button>
-              {sourceUpdateReport ? (
-                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  <span>{formatHealthCount(sourceUpdateReport.summary.checked, "source checked")}</span>
-                  <span>{formatHealthCount(sourceUpdateReport.summary.changed, "artwork update")}</span>
-                  <span>{formatHealthCount(sourceUpdateReport.summary.metadataChanged, "metadata update")}</span>
-                  <span>{formatHealthCount(sourceUpdateReport.summary.unavailable, "unavailable source")}</span>
-                </div>
-              ) : null}
             </div>
-          ) : null}
+          )}
         </div>
-      </div>
+      ) : null}
 
       {error ? (
         <FeedbackPlaceholder
@@ -2191,15 +2397,58 @@ export function IconPanel() {
           icon={<RefreshCw size={16} strokeWidth={1.5} aria-hidden />}
         />
       ) : icons.length === 0 ? (
-        <FeedbackPlaceholder
-          variant="empty"
-          title="No icons yet"
-          primaryAction={{
-            label: "Import icons",
-            onClick: () => setImportOpen(true),
-          }}
-        />
-      ) : workspaceView === "library" ? (
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          <IconImportPanel
+            serverUrl={serverUrl}
+            existingIconPaths={existingIconPaths}
+            existingLinkedIconPaths={existingLinkedIconPaths}
+            defaultIconSize={defaultIconSize}
+            cancelable={false}
+            onCancel={() => undefined}
+            onImported={handleIconsImported}
+          />
+        </div>
+      ) : workspaceMode === "add" ? (
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          <IconImportPanel
+            serverUrl={serverUrl}
+            existingIconPaths={existingIconPaths}
+            existingLinkedIconPaths={existingLinkedIconPaths}
+            defaultIconSize={defaultIconSize}
+            onCancel={() => setWorkspaceMode("library")}
+            onImported={handleIconsImported}
+          />
+        </div>
+      ) : workspaceMode === "tools" ? (
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          <div className="flex min-w-0 flex-col gap-3">
+            <IconUsageAuditPanel
+              scope={auditScope}
+              loading={auditLoading}
+              result={auditResult}
+              onScopeChange={(scope) => {
+                setAuditScope(scope);
+                setAuditResult(null);
+              }}
+              onRun={() => void handleAuditUsage()}
+            />
+            <IconAuditFindingsList
+              result={auditResult}
+              onFocusFinding={handleFocusAuditFinding}
+              onRefreshPreferredValues={handleRefreshPreferredValues}
+              repairBusy={canvasActionBusy}
+            />
+            <IconLibraryActions
+              exportableIconCount={exportableIconCount}
+              exporting={exporting}
+              checkingSources={checkingSources}
+              sourceUpdateReport={sourceUpdateReport}
+              onExport={() => void handleExportIcons()}
+              onCheckSources={() => void handleCheckSourceUpdates()}
+            />
+          </div>
+        </div>
+      ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           {filteredIcons.length === 0 ? (
             <FeedbackPlaceholder
@@ -2212,6 +2461,7 @@ export function IconPanel() {
                 icons={filteredIcons}
                 iconContent={iconContent}
                 selectedIconId={selectedIcon?.id ?? null}
+                auditByIconId={auditByIconId}
                 canvasActionBusy={canvasActionBusy}
                 onSelectIcon={setSelectedIconId}
                 onInsertIcon={(icon) => void handleInsertIcon(icon)}
@@ -2242,73 +2492,7 @@ export function IconPanel() {
             />
           ) : null}
         </div>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-auto p-3">
-          <div className="flex min-w-0 flex-col gap-3">
-            <IconUsageAuditPanel
-              scope={auditScope}
-              loading={auditLoading}
-              result={auditResult}
-              onScopeChange={(scope) => {
-                setAuditScope(scope);
-                setAuditResult(null);
-              }}
-              onRun={() => void handleAuditUsage()}
-              onFocusFinding={handleFocusAuditFinding}
-              onRefreshPreferredValues={handleRefreshPreferredValues}
-              repairBusy={canvasActionBusy}
-            />
-            {selectedIcon ? (
-              <IconDetailPanel
-                icon={selectedIcon}
-                content={iconContent[selectedIcon.id]?.content}
-                selectionCount={selectedNodes.length}
-                iconSlotActions={iconSlotActions}
-                iconSlotSetupActions={iconSlotSetupActions}
-                slotPreferredMode={slotPreferredMode}
-                slotPreferredCount={slotPreferredIconRecords.length}
-                defaultIconSize={defaultIconSize}
-                canvasActionBusy={canvasActionBusy}
-                statusActionBusy={statusActionBusy}
-                onInsert={handleInsert}
-                onReplaceSelection={handleReplaceSelection}
-                onSetIconSlot={handleSetIconSlot}
-                onCreateIconSlot={handleCreateIconSlot}
-                onSlotPreferredModeChange={setSlotPreferredMode}
-                onUpdateStatus={handleUpdateIconStatus}
-                onViewHealthFilter={handleViewHealthFilter}
-              />
-            ) : (
-              <div className="rounded-md bg-[var(--color-figma-bg-secondary)] px-3 py-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Select an icon in Library to review its publishing, quality, source, and developer details.
-              </div>
-            )}
-          </div>
-        </div>
       )}
-      {importOpen ? (
-        <IconImportDialog
-          serverUrl={serverUrl}
-          existingIconPaths={existingIconPaths}
-          existingLinkedIconPaths={existingLinkedIconPaths}
-          defaultIconSize={defaultIconSize}
-          onClose={() => setImportOpen(false)}
-          onImported={(nextRegistry, importedIcons) => {
-            applyRegistry(nextRegistry);
-            const firstIcon = importedIcons[0];
-            if (firstIcon) {
-              setSelectedIconId(firstIcon.id);
-              setQuery("");
-              setStatusFilter("all");
-              setHealthFilter("all");
-            }
-            dispatchToast(
-              `Imported ${formatIconCount(importedIcons.length)}.`,
-              "success",
-            );
-          }}
-        />
-      ) : null}
     </div>
   );
 }

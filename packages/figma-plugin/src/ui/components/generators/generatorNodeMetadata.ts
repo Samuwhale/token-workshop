@@ -127,15 +127,15 @@ export function nodeInspectorNote(
   node: TokenGeneratorDocumentNode,
 ): string | null {
   if (node.kind === "output") {
-    return "Use this when the graph ends in one value. It creates one token at the path below.";
+    return "Creates one token at the path below.";
   }
   if (node.kind === "groupOutput") {
-    return "Use this for ramps and scales. It creates one token per item in the connected series.";
+    return "Creates one token per item in the connected series.";
   }
   if (
     getTokenGeneratorOutputPorts(node).some((port) => port.shape === "list")
   ) {
-    return "This node outputs a series. Connect it to Series output to create one token per item.";
+    return "Connect to Series output to create one token per item.";
   }
   return null;
 }

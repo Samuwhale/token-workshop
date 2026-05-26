@@ -1773,8 +1773,8 @@ export function PanelRouter({
         variant="empty"
         size="full"
         icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
-        title="Create your first collection"
-        description="Collections match Figma variable collections. Add modes now, then create tokens or import existing work."
+        title="Create collection"
+        description="Collections map to Figma variable collections. Add modes, then create or import tokens."
         actions={[
           {
             label: "Create collection",

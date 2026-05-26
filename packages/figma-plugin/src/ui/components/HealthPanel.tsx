@@ -540,12 +540,12 @@ export function HealthPanel({
             : "Review is clear";
     const allScopeStatusDetail =
       libraryReviewErrors.length > 0
-        ? "Some checks failed. Refresh Review once the server is connected."
+        ? "Some checks failed. Reconnect and refresh Review."
         : collectionSummariesPending
           ? "Scanning collections, token usage, and generator outputs."
           : collectionSummaries.length > 0
-            ? `${collectionSummaries.length} collection${collectionSummaries.length === 1 ? "" : "s"} have review items. Resolve blockers first; cleanup can wait.`
-            : "Every collection is clear.";
+            ? `${collectionSummaries.length} collection${collectionSummaries.length === 1 ? "" : "s"} have review items. Fix blockers first. Cleanup can wait.`
+            : "No review items in any collection.";
     const renderCollectionRow = (
       collectionId: string,
       summary: { errors: number; warnings: number; actionable: number; reviewItems: number; info: number },
@@ -623,7 +623,7 @@ export function HealthPanel({
                     Fix next
                   </h3>
                   <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                    Collections with errors or actionable warnings.
+                    Errors and actionable warnings.
                   </p>
                 </div>
                 <div>
@@ -641,7 +641,7 @@ export function HealthPanel({
                     Clean up
                   </h3>
                   <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                    Library hygiene after blockers are clear.
+                    Non-blocking review items.
                   </p>
                 </div>
                 <div>
@@ -658,7 +658,7 @@ export function HealthPanel({
               ? "Checking…"
               : libraryReviewErrors.length > 0
                 ? "Review results are unavailable. Try again once connected."
-                : "All clear."}
+                : "No review items."}
           </p>
         )}
 

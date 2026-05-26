@@ -2496,11 +2496,8 @@ export function GeneratorsPanel({
           {activeGenerator.nodes.length === 0 ? (
             <div className="tm-graph-empty-state">
               <div className="tm-graph-empty-state__content">
-                <h2>Add your first nodes</h2>
-                <p>
-                  Start with a source, transform it, then send the result to
-                  tokens.
-                </p>
+                <h2>Add nodes</h2>
+                <p>Add a source, a transform, and an output.</p>
                 <div className="tm-graph-empty-state__actions">
                   <Button
                     type="button"
@@ -3201,8 +3198,8 @@ export function GeneratorsPanel({
                 hasScopedGenerators
                   ? "Try a different name, source, output path, or status."
                   : generatorListScope === "collection"
-                    ? "Create a generator for this collection or browse every generator."
-                    : "Create a generator for repeated scales, ramps, and token groups."
+                    ? "Create one in this collection or browse all generators."
+                    : "Create scales, ramps, or token groups."
               }
               actions={
                 hasScopedGenerators

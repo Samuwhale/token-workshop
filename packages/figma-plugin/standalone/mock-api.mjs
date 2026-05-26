@@ -297,6 +297,38 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function mergeImportedIcons(importedIcons) {
+  const mergedIcons = [];
+  const created = [];
+  const indexesByPath = new Map(
+    mockIconRegistry.icons.map((icon, index) => [icon.path, index]),
+  );
+
+  for (const importedIcon of importedIcons) {
+    const existingIndex = indexesByPath.get(importedIcon.path);
+    if (existingIndex === undefined) {
+      indexesByPath.set(importedIcon.path, mockIconRegistry.icons.length);
+      mockIconRegistry.icons.push(importedIcon);
+      mergedIcons.push(importedIcon);
+      created.push(true);
+      continue;
+    }
+
+    const existingIcon = mockIconRegistry.icons[existingIndex];
+    const mergedIcon = {
+      ...importedIcon,
+      id: existingIcon.id,
+      componentName: existingIcon.componentName ?? importedIcon.componentName,
+      code: existingIcon.code ?? importedIcon.code,
+    };
+    mockIconRegistry.icons[existingIndex] = mergedIcon;
+    mergedIcons.push(mergedIcon);
+    created.push(false);
+  }
+
+  return { icons: mergedIcons, created };
+}
+
 function loadSnapshot() {
   if (!fs.existsSync(snapshotFilePath)) {
     throw new Error(
@@ -777,17 +809,15 @@ export async function handleMockApiRequest(req, res, url) {
           };
         })
       : [];
-    if (importedIcons.length > 0) {
-      mockIconRegistry.icons = importedIcons;
-    }
+    const importResult = mergeImportedIcons(importedIcons);
     sendJson(
       res,
       200,
       {
         ok: true,
-        icons: importedIcons,
+        icons: importResult.icons,
         registry: clone(mockIconRegistry),
-        created: importedIcons.map(() => true),
+        created: importResult.created,
       },
       method,
     );
@@ -888,17 +918,15 @@ export async function handleMockApiRequest(req, res, url) {
           status: 'draft',
         }))
       : [];
-    if (importedIcons.length > 0) {
-      mockIconRegistry.icons = importedIcons;
-    }
+    const importResult = mergeImportedIcons(importedIcons);
     sendJson(
       res,
       200,
       {
         ok: true,
-        icons: importedIcons,
+        icons: importResult.icons,
         registry: clone(mockIconRegistry),
-        created: importedIcons.map(() => true),
+        created: importResult.created,
       },
       method,
     );

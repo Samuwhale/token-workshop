@@ -14,9 +14,19 @@ import type {
   ReadIconSelectionMessage,
   IconSelectionReadMessage,
 } from "../../../shared/types";
-import { Check, ExternalLink, FileUp, MousePointer2, Search, X } from "lucide-react";
-import { useFocusTrap } from "../../hooks/useFocusTrap";
-import { Button, Field, SearchField, SegmentedControl, TextInput } from "../../primitives";
+import {
+  Check,
+  Code2,
+  ExternalLink,
+  FileUp,
+  FolderOpen,
+  Library,
+  MousePointer2,
+  Search,
+  X,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Button, Field, SearchField, TextInput } from "../../primitives";
 import {
   CONTROL_INPUT_BASE_CLASSES,
   CONTROL_INPUT_DEFAULT_STATE_CLASSES,
@@ -46,8 +56,9 @@ import {
 } from "./publicIconImportUtils";
 import { usePublicIconLibrary } from "./usePublicIconLibrary";
 
-type ImportMode = "library" | "files" | "selection" | "paste" | "workspace";
-type PreparedImportMode = Exclude<ImportMode, "library">;
+type ImportMode = "library" | "selection" | "svg" | "workspace";
+type SvgImportMethod = "files" | "paste";
+type PreparedImportMode = "files" | "paste" | "selection" | "workspace";
 
 interface IconImportResponse {
   ok: true;
@@ -73,26 +84,55 @@ type SelectionImportIssue = {
   message: string;
 };
 
-interface IconImportDialogProps {
+interface IconImportPanelProps {
   serverUrl: string;
   existingIconPaths: Set<string>;
   existingLinkedIconPaths: Set<string>;
   defaultIconSize: number;
-  onClose: () => void;
+  cancelable?: boolean;
+  onCancel: () => void;
   onImported: (registry: IconRegistryFile, icons: ManagedIcon[]) => void;
 }
 
-const IMPORT_MODES: Array<{ value: ImportMode; label: string }> = [
-  { value: "library", label: "Public libraries" },
-  { value: "selection", label: "From selection" },
-  { value: "files", label: "SVG files" },
-  { value: "paste", label: "Paste SVG" },
-  { value: "workspace", label: "Workspace" },
+const IMPORT_MODES: Array<{
+  value: ImportMode;
+  label: string;
+  Icon: LucideIcon;
+}> = [
+  {
+    value: "selection",
+    label: "Selection",
+    Icon: MousePointer2,
+  },
+  {
+    value: "svg",
+    label: "SVG",
+    Icon: FileUp,
+  },
+  {
+    value: "library",
+    label: "Public",
+    Icon: Library,
+  },
+  {
+    value: "workspace",
+    label: "Workspace",
+    Icon: FolderOpen,
+  },
+];
+
+const SVG_IMPORT_METHODS: Array<{
+  value: SvgImportMethod;
+  label: string;
+  Icon: LucideIcon;
+}> = [
+  { value: "files", label: "Files", Icon: FileUp },
+  { value: "paste", label: "Paste", Icon: Code2 },
 ];
 
 const ICON_IMPORT_TIMEOUT_MS = 90_000;
 const IMPORT_DIALOG_SECTION_CLASSES =
-  "flex min-w-0 flex-col gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] p-2";
+  "flex min-w-0 flex-col gap-2";
 
 function trimSvgExtension(path: string): string {
   return path.replace(/\.svg$/i, "");
@@ -310,6 +350,99 @@ function selectionImportHasErrors(
   return false;
 }
 
+function ImportModePicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: ImportMode;
+  disabled: boolean;
+  onChange: (mode: ImportMode) => void;
+}) {
+  return (
+    <div
+      className="flex min-w-0 flex-wrap gap-1 pb-0.5"
+      role="radiogroup"
+      aria-label="Icon import source"
+    >
+      {IMPORT_MODES.map((mode) => {
+        const selected = value === mode.value;
+        const ModeIcon = mode.Icon;
+        return (
+          <button
+            key={mode.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            disabled={disabled}
+            onClick={() => onChange(mode.value)}
+            className={`flex min-h-7 shrink-0 items-center gap-1.5 rounded px-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
+              selected
+                ? "bg-[var(--surface-selected)] shadow-[inset_0_0_0_1px_var(--color-figma-accent)]"
+                : disabled
+                  ? "cursor-not-allowed opacity-55"
+                  : "hover:bg-[var(--surface-hover)]"
+            }`}
+          >
+            <ModeIcon
+              size={14}
+              strokeWidth={1.6}
+              className="shrink-0 text-[color:var(--color-figma-text-secondary)]"
+              aria-hidden
+            />
+            <span className="text-secondary font-medium text-[color:var(--color-figma-text)]">
+              {mode.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SvgMethodPicker({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: SvgImportMethod;
+  disabled: boolean;
+  onChange: (method: SvgImportMethod) => void;
+}) {
+  return (
+    <div
+      className="flex min-w-0 gap-1"
+      role="radiogroup"
+      aria-label="SVG input method"
+    >
+      {SVG_IMPORT_METHODS.map((method) => {
+        const selected = value === method.value;
+        const MethodIcon = method.Icon;
+        return (
+          <button
+            key={method.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            disabled={disabled}
+            onClick={() => onChange(method.value)}
+            className={`flex min-h-7 items-center gap-1.5 rounded px-2 text-secondary font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)] ${
+              selected
+                ? "bg-[var(--surface-selected)] text-[color:var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--color-figma-accent)]"
+                : disabled
+                  ? "cursor-not-allowed opacity-55"
+                  : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
+            }`}
+          >
+            <MethodIcon size={13} strokeWidth={1.6} aria-hidden />
+            {method.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function PublicLibraryRail({
   selectedPublicSourceId,
   disabled,
@@ -328,9 +461,6 @@ function PublicLibraryRail({
       <div>
         <div className="text-body font-semibold text-[color:var(--color-figma-text)]">
           Source
-        </div>
-        <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Start with a familiar set or browse the full Iconify catalog.
         </div>
       </div>
       <div className="grid min-w-0 grid-cols-2 gap-1 min-[640px]:grid-cols-1">
@@ -400,9 +530,6 @@ function PublicCollectionCatalog({
 }) {
   return (
     <div className={IMPORT_DIALOG_SECTION_CLASSES}>
-      <div className="text-body font-medium text-[color:var(--color-figma-text)]">
-        Find a library
-      </div>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
         <SearchField
           value={query}
@@ -414,7 +541,7 @@ function PublicCollectionCatalog({
               onSearch();
             }
           }}
-          placeholder="Find a library"
+          placeholder="Search libraries"
           size="sm"
           disabled={disabled}
         />
@@ -483,7 +610,7 @@ function PublicCollectionCatalog({
         </>
       ) : (
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Browse the full Iconify catalog or open a collection by Iconify prefix.
+          Search Iconify libraries by name or prefix.
         </div>
       )}
     </div>
@@ -601,7 +728,7 @@ function PublicIconGrid({
                 {icon.name}
               </span>
               <span className="block truncate text-[11px] leading-tight text-[color:var(--color-figma-text-secondary)]">
-                {icon.collection.name}
+                {icon.collection.name} · {icon.collection.license.name}
               </span>
             </span>
           </button>
@@ -701,22 +828,23 @@ function PublicSelectionSummary({
   );
 }
 
-export function IconImportDialog({
+export function IconImportPanel({
   serverUrl,
   existingIconPaths,
   existingLinkedIconPaths,
   defaultIconSize,
-  onClose,
+  cancelable = true,
+  onCancel,
   onImported,
-}: IconImportDialogProps) {
-  const dialogRef = useRef<HTMLFormElement>(null);
+}: IconImportPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const filePickerButtonRef = useRef<HTMLButtonElement>(null);
   const librarySearchRef = useRef<HTMLInputElement>(null);
   const pasteTextareaRef = useRef<HTMLTextAreaElement>(null);
   const readSelectionButtonRef = useRef<HTMLButtonElement>(null);
   const workspacePathRef = useRef<HTMLInputElement>(null);
-  const [mode, setMode] = useState<ImportMode>("library");
+  const [mode, setMode] = useState<ImportMode>("selection");
+  const [svgMethod, setSvgMethod] = useState<SvgImportMethod>("files");
   const [files, setFiles] = useState<File[]>([]);
   const [pastedSvg, setPastedSvg] = useState("");
   const [pastedPath, setPastedPath] = useState("");
@@ -737,23 +865,10 @@ export function IconImportDialog({
     enabled: mode === "library",
     busy,
   });
-  const initialFocusRef =
-    mode === "library"
-      ? librarySearchRef
-      : mode === "selection"
-        ? readSelectionButtonRef
-        : mode === "files"
-          ? filePickerButtonRef
-          : mode === "paste"
-            ? pasteTextareaRef
-            : workspacePathRef;
-  useFocusTrap(dialogRef, {
-    initialFocusRef,
-  });
 
   const selectedFileSummary = useMemo(() => {
     if (files.length === 0) {
-      return "No files selected";
+      return "Choose SVG files";
     }
     if (files.length === 1) {
       return files[0].name;
@@ -801,7 +916,8 @@ export function IconImportDialog({
   );
   const selectedPublicIconCount = publicLibrary.selectedIconCount;
 
-  const noFilesSelected = mode === "files" && files.length === 0;
+  const noFilesSelected =
+    mode === "svg" && svgMethod === "files" && files.length === 0;
   const invalidPublicIconSelection =
     mode === "library" &&
     (selectedPublicIconCount === 0 ||
@@ -809,9 +925,14 @@ export function IconImportDialog({
   const invalidSelectionImport =
     mode === "selection" && (selectionIcons.length === 0 || selectionHasErrors);
   const invalidPastedSvg =
-    mode === "paste" && (!pastedSvg.trim() || !pastedPath.trim());
+    mode === "svg" &&
+    svgMethod === "paste" &&
+    (!pastedSvg.trim() || !pastedPath.trim());
   const missingWorkspaceFile =
     mode === "workspace" && !workspaceFilePath.trim();
+  const showDisplayNameField =
+    mode === "workspace" ||
+    (mode === "svg" && (svgMethod === "paste" || files.length === 1));
   const confirmDisabled =
     busy ||
     noFilesSelected ||
@@ -949,6 +1070,12 @@ export function IconImportDialog({
     );
   };
 
+  const removeSelectionIcon = (nodeId: string) => {
+    setSelectionIcons((current) =>
+      current.filter((icon) => icon.nodeId !== nodeId),
+    );
+  };
+
   const generateSelectionDisplayNames = () => {
     setSelectionIcons((current) =>
       current.map((icon) => ({
@@ -1038,10 +1165,11 @@ export function IconImportDialog({
       const submittedMode = mode;
       if (submittedMode === "library") {
         await submitPublicIconImport();
+      } else if (submittedMode === "svg") {
+        await submitPreparedIconImport(svgMethod);
       } else {
         await submitPreparedIconImport(submittedMode);
       }
-      onClose();
     } catch (err) {
       setError(getErrorMessage(err, "Failed to import icon."));
     } finally {
@@ -1050,55 +1178,19 @@ export function IconImportDialog({
   };
 
   return (
-    <div
-      className="tm-modal-shell"
-      onMouseDown={(event) => {
-        if (!busy && event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
+    <form
+      className="flex min-w-0 flex-col gap-3 rounded-md bg-[var(--color-figma-bg-secondary)] p-2"
+      aria-label="Add icons"
+      onSubmit={handleSubmit}
     >
-      <form
-        ref={dialogRef}
-        className="tm-modal-panel tm-modal-panel--wide tm-icon-import-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="icon-import-title"
-        onSubmit={handleSubmit}
-      >
-        <div className="tm-modal-header tm-modal-header--split">
-          <div className="tm-modal-header__headline">
-            <h3
-              id="icon-import-title"
-              className="text-heading font-semibold text-[color:var(--color-figma-text)]"
-            >
-              Import icons
-            </h3>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            disabled={busy}
-            aria-label="Close import icons"
-            className="px-1.5"
-          >
-            <X size={14} strokeWidth={1.75} aria-hidden />
-          </Button>
-        </div>
-
-        <div className="tm-modal-body flex-1 gap-3">
-          <SegmentedControl
+        <div className="flex min-w-0 flex-col gap-3">
+          <ImportModePicker
             value={mode}
-            options={IMPORT_MODES}
+            disabled={busy}
             onChange={(nextMode) => {
               setMode(nextMode);
               setError("");
             }}
-            ariaLabel="Icon import source"
-            disabled={busy}
-            size="compact"
           />
 
           {mode === "library" ? (
@@ -1180,9 +1272,9 @@ export function IconImportDialog({
                       </div>
                       <div className="truncate text-secondary text-[color:var(--color-figma-text-secondary)]">
                         {publicLibrary.currentCollection
-                          ? `${publicLibrary.currentCollection.id} via Iconify`
+                          ? `${publicLibrary.currentCollection.id} · ${publicLibrary.currentCollection.license.name}`
                           : publicLibrary.activeProvider?.description ??
-                            "Search licensed public icon libraries."}
+                            "Search licensed icon libraries."}
                       </div>
                     </div>
                     {publicLibrary.results ? (
@@ -1225,7 +1317,7 @@ export function IconImportDialog({
 
                 {publicLibrary.loading && !publicLibrary.results ? (
                   <div className="flex min-h-40 items-center justify-center rounded-md bg-[var(--color-figma-bg-secondary)] text-secondary text-[color:var(--color-figma-text-secondary)]">
-                    Loading public icons...
+                    Loading public icons
                   </div>
                 ) : publicLibrary.results ? (
                   <div className="flex min-w-0 flex-col gap-2">
@@ -1251,46 +1343,77 @@ export function IconImportDialog({
                       </Button>
                     ) : null}
                   </div>
-                ) : (
-                  <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                    Choose a source, then search or browse licensed icons.
-                  </p>
-                )}
+                ) : null}
               </div>
             </div>
           ) : null}
 
-          {mode === "files" ? (
+          {mode === "svg" ? (
             <div className="flex min-w-0 flex-col gap-2">
-              <button
-                ref={filePickerButtonRef}
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
+              <SvgMethodPicker
+                value={svgMethod}
                 disabled={busy}
-                className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded border border-dashed border-[var(--color-figma-border)] px-3 py-4 text-center text-body text-[color:var(--color-figma-text-secondary)] transition-colors ${
-                  busy
-                    ? "cursor-not-allowed opacity-60"
-                    : "hover:border-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--surface-hover)]"
-                }`}
-              >
-                <FileUp size={18} strokeWidth={1.5} aria-hidden />
-                <span>{selectedFileSummary}</span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".svg,image/svg+xml"
-                multiple
-                className="sr-only"
-                onChange={handleFilesChange}
-                disabled={busy}
+                onChange={(nextMethod) => {
+                  setSvgMethod(nextMethod);
+                  setError("");
+                }}
               />
+              {svgMethod === "files" ? (
+                <>
+                  <button
+                    ref={filePickerButtonRef}
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={busy}
+                    className={`flex min-h-24 flex-col items-center justify-center gap-2 rounded border border-dashed border-[var(--color-figma-border)] px-3 py-4 text-center text-body text-[color:var(--color-figma-text-secondary)] transition-colors ${
+                      busy
+                        ? "cursor-not-allowed opacity-60"
+                        : "hover:border-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--surface-hover)]"
+                    }`}
+                  >
+                    <FileUp size={18} strokeWidth={1.5} aria-hidden />
+                    <span>{selectedFileSummary}</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".svg,image/svg+xml"
+                    multiple
+                    className="sr-only"
+                    onChange={handleFilesChange}
+                    disabled={busy}
+                  />
+                </>
+              ) : (
+                <>
+                  <Field label="Icon path">
+                    <TextInput
+                      value={pastedPath}
+                      onChange={(event) => setPastedPath(event.target.value)}
+                      placeholder="navigation.home"
+                      size="sm"
+                      disabled={busy}
+                    />
+                  </Field>
+                  <Field label="SVG">
+                    <textarea
+                      ref={pasteTextareaRef}
+                      value={pastedSvg}
+                      onChange={(event) => setPastedSvg(event.target.value)}
+                      placeholder="<svg viewBox=&quot;0 0 24 24&quot;>...</svg>"
+                      rows={8}
+                      disabled={busy}
+                      className={`w-full resize-y px-2 py-1.5 font-mono text-[11px] leading-[1.45] ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES}`}
+                    />
+                  </Field>
+                </>
+              )}
             </div>
           ) : null}
 
           {mode === "selection" ? (
             <div className="flex min-w-0 flex-col gap-3">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-end gap-2">
                 <Button
                   ref={readSelectionButtonRef}
                   type="button"
@@ -1302,11 +1425,9 @@ export function IconImportDialog({
                   <MousePointer2 size={13} strokeWidth={1.5} aria-hidden />
                   {selectionLoading ? "Reading selection" : "Read selection"}
                 </Button>
-              </div>
-              {selectionIcons.length > 0 ? (
-                <div className={IMPORT_DIALOG_SECTION_CLASSES}>
-                  <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
-                    <Field label="Path prefix">
+                {selectionIcons.length > 0 ? (
+                  <>
+                    <Field label="Path prefix" className="w-36">
                       <TextInput
                         value={selectionPathPrefix}
                         onChange={(event) =>
@@ -1323,75 +1444,93 @@ export function IconImportDialog({
                       size="sm"
                       onClick={applySelectionPathPrefix}
                       disabled={busy || !selectionPathPrefix.trim()}
-                      className="mt-[18px] bg-[var(--color-figma-bg)]"
+                      className="bg-[var(--color-figma-bg-secondary)]"
                     >
                       Apply
                     </Button>
-                  </div>
+                  </>
+                ) : null}
+                {selectionIcons.length > 0 ? (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={generateSelectionDisplayNames}
                     disabled={busy}
-                    className="self-start px-1.5"
+                    className="px-1.5"
                   >
                     Name from path
                   </Button>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
 
               {selectionIcons.length > 0 ? (
                 <div className="flex max-h-72 min-w-0 flex-col gap-2 overflow-auto pr-1">
                   {selectionIcons.map((icon) => (
                     <div
                       key={icon.nodeId}
-                      className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)] gap-2 rounded bg-[var(--color-figma-bg-secondary)] p-2 min-[520px]:grid-cols-[40px_minmax(0,1fr)_minmax(0,1fr)]"
+                      className="flex min-w-0 flex-col gap-2 rounded bg-[var(--color-figma-bg-secondary)] p-2"
                     >
-                      <div className="row-span-3 flex h-10 w-10 items-center justify-center rounded bg-[var(--color-figma-bg)]">
-                        <img
-                          src={svgDataUrl(icon.svg)}
-                          alt=""
-                          className="h-7 w-7 object-contain"
-                          draggable={false}
-                        />
-                      </div>
-                      <div className="min-w-0 text-secondary text-[color:var(--color-figma-text-secondary)] min-[520px]:col-span-2">
-                        <span className="block truncate font-medium text-[color:var(--color-figma-text)]">
-                          {icon.nodeName}
-                        </span>
-                        <span className="block truncate">
-                          {icon.nodeType.toLowerCase()} - layer {formatIconFrame(icon.width, icon.height)} - viewBox {icon.viewBox}
-                        </span>
-                      </div>
-                      <Field label="Icon path">
-                        <TextInput
-                          value={icon.path}
-                          onChange={(event) =>
-                            updateSelectionIcon(icon.nodeId, {
-                              path: event.target.value,
-                            })
-                          }
-                          placeholder="navigation.home"
+                      <div className="flex min-w-0 items-start gap-2">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[var(--color-figma-bg)]">
+                          <img
+                            src={svgDataUrl(icon.svg)}
+                            alt=""
+                            className="h-7 w-7 object-contain"
+                            draggable={false}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                          <span className="block truncate font-medium text-[color:var(--color-figma-text)]">
+                            {icon.nodeName}
+                          </span>
+                          <span className="block truncate">
+                            {icon.nodeType.toLowerCase()} · {formatIconFrame(icon.width, icon.height)} · viewBox {icon.viewBox}
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
                           size="sm"
+                          onClick={() => removeSelectionIcon(icon.nodeId)}
                           disabled={busy}
-                        />
-                      </Field>
-                      <Field label="Display name">
-                        <TextInput
-                          value={icon.displayName}
-                          onChange={(event) =>
-                            updateSelectionIcon(icon.nodeId, {
-                              displayName: event.target.value,
-                            })
-                          }
-                          placeholder="Home"
-                          size="sm"
-                          disabled={busy}
-                        />
-                      </Field>
+                          aria-label={`Remove ${icon.nodeName}`}
+                          title={`Remove ${icon.nodeName}`}
+                          className="shrink-0 px-1.5"
+                        >
+                          <X size={13} strokeWidth={1.75} aria-hidden />
+                        </Button>
+                      </div>
+                      <div className="grid min-w-0 gap-2 min-[520px]:grid-cols-2">
+                        <Field label="Icon path">
+                          <TextInput
+                            value={icon.path}
+                            onChange={(event) =>
+                              updateSelectionIcon(icon.nodeId, {
+                                path: event.target.value,
+                              })
+                            }
+                            placeholder="navigation.home"
+                            size="sm"
+                            disabled={busy}
+                          />
+                        </Field>
+                        <Field label="Display name">
+                          <TextInput
+                            value={icon.displayName}
+                            onChange={(event) =>
+                              updateSelectionIcon(icon.nodeId, {
+                                displayName: event.target.value,
+                              })
+                            }
+                            placeholder="Home"
+                            size="sm"
+                            disabled={busy}
+                          />
+                        </Field>
+                      </div>
                       {(selectionIssues.get(icon.nodeId) ?? []).length > 0 ? (
-                        <div className="col-span-2 flex min-w-0 flex-col gap-1 min-[520px]:col-span-3">
+                        <div className="flex min-w-0 flex-col gap-1">
                           {(selectionIssues.get(icon.nodeId) ?? []).map((issue) => (
                             <p
                               key={`${issue.tone}:${issue.message}`}
@@ -1413,35 +1552,10 @@ export function IconImportDialog({
                 </div>
               ) : (
                 <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Select Figma components, instances, frames, or vectors, then read the selection before importing.
+                  Select Figma layers, then read the selection.
                 </p>
               )}
             </div>
-          ) : null}
-
-          {mode === "paste" ? (
-            <>
-              <Field label="Icon path">
-                <TextInput
-                  value={pastedPath}
-                  onChange={(event) => setPastedPath(event.target.value)}
-                  placeholder="navigation.home"
-                  size="sm"
-                  disabled={busy}
-                />
-              </Field>
-              <Field label="SVG">
-                <textarea
-                  ref={pasteTextareaRef}
-                  value={pastedSvg}
-                  onChange={(event) => setPastedSvg(event.target.value)}
-                  placeholder="<svg viewBox=&quot;0 0 24 24&quot;>...</svg>"
-                  rows={8}
-                  disabled={busy}
-                  className={`w-full resize-y px-2 py-1.5 font-mono text-[11px] leading-[1.45] ${CONTROL_INPUT_BASE_CLASSES} ${CONTROL_INPUT_DISABLED_CLASSES} ${CONTROL_INPUT_DEFAULT_STATE_CLASSES}`}
-                />
-              </Field>
-            </>
           ) : null}
 
           {mode === "workspace" ? (
@@ -1471,7 +1585,7 @@ export function IconImportDialog({
             </>
           ) : null}
 
-          {mode !== "selection" && mode !== "library" ? (
+          {showDisplayNameField ? (
             <Field label="Display name">
               <TextInput
                 value={name}
@@ -1493,10 +1607,10 @@ export function IconImportDialog({
               disabled={busy}
               className="self-start px-1.5"
             >
-              Tags
+              Add tags
             </Button>
             {showMetadataFields || Boolean(tagInput.trim()) ? (
-              <Field label="Tags" help="Optional comma-separated tags.">
+              <Field label="Tags">
                 <TextInput
                   value={tagInput}
                   onChange={(event) => setTagInput(event.target.value)}
@@ -1518,7 +1632,7 @@ export function IconImportDialog({
           ) : null}
         </div>
 
-        <div className="tm-modal-footer tm-modal-footer--confirm">
+        <div className="flex min-w-0 flex-wrap items-end justify-end gap-2">
           {mode === "library" ? (
             <PublicSelectionSummary
               selectedIconCount={selectedPublicIconCount}
@@ -1529,15 +1643,17 @@ export function IconImportDialog({
               onClear={publicLibrary.clearSelection}
             />
           ) : null}
-          <Button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            variant="secondary"
-            className="bg-[var(--color-figma-bg-secondary)]"
-          >
-            Cancel
-          </Button>
+          {cancelable ? (
+            <Button
+              type="button"
+              onClick={onCancel}
+              disabled={busy}
+              variant="secondary"
+              className="bg-[var(--color-figma-bg)]"
+            >
+              Cancel
+            </Button>
+          ) : null}
           <Button
             type="submit"
             disabled={confirmDisabled}
@@ -1551,7 +1667,6 @@ export function IconImportDialog({
                 : "Import"}
           </Button>
         </div>
-      </form>
-    </div>
+    </form>
   );
 }
