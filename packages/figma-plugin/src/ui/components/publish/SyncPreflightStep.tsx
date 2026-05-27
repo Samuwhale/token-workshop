@@ -82,27 +82,27 @@ function ClusterGroup({
   actionHandlers: Partial<Record<string, (cluster: PublishPreflightCluster) => void>>;
   actionBusyId: string | null;
 }) {
-  const toneClasses = tone === 'danger'
-    ? 'border-[var(--color-figma-error)]/20 bg-[var(--color-figma-error)]/5'
-    : 'border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/8';
+  const titleClass = tone === 'danger'
+    ? 'text-[color:var(--color-figma-text-error)]'
+    : 'text-[color:var(--color-figma-text-warning)]';
 
   return (
-    <div className={`rounded-md border p-3 ${toneClasses}`}>
-      <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+    <div>
+      <div className={`text-secondary font-medium ${titleClass}`}>
         {title}
       </div>
 
-      <div className="mt-2 grid gap-2">
+      <div className="mt-1 grid gap-1.5">
         {clusters.map((cluster) => {
           const action = cluster.recommendedActionId ? actionHandlers[cluster.recommendedActionId] : undefined;
           const isBusy = actionBusyId !== null && cluster.recommendedActionId === actionBusyId;
 
           return (
-            <div key={cluster.id} className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-3 py-2">
+            <div key={cluster.id} className="px-0 py-1.5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-body font-semibold text-[color:var(--color-figma-text)]">{cluster.label}</span>
+                    <span className="text-body font-medium text-[color:var(--color-figma-text)]">{cluster.label}</span>
                     {cluster.affectedCount !== undefined && (
                       <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
                         {cluster.affectedCount} affected
@@ -126,12 +126,6 @@ function ClusterGroup({
                   </button>
                 )}
               </div>
-
-              {!action && cluster.recommendedActionLabel && (
-                <div className="mt-2 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Next: <span className="font-medium text-[color:var(--color-figma-text)]">{cluster.recommendedActionLabel}</span>
-                </div>
-              )}
             </div>
           );
         })}

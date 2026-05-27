@@ -200,7 +200,7 @@ export function ImportTokenListView() {
       {skippedCount > 0 && (
         <details className="rounded bg-[var(--color-figma-warning)]/8 px-2.5 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
           <summary className="cursor-pointer font-medium">
-            Review {skippedCount} value{skippedCount === 1 ? '' : 's'} not imported
+            {skippedCount} value{skippedCount === 1 ? '' : 's'} not imported
           </summary>
           <div className="mt-1.5 flex flex-col gap-1 text-[color:var(--color-figma-text-secondary)]">
             <p className="m-0">
@@ -229,7 +229,7 @@ export function ImportTokenListView() {
 
       {duplicatePathWarnings.length > 0 && (
         <div className="px-2 py-1 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 text-secondary text-[color:var(--color-figma-text-warning)]">
-          Resolve duplicate paths before importing. {duplicatePathWarnings.length} token{duplicatePathWarnings.length === 1 ? '' : 's'} share a path, and only the last value for each path will be saved.
+          Duplicate paths: {duplicatePathWarnings.length} token{duplicatePathWarnings.length === 1 ? '' : 's'} share a path. Only the last value will be saved.
         </div>
       )}
 

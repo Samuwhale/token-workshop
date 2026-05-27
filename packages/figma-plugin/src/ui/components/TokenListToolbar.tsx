@@ -39,14 +39,6 @@ interface QualifierHint {
   kind: "replacement" | "hint";
 }
 
-function MenuSectionLabel({ children }: { children: string }) {
-  return (
-    <div className="px-2.5 pt-1 pb-0.5 text-secondary font-semibold text-[color:var(--color-figma-text-tertiary)]">
-      {children}
-    </div>
-  );
-}
-
 const GROUP_OPTIONS: SegmentedOption<TokenGroupBy>[] = [
   { value: "path", label: "Hierarchy" },
   { value: "type", label: "By type" },
@@ -69,8 +61,8 @@ const VIEW_OPTIONS: SegmentedOption<"tree" | "json">[] = [
 ];
 
 const SEARCH_SCOPE_OPTIONS: SegmentedOption<"collection" | "all">[] = [
-  { value: "collection", label: "This collection" },
-  { value: "all", label: "All collections" },
+  { value: "collection", label: "This" },
+  { value: "all", label: "All" },
 ];
 
 const TOOLBAR_BUTTON_CLASS =
@@ -194,9 +186,7 @@ export function TokenListToolbar({
   const searchPlaceholder =
     viewMode === "json"
       ? "Search JSON"
-      : searchScope === "all"
-        ? "Search all collections"
-        : "Search this collection";
+      : "Search tokens";
   const effectiveSearchTooltip =
     viewMode === "json" ? "Search raw JSON text" : searchTooltip;
   const searchAriaLabel =
@@ -588,7 +578,6 @@ export function TokenListToolbar({
                       >
                         {hasGroupOps ? (
                           <>
-                            <MenuSectionLabel>Groups</MenuSectionLabel>
                             <button
                               type="button"
                               role="menuitem"
@@ -609,7 +598,6 @@ export function TokenListToolbar({
                             {hasGroupOps ? (
                               <div className="h-1.5" aria-hidden />
                             ) : null}
-                            <MenuSectionLabel>Edit</MenuSectionLabel>
                             {onBulkEdit ? (
                               <button
                                 type="button"

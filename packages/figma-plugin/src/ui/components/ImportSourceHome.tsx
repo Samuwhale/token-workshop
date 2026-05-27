@@ -59,9 +59,6 @@ export function ImportSourceHome() {
   return (
     <div className="tm-import-home">
       <div className="tm-import-home__section">
-        <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          From this Figma file
-        </div>
         <div className="tm-import-home__actions">
           <SourceButton
             icon={<Table2 size={14} strokeWidth={1.75} aria-hidden />}
@@ -78,9 +75,6 @@ export function ImportSourceHome() {
       </div>
 
       <div className="tm-import-home__section">
-        <div className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          From a file
-        </div>
         <button
           type="button"
           onDragEnter={handleDragEnter}
@@ -111,17 +105,15 @@ export function ImportSourceHome() {
               aria-hidden
             />
           )}
-          <span
-            className={`text-body ${isDragging ? "text-[color:var(--color-figma-text-accent)]" : "text-[color:var(--color-figma-text-secondary)]"}`}
-          >
-            {isDragging ? "Drop to import" : "Drop a file or click to browse"}
+          <span className={`text-body ${isDragging ? "text-[color:var(--color-figma-text-accent)]" : "text-[color:var(--color-figma-text-secondary)]"}`}>
+            {isDragging ? "Drop to import" : "Import file"}
           </span>
         </button>
         <div
           id="import-source-file-types"
           className="text-secondary text-[color:var(--color-figma-text-tertiary)] text-center"
         >
-          JSON · CSS · Tailwind · Tokens Studio
+          JSON, CSS, Tailwind, Tokens Studio
         </div>
       </div>
 

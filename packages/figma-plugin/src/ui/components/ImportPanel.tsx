@@ -88,7 +88,7 @@ function ImportPanelRoot({
         <FeedbackPlaceholder
           variant="disconnected"
           title="Connect to the token server"
-          description="Import needs a server connection. Start the shared library and retry."
+          description="Start the token server, then retry."
           align="start"
           primaryAction={
             onRetryConnection
@@ -127,9 +127,6 @@ function ImportPanelRoot({
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={handleBack} variant="secondary" size="sm">
               Back
-            </Button>
-            <Button onClick={onClose} variant="ghost" size="sm">
-              Close
             </Button>
           </div>
         </>

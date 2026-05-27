@@ -18,7 +18,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import { Layers, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { resolveCollectionIdForPath } from "@token-workshop/core";
 import { CanvasRouter } from "./CanvasRouter";
 import { ExportRouter } from "./ExportRouter";
@@ -1776,9 +1776,8 @@ export function PanelRouter({
       <FeedbackPlaceholder
         variant="empty"
         size="full"
-        icon={<Layers size={20} strokeWidth={1.5} aria-hidden />}
-        title="Create collection"
-        description="Collections map to Figma variable collections. Add modes, then create or import tokens."
+        icon={null}
+        title="No collections yet"
         actions={[
           {
             label: "Create collection",

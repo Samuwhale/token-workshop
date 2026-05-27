@@ -7,6 +7,7 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
 import {
@@ -65,6 +66,7 @@ import type { TokenMapEntry } from "../../../shared/types";
 import type { EditorSessionRegistration } from "../../contexts/WorkspaceControllerContext";
 import { useElementWidth } from "../../hooks/useElementWidth";
 import { apiFetch } from "../../shared/apiFetch";
+import { clampPopoverToViewport } from "../../shared/floatingPosition";
 import { createUiId } from "../../shared/ids";
 import {
   fetchGeneratorStatuses,
@@ -239,8 +241,11 @@ type GraphStructureCommitUiState = {
 };
 type GraphPanelState = "none" | "inspector" | "nodeLibrary";
 type GeneratorListScope = "collection" | "all";
+type CreateMenuAnchorRect = Pick<DOMRectReadOnly, "top" | "bottom" | "left" | "right">;
 
 const COMPACT_GENERATORS_WIDTH = 560;
+const CREATE_GENERATOR_MENU_WIDTH = 360;
+const CREATE_GENERATOR_MENU_HEIGHT = 620;
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -463,6 +468,11 @@ export function GeneratorsPanel({
   const [inspectorMinimized, setInspectorMinimized] = useState(false);
   const [allNodesOpen, setAllNodesOpen] = useState(false);
   const [createPanelOpen, setCreatePanelOpen] = useState(false);
+  const [createMenuAnchorRect, setCreateMenuAnchorRect] =
+    useState<CreateMenuAnchorRect | null>(null);
+  const [createMenuStyle, setCreateMenuStyle] = useState<CSSProperties | null>(
+    null,
+  );
   const [createOutputPrefix, setCreateOutputPrefix] = useState<string | null>(
     null,
   );
@@ -493,6 +503,7 @@ export function GeneratorsPanel({
   useEffect(() => {
     if (initialCreateOutputPrefix === undefined) return;
     setCreateOutputPrefix(initialCreateOutputPrefix?.trim() || null);
+    setCreateMenuAnchorRect(null);
     setCreatePanelOpen(true);
     onInitialCreateHandled?.();
   }, [initialCreateOutputPrefix, onInitialCreateHandled]);
@@ -539,6 +550,7 @@ export function GeneratorsPanel({
 
   const closeCreatePanel = useCallback(() => {
     setCreateOutputPrefix(null);
+    setCreateMenuAnchorRect(null);
     setCreatePanelOpen(false);
   }, []);
 
@@ -575,6 +587,50 @@ export function GeneratorsPanel({
       createSheetPreviousFocusRef.current = null;
     };
   }, [createPanelOpen]);
+
+  useLayoutEffect(() => {
+    if (!createPanelOpen) {
+      setCreateMenuStyle(null);
+      return;
+    }
+
+    const computeCreateMenuStyle = () => {
+      const panelRect = panelRef.current?.getBoundingClientRect();
+      const fallbackRight = panelRect?.right ?? window.innerWidth - 8;
+      const fallbackTop = (panelRect?.top ?? 0) + 48;
+      const anchorRect =
+        createMenuAnchorRect ?? {
+          top: fallbackTop,
+          bottom: fallbackTop,
+          left: fallbackRight - CREATE_GENERATOR_MENU_WIDTH,
+          right: fallbackRight,
+        };
+      const position = clampPopoverToViewport({
+        anchorRect,
+        preferredWidth: CREATE_GENERATOR_MENU_WIDTH,
+        preferredHeight: CREATE_GENERATOR_MENU_HEIGHT,
+        minVerticalSpace: 280,
+        align: "end",
+      });
+
+      setCreateMenuStyle({
+        position: "fixed",
+        top: position.top,
+        left: position.left,
+        width: position.width,
+        height: position.maxHeight,
+        maxHeight: position.maxHeight,
+      });
+    };
+
+    computeCreateMenuStyle();
+    window.addEventListener("resize", computeCreateMenuStyle);
+    window.addEventListener("scroll", computeCreateMenuStyle, true);
+    return () => {
+      window.removeEventListener("resize", computeCreateMenuStyle);
+      window.removeEventListener("scroll", computeCreateMenuStyle, true);
+    };
+  }, [createMenuAnchorRect, createPanelOpen]);
 
   const setActiveGeneratorSelection = useCallback(
     (generatorId: string | null) => {
@@ -2497,7 +2553,6 @@ export function GeneratorsPanel({
             <div className="tm-graph-empty-state">
               <div className="tm-graph-empty-state__content">
                 <h2>Add nodes</h2>
-                <p>Add a source, a transform, and an output.</p>
                 <div className="tm-graph-empty-state__actions">
                   <Button
                     type="button"
@@ -2917,7 +2972,7 @@ export function GeneratorsPanel({
     );
   };
 
-  const openCreateGenerator = () => {
+  const openCreateGenerator = (event?: ReactMouseEvent<HTMLElement>) => {
     if (busy) {
       setError("Wait for the current generator action to finish.");
       return;
@@ -2928,9 +2983,26 @@ export function GeneratorsPanel({
     }
     setGeneratorListOpen(false);
     setActionsMenuOpen(false);
+    setCreateMenuAnchorRect(event?.currentTarget.getBoundingClientRect() ?? null);
     setCreatePanelOpen(true);
     setError(null);
   };
+
+  const renderCreateGeneratorButton = (label = "New generator") => (
+    <Button
+      type="button"
+      size="sm"
+      variant="secondary"
+      onClick={openCreateGenerator}
+      aria-expanded={createPanelOpen}
+      aria-haspopup="dialog"
+      aria-label="Create generator"
+      title="Create generator"
+    >
+      <Sparkles size={14} />
+      <span>{label}</span>
+    </Button>
+  );
 
   const renderGeneratorCollectionBar = () => {
     const currentCollectionId =
@@ -2955,10 +3027,6 @@ export function GeneratorsPanel({
           },
         }}
         onSelectCollection={changeGeneratorListCollection}
-        onOpenCreateCollection={openCreateGenerator}
-        createActionLabel="New generator"
-        createActionTitle="Create generator"
-        createActionIcon={<Sparkles size={12} strokeWidth={1.5} aria-hidden />}
       />
     );
   };
@@ -3037,6 +3105,9 @@ export function GeneratorsPanel({
           <div className="min-w-0">
             <h2>Generators</h2>
             <p title={selectorScopeSummary}>{selectorScopeSummary}</p>
+          </div>
+          <div className="tm-generator-selector__header-action">
+            {renderCreateGeneratorButton()}
           </div>
         </header>
 
@@ -3197,9 +3268,7 @@ export function GeneratorsPanel({
               description={
                 hasScopedGenerators
                   ? "Try a different name, source, output path, or status."
-                  : generatorListScope === "collection"
-                    ? "Create one in this collection or browse all generators."
-                    : "Create scales, ramps, or token groups."
+                  : undefined
               }
               actions={
                 hasScopedGenerators
@@ -3624,6 +3693,9 @@ export function GeneratorsPanel({
               <div className="tm-generator-workbench-header__secondary">
                 {renderGeneratorTabs()}
                 <div className="tm-generator-header__actions">
+                  {renderCreateGeneratorButton(
+                    compactGenerators ? "New" : "New generator",
+                  )}
                   {renderStatusIndicator(compactGenerators)}
                   {renderGeneratorActions(compactGenerators)}
                 </div>
@@ -3641,9 +3713,6 @@ export function GeneratorsPanel({
         {createPanelOpen ? (
           <div
             className="tm-generator-create-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Create generator"
             onKeyDown={handleCreateSheetKeyDown}
           >
             <button
@@ -3655,6 +3724,9 @@ export function GeneratorsPanel({
             <aside
               ref={createSheetPanelRef}
               className="tm-generator-create-sheet__panel"
+              style={createMenuStyle ?? { visibility: "hidden" }}
+              role="dialog"
+              aria-label="Create generator"
               tabIndex={-1}
             >
               <GeneratorCreatePanel
@@ -3969,7 +4041,7 @@ function ReviewIssueList({
               : "text-[color:var(--color-figma-text-warning)] hover:bg-[var(--surface-warning)]"
           }`}
         >
-          Fix in Graph: {issue.message}
+          {issue.message}
         </button>
       ))}
     </section>
@@ -4020,22 +4092,21 @@ function GeneratorOverviewPanel({
   const outputCount = preview?.outputs.length ?? 0;
   const outputSummary = hasGraphErrors
     ? "Fix settings to preview output"
-    : outputCount > 0
-      ? `${outputCount} ${outputCount === 1 ? "output" : "outputs"} ready to review`
-      : "No generated output yet";
+    : outputCount === 0
+      ? "No generated output yet"
+      : null;
   return (
     <div className="min-w-0 shrink-0">
       <div className="space-y-3">
         <section className="tm-generator-overview">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="min-w-0 space-y-1">
-              <h2 className="m-0 truncate text-body font-semibold text-[color:var(--color-figma-text)]">
-                Generator
-              </h2>
-              <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {outputSummary}
-              </p>
-            </div>
+            {outputSummary ? (
+              <div className="min-w-0 space-y-1">
+                <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  {outputSummary}
+                </p>
+              </div>
+            ) : null}
           </div>
           <div className="tm-generator-overview__facts">
             <span className="text-[color:var(--color-figma-text-secondary)]">
@@ -4065,9 +4136,6 @@ function GeneratorOverviewPanel({
         />
 
         <section className="space-y-3">
-          <h3 className="text-primary font-semibold text-[color:var(--color-figma-text)]">
-            Configuration
-          </h3>
           <GeneratorTextField
             label="Name"
             value={generator.name}
@@ -4086,9 +4154,6 @@ function GeneratorOverviewPanel({
           ) : null}
           {generator.nodes.length === 0 ? (
             <div className="space-y-2 py-1">
-              <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Add nodes to define what this generator creates.
-              </p>
               <Button
                 type="button"
                 size="sm"
@@ -4194,7 +4259,6 @@ function OverviewNodeGroup({
                     {description ? ` · ${description}` : ""}
                   </span>
                 </span>
-                <span className="tm-generator-overview-node__edit">Edit</span>
               </summary>
               <div className="tm-generator-overview-node__body">
                 <NodeInspector

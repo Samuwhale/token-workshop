@@ -89,25 +89,16 @@ const COPY_FORMAT_OPTIONS = [
 
 function SettingsSection({
   title,
-  description,
   children,
 }: {
   title: string;
-  description?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className="flex min-w-0 flex-col gap-2.5 pt-4 first:pt-0">
-      <header className="flex min-w-0 flex-col gap-0.5">
-        <h3 className="m-0 text-[var(--font-size-md)] font-semibold leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]">
-          {title}
-        </h3>
-        {description ? (
-          <p className="m-0 text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
-            {description}
-          </p>
-        ) : null}
-      </header>
+      <h3 className="m-0 text-[var(--font-size-md)] font-semibold leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]">
+        {title}
+      </h3>
       <div className="flex min-w-0 flex-col gap-2">{children}</div>
     </section>
   );
@@ -115,25 +106,16 @@ function SettingsSection({
 
 function SettingsItem({
   title,
-  description,
   children,
 }: {
   title: string;
-  description?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-md)] py-1">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-body font-medium leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]">
-          {title}
-        </span>
-        {description ? (
-          <span className="text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
-            {description}
-          </span>
-        ) : null}
-      </div>
+      <span className="text-body font-medium leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]">
+        {title}
+      </span>
       <div className="min-w-0">{children}</div>
     </div>
   );
@@ -143,40 +125,26 @@ function SwitchRow({
   checked,
   onChange,
   title,
-  description,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   title: string;
-  description?: string;
 }) {
   const labelId = useId();
-  const descriptionId = useId();
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
       aria-labelledby={labelId}
-      aria-describedby={description ? descriptionId : undefined}
       onClick={() => onChange(!checked)}
       className="group flex w-full min-w-0 items-start justify-between gap-3 rounded-[var(--radius-md)] px-2 py-1.5 text-left outline-none transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline focus-visible:outline-[1.5px] focus-visible:outline-[var(--color-figma-accent)] focus-visible:outline-offset-[-1px]"
     >
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span
-          id={labelId}
-          className="text-body font-medium leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]"
-        >
-          {title}
-        </span>
-        {description ? (
-          <span
-            id={descriptionId}
-            className="text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]"
-          >
-            {description}
-          </span>
-        ) : null}
+      <span
+        id={labelId}
+        className="min-w-0 flex-1 text-body font-medium leading-[var(--leading-tight)] text-[color:var(--color-figma-text)]"
+      >
+        {title}
       </span>
       <span
         aria-hidden="true"
@@ -640,7 +608,6 @@ export function SettingsPanel({
               checked={hideDeprecated}
               onChange={handleHideDeprecatedChange}
               title="Hide deprecated tokens"
-              description="Keeps retired tokens out of lists and pickers."
             />
 
             <SettingsItem
@@ -760,9 +727,6 @@ export function SettingsPanel({
               />
             </Field>
 
-            {connectResult === "ok" && (
-              <StatusBanner tone="success" title="Connected successfully" />
-            )}
             {connectResult === "fail" && (
               <StatusBanner tone="danger" title="Cannot reach server">
                 Run <span className="font-mono">pnpm server</span> or{" "}

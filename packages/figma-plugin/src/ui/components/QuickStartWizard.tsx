@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { MousePointer2, Plus, Upload, X } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { MousePointer2, Plus, Upload } from "lucide-react";
 import {
   buildCollectionModeNames,
   CollectionAuthoringFields,
@@ -8,11 +8,9 @@ import {
   validateCollectionAuthoringDraft,
 } from "./CollectionAuthoringFields";
 import type { CreateCollectionRequest } from "./CollectionCreateDialog";
-import { Button, IconButton } from "../primitives";
-import { useFocusTrap } from "../hooks/useFocusTrap";
+import { Button } from "../primitives";
 
 type PrereqPhase = "connect" | "create-collection" | null;
-const QUICK_START_TITLE = "Start token library";
 
 interface QuickStartWizardProps {
   serverUrl: string;
@@ -20,8 +18,6 @@ interface QuickStartWizardProps {
   collectionIds: string[];
   connected: boolean;
   checking?: boolean;
-  onClose: () => void;
-  onComplete: () => void;
   onCollectionCreated?: (collectionId: string) => void;
   onRetryConnection?: () => void;
   onAuthorFirstToken?: (collectionId: string) => void;
@@ -29,29 +25,20 @@ interface QuickStartWizardProps {
   onStartFromSelection?: () => void;
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
   selectedNodeCount?: number;
-  embedded?: boolean;
-  onBack?: () => void;
 }
 
-function ConnectStep({ serverUrl, checking, onRetry, onClose, closeLabel }: {
+function ConnectStep({ serverUrl, checking, onRetry }: {
   serverUrl: string;
   checking?: boolean;
   onRetry?: () => void;
-  onClose: () => void;
-  closeLabel?: string;
 }) {
   const [showServerDetails, setShowServerDetails] = useState(false);
 
   return (
     <div className="flex flex-col gap-3">
-      <div>
-        <p className="text-body font-medium text-[color:var(--color-figma-text)]">
-          Connect token library
-        </p>
-        <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Start the shared token server for this file, then retry.
-        </p>
-      </div>
+      <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+        Start the local server, then retry.
+      </p>
 
       <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2.5 py-2">
         <button
@@ -77,25 +64,17 @@ function ConnectStep({ serverUrl, checking, onRetry, onClose, closeLabel }: {
         ) : null}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      {onRetry ? (
         <Button
           type="button"
-          onClick={onClose}
-          variant="secondary"
-          className="flex-1"
-        >
-          {closeLabel ?? "Close"}
-        </Button>
-        <Button
-          type="button"
-          onClick={() => onRetry?.()}
+          onClick={onRetry}
           disabled={checking}
           variant="primary"
-          className="flex-1"
+          className="w-full"
         >
           {checking ? "Checking…" : "Retry connection"}
         </Button>
-      </div>
+      ) : null}
     </div>
   );
 }
@@ -135,25 +114,12 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
 
   return (
     <div className="flex flex-col gap-3">
-      <div>
-        <p className="text-body font-medium text-[color:var(--color-figma-text)]">
-          Create collection
-        </p>
-        <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          Choose the contexts this collection needs. Tokens get one value per mode.
-        </p>
-      </div>
-
       <CollectionAuthoringFields
         draft={draft}
         pending={saving}
         error={error}
         onNameChange={(value) => {
           setDraft((current) => ({ ...current, name: value }));
-          setError("");
-        }}
-        onModeNamesChange={(modeNames) => {
-          setDraft((current) => ({ ...current, modeNames }));
           setError("");
         }}
         onModeNameChange={(index, value) => {
@@ -194,83 +160,8 @@ function CreateCollectionStep({ onCreateCollection, onCreated }: {
   );
 }
 
-function QuickStartShell({
-  embedded,
-  onClose,
-  children,
-}: {
-  embedded: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(dialogRef);
-
-  useEffect(() => {
-    if (embedded) {
-      return;
-    }
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [embedded, onClose]);
-
-  const content = (
-    <>
-      {!embedded ? (
-        <div className="tm-modal-header tm-modal-header--split border-b border-[var(--color-figma-border)]">
-          <div className="tm-modal-header__headline">
-            <div className="tm-dialog-title">
-              {QUICK_START_TITLE}
-            </div>
-          </div>
-          <div className="tm-modal-header__actions">
-            <IconButton
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              title="Close"
-              size="sm"
-              className="tm-modal-close-button"
-            >
-              <X size={12} strokeWidth={2} aria-hidden />
-            </IconButton>
-          </div>
-        </div>
-      ) : null}
-      {children}
-    </>
-  );
-
-  if (embedded) {
-    return <div className="flex h-full min-h-0 flex-col">{content}</div>;
-  }
-
-  return (
-    <div
-      className="tm-modal-shell"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        ref={dialogRef}
-        className="tm-modal-panel tm-modal-panel--dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-label={QUICK_START_TITLE}
-        style={{ inlineSize: "min(100%, 24rem)", maxBlockSize: "85vh" }}
-      >
-        {content}
-      </div>
-    </div>
-  );
+function QuickStartShell({ children }: { children: React.ReactNode }) {
+  return <div className="flex h-full min-h-0 flex-col">{children}</div>;
 }
 
 function NextStepButton({
@@ -309,8 +200,6 @@ export function QuickStartWizard({
   collectionIds,
   connected,
   checking,
-  onClose,
-  onComplete,
   onCollectionCreated,
   onRetryConnection,
   onAuthorFirstToken,
@@ -318,13 +207,10 @@ export function QuickStartWizard({
   onStartFromSelection,
   onCreateCollection,
   selectedNodeCount = 0,
-  embedded = false,
-  onBack,
 }: QuickStartWizardProps) {
   const [wizardCreatedCollection, setWizardCreatedCollection] = useState<string | null>(null);
   const [wizardCreatedCollectionLabel, setWizardCreatedCollectionLabel] =
     useState<string | null>(null);
-  const [wizardCreatedModeCount, setWizardCreatedModeCount] = useState<number | null>(null);
   const hasCollections =
     collectionIds.length > 0 || wizardCreatedCollection !== null;
   const [prereqPhase, setPrereqPhase] = useState<PrereqPhase>(() => {
@@ -333,7 +219,6 @@ export function QuickStartWizard({
     return null;
   });
   const effectiveCollectionId = wizardCreatedCollection || currentCollectionId;
-  const createdModeCount = wizardCreatedModeCount ?? 1;
 
   useEffect(() => {
     if (!connected) {
@@ -343,25 +228,22 @@ export function QuickStartWizard({
     setPrereqPhase(hasCollections ? null : "create-collection");
   }, [connected, hasCollections]);
 
-  const handleCollectionCreated = useCallback((collectionId: string, modeCount: number, collectionLabel: string) => {
+  const handleCollectionCreated = useCallback((collectionId: string, _modeCount: number, collectionLabel: string) => {
     setWizardCreatedCollection(collectionId);
     setWizardCreatedCollectionLabel(collectionLabel);
-    setWizardCreatedModeCount(modeCount);
     onCollectionCreated?.(collectionId);
     setPrereqPhase(null);
   }, [onCollectionCreated]);
 
   if (prereqPhase === "connect" || prereqPhase === "create-collection") {
     return (
-      <QuickStartShell embedded={embedded} onClose={onClose}>
+      <QuickStartShell>
         <div className="p-3">
           {prereqPhase === "connect" ? (
             <ConnectStep
               serverUrl={serverUrl}
               checking={checking}
               onRetry={onRetryConnection}
-              onClose={embedded && onBack ? onBack : onClose}
-              closeLabel={embedded && onBack ? "Back" : "Close"}
             />
           ) : (
             <CreateCollectionStep
@@ -375,17 +257,15 @@ export function QuickStartWizard({
   }
 
   return (
-    <QuickStartShell embedded={embedded} onClose={onClose}>
+    <QuickStartShell>
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 pb-3 pt-4">
-          <p className="text-body font-medium text-[color:var(--color-figma-text)]">
-            {wizardCreatedCollection
-              ? `"${wizardCreatedCollectionLabel ?? wizardCreatedCollection}" is ready with ${createdModeCount} mode${createdModeCount === 1 ? "" : "s"}.`
-              : effectiveCollectionId
-                ? "Choose what to add next."
-                : "Choose what to add next."}
-          </p>
-        </div>
+        {wizardCreatedCollection ? (
+          <div className="px-4 pb-3 pt-4">
+            <p className="text-body font-medium text-[color:var(--color-figma-text)]">
+              "{wizardCreatedCollectionLabel ?? wizardCreatedCollection}" created.
+            </p>
+          </div>
+        ) : null}
         <div className="px-2 pb-2">
           <NextStepButton
             title="Create token"
@@ -413,26 +293,6 @@ export function QuickStartWizard({
               icon={<MousePointer2 size={13} strokeWidth={1.75} aria-hidden />}
             />
           ) : null}
-        </div>
-        <div className="flex items-center justify-between gap-2 px-4 py-3">
-          {embedded && onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className="text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
-            >
-              Back
-            </button>
-          ) : (
-            <span aria-hidden />
-          )}
-          <button
-            type="button"
-            onClick={onComplete}
-            className="text-secondary text-[color:var(--color-figma-text-secondary)] transition-colors hover:text-[color:var(--color-figma-text)]"
-          >
-            Done
-          </button>
         </div>
       </div>
     </QuickStartShell>

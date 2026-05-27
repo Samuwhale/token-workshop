@@ -27,35 +27,12 @@ export function createInitialCollectionAuthoringDraft(
       };
 }
 
-const MODE_PRESETS: Array<{
-  label: string;
-  description: string;
-  modes: string[];
-}> = [
-  {
-    label: "One mode",
-    description: "One value per token.",
-    modes: ["Default"],
-  },
-  {
-    label: "Light and dark",
-    description: "Separate values for light and dark.",
-    modes: ["Light", "Dark"],
-  },
-  {
-    label: "Mobile and desktop",
-    description: "Separate values for mobile and desktop.",
-    modes: ["Mobile", "Desktop"],
-  },
-];
-
 interface CollectionAuthoringFieldsProps {
   draft: CollectionAuthoringDraft;
   pending?: boolean;
   error?: string;
   nameInputRef?: Ref<HTMLInputElement>;
   onNameChange: (value: string) => void;
-  onModeNamesChange?: (modeNames: string[]) => void;
   onModeNameChange: (index: number, value: string) => void;
   onAddMode: () => void;
   onRemoveMode: (index: number) => void;
@@ -114,14 +91,10 @@ export function CollectionAuthoringFields({
   error,
   nameInputRef,
   onNameChange,
-  onModeNamesChange,
   onModeNameChange,
   onAddMode,
   onRemoveMode,
 }: CollectionAuthoringFieldsProps) {
-  const normalizedModes = draft.modeNames.map((modeName) =>
-    modeName.trim().toLocaleLowerCase(),
-  );
   const hasMultipleModes = draft.modeNames.length > 1;
 
   return (
@@ -154,43 +127,6 @@ export function CollectionAuthoringFields({
             Add mode
           </Button>
         </div>
-
-        {onModeNamesChange ? (
-          <div className="grid gap-1" aria-label="Mode presets">
-            <span className="px-0.5 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-              Mode templates
-            </span>
-            {MODE_PRESETS.map((preset) => {
-              const presetActive =
-                preset.modes.length === normalizedModes.length &&
-                preset.modes.every(
-                  (modeName, index) =>
-                    modeName.toLocaleLowerCase() === normalizedModes[index],
-                );
-              return (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => onModeNamesChange(preset.modes)}
-                  disabled={pending}
-                  aria-pressed={presetActive}
-                  className={`rounded px-2 py-1.5 text-left transition-colors disabled:opacity-50 ${
-                    presetActive
-                      ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
-                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                  }`}
-                >
-                  <span className="block text-body font-medium">
-                    {preset.label}
-                  </span>
-                  <span className="mt-0.5 block text-secondary leading-[var(--leading-body)] text-[color:var(--color-figma-text-secondary)]">
-                    {preset.description}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
 
         <div className="flex flex-col gap-2">
           {draft.modeNames.map((modeName, index) => {
@@ -230,9 +166,6 @@ export function CollectionAuthoringFields({
           })}
         </div>
 
-        <span className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Every token in this collection has one value per mode.
-        </span>
       </div>
 
       {error ? (

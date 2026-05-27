@@ -38,9 +38,6 @@ export function TokenDetailsAdvancedSection({
         <section className="tm-token-details__subsection">
           <div className="tm-token-details__subsection-copy">
             <h4 className="tm-token-details__subsection-title">Metadata</h4>
-            <p className="tm-token-details__subsection-description">
-              Additional fields saved with this token.
-            </p>
           </div>
           {!editable ? (
             <pre className="tm-token-details__code-block">{readOnlyExtensionsText}</pre>
@@ -60,15 +57,12 @@ export function TokenDetailsAdvancedSection({
 
         <section className="tm-token-details__subsection">
           <div className="tm-token-details__subsection-copy">
-            <h4 className="tm-token-details__subsection-title">Saved payload</h4>
-            <p className="tm-token-details__subsection-description">
-              Preview of the token data that will be saved.
-            </p>
+            <h4 className="tm-token-details__subsection-title">JSON preview</h4>
           </div>
           <pre className="tm-token-details__code-block">{rawJsonPreview}</pre>
           {extensionsJsonError ? (
             <p className="tm-token-details__error-copy">
-              Metadata JSON is invalid. The preview excludes that block until it parses.
+              Fix metadata JSON to include it in the preview.
             </p>
           ) : null}
         </section>

@@ -104,38 +104,18 @@ const TEMPLATE_GROUPS: Array<{
 ];
 
 const TEMPLATE_TASK_LABELS: Partial<Record<GeneratorConfiguredTemplateKind, string>> = {
-  colorRamp: "Create a color ramp",
-  spacing: "Create a spacing scale",
-  radius: "Create a radius scale",
-  type: "Create a type scale",
-  opacity: "Create opacity steps",
-  shadow: "Create shadow tokens",
-  zIndex: "Create z-index steps",
-  formula: "Create calculated tokens",
-};
-
-const TEMPLATE_TASK_SUMMARIES: Partial<Record<GeneratorConfiguredTemplateKind, string>> = {
-  colorRamp: "Start from one color and generate named steps.",
-  spacing: "Generate spacing values from a source size.",
-  radius: "Generate corner radius values from a source size.",
-  type: "Generate type sizes from a ratio and unit.",
-  opacity: "Generate reusable opacity values.",
-  shadow: "Generate shadow values from one shadow color.",
-  zIndex: "Generate ordered layer values.",
-  formula: "Generate values from a calculation.",
+  colorRamp: "Color ramp",
+  spacing: "Spacing scale",
+  radius: "Radius scale",
+  type: "Type scale",
+  opacity: "Opacity steps",
+  shadow: "Shadow tokens",
+  zIndex: "Z-index steps",
+  formula: "Calculated tokens",
 };
 
 function getTemplateTaskLabel(kind: GeneratorConfiguredTemplateKind): string {
   return TEMPLATE_TASK_LABELS[kind] ?? "Create generated tokens";
-}
-
-function getTemplateTaskSummary(
-  kind: GeneratorConfiguredTemplateKind,
-  outputPrefix: string,
-): string {
-  const taskSummary =
-    TEMPLATE_TASK_SUMMARIES[kind] ?? "Generate tokens into an output group.";
-  return `${taskSummary} Output: ${outputPrefix}`;
 }
 
 export function GeneratorCreatePanel({
@@ -491,7 +471,7 @@ export function GeneratorCreatePanel({
   ]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[var(--color-figma-bg)]">
+    <div className="flex h-full min-h-0 w-full flex-col bg-[var(--color-figma-bg)]">
       <div className="flex items-center gap-2 border-b border-[var(--color-figma-border)] px-4 py-3">
         <Sparkles
           size={15}
@@ -513,14 +493,6 @@ export function GeneratorCreatePanel({
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {step === "type" ? (
           <div className="space-y-3">
-            <div>
-              <h4 className="text-body font-semibold text-[color:var(--color-figma-text)]">
-                Choose what to generate
-              </h4>
-              <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Start from a template or build the flow yourself.
-              </p>
-            </div>
             <div className="space-y-3">
               <button
                 type="button"
@@ -539,9 +511,6 @@ export function GeneratorCreatePanel({
                 <span className="min-w-0">
                   <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
                     Build graph
-                  </span>
-                  <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                    Create an empty generator and add nodes yourself.
                   </span>
                 </span>
                 <Workflow
@@ -577,12 +546,6 @@ export function GeneratorCreatePanel({
                               <span className="block truncate text-secondary font-semibold text-[color:var(--color-figma-text)]">
                                 {getTemplateTaskLabel(option.id)}
                               </span>
-                              <span className="block truncate text-tertiary text-[color:var(--color-figma-text-secondary)]">
-                                {getTemplateTaskSummary(
-                                  option.id,
-                                  initialOutputPrefixValue || option.outputPrefix,
-                                )}
-                              </span>
                             </span>
                             <TemplateIcon kind={option.id} />
                           </button>
@@ -602,11 +565,6 @@ export function GeneratorCreatePanel({
                   ? "Blank generator"
                   : `${selectedOption.label} generator`}
               </h4>
-              <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                {templateSelection === "blank"
-                  ? "Choose the collection before starting in Graph."
-                  : "Fill in the values this generator needs."}
-              </p>
             </div>
 
             <label className="block">
@@ -635,7 +593,7 @@ export function GeneratorCreatePanel({
 
             <div className="space-y-1">
               <span className="block text-tertiary font-medium text-[color:var(--color-figma-text-secondary)]">
-                Open after create
+                Open in
               </span>
               <SegmentedControl
                 value={initialView}
@@ -643,15 +601,10 @@ export function GeneratorCreatePanel({
                 ariaLabel="Open generator after create"
                 onChange={setInitialView}
               />
-              <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Overview and Graph stay available after creation.
-              </p>
             </div>
 
             {templateSelection === "blank" ? (
-              <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Start in Graph to build the first nodes.
-              </p>
+              null
             ) : (
               <div className="space-y-3">
 
@@ -820,13 +773,11 @@ export function GeneratorCreatePanel({
                         ))}
                       </select>
                     </label>
-                    {crossCollectionSource ? (
+                    {crossCollectionSource && !modeCompatibility ? (
                       <div
-                        className={`mt-2 text-tertiary ${modeCompatibility ? "text-[color:var(--color-figma-text-secondary)]" : "text-[color:var(--color-figma-text-error)]"}`}
+                        className="mt-2 text-tertiary text-[color:var(--color-figma-text-error)]"
                       >
-                        {modeCompatibility
-                          ? "Source modes match the target collection."
-                          : `Missing source ${missingSourceModes.length === 1 ? "mode" : "modes"}: ${missingSourceModes.join(", ")}. Add matching modes to the source collection or choose a source from this collection.`}
+                        Missing source {missingSourceModes.length === 1 ? "mode" : "modes"}: {missingSourceModes.join(", ")}. Add matching modes to the source collection or choose a source from this collection.
                       </div>
                     ) : null}
                   </details>

@@ -188,17 +188,14 @@ export function TableCreateForm({
         <div>
           {multiMode ? (
             <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 px-0.5">
-              <p className="m-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                Each mode needs a value. Use {"{token.path}"} for references.
-              </p>
               <button
                 type="button"
                 onClick={onCopyFirstModeToEmptyModes}
                 disabled={busy}
-                title={`Copy ${modeNames[0]} values to empty modes`}
+                title={`Fill empty modes from ${modeNames[0]}`}
                 className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
               >
-                Copy {modeNames[0]} to empty modes
+                Fill empty from {modeNames[0]}
               </button>
             </div>
           ) : null}

@@ -40,6 +40,16 @@ export function ImportSuccessView() {
         )
       : importNextStepRecommendations
   ).slice(0, 2);
+  const reviewDetailParts = lastImportReviewSummary
+    ? [
+        lastImportReviewSummary.overwriteCount > 0 &&
+          `${lastImportReviewSummary.overwriteCount} updated`,
+        lastImportReviewSummary.mergeCount > 0 &&
+          `${lastImportReviewSummary.mergeCount} merged`,
+        lastImportReviewSummary.keepExistingCount > 0 &&
+          `${lastImportReviewSummary.keepExistingCount} kept`,
+      ].filter(Boolean)
+    : [];
 
   return (
     <div className="flex flex-col items-center gap-3 py-6">
@@ -59,31 +69,13 @@ export function ImportSuccessView() {
         {successMessage}
       </div>
 
-      {lastImportReviewSummary && (
+      {lastImportReviewSummary && reviewDetailParts.length > 0 && (
         <div className="text-secondary text-[color:var(--color-figma-text-secondary)] text-center">
           {lastImportReviewSummary.destinationLabel}
           {" — "}
-          {[
-            lastImportReviewSummary.newCount > 0 && `${lastImportReviewSummary.newCount} imported`,
-            lastImportReviewSummary.overwriteCount > 0 && `${lastImportReviewSummary.overwriteCount} updated`,
-            lastImportReviewSummary.mergeCount > 0 && `${lastImportReviewSummary.mergeCount} merged`,
-            lastImportReviewSummary.keepExistingCount > 0 && `${lastImportReviewSummary.keepExistingCount} kept`,
-          ].filter(Boolean).join(", ")}
+          {reviewDetailParts.join(", ")}
         </div>
       )}
-
-      {nextStepRecommendations.length > 0 ? (
-        <div className="flex flex-col items-center gap-1 text-center">
-          <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
-            {hasFailedWrites ? "Recover failed imports" : "Next step"}
-          </div>
-          <div className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-            {hasFailedWrites
-              ? "Retry the failed items, or review the tokens that imported."
-              : nextStepRecommendations[0]?.rationale}
-          </div>
-        </div>
-      ) : null}
 
       {hasFailedWrites && (
         <div className="w-full max-w-[560px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
@@ -100,9 +92,6 @@ export function ImportSuccessView() {
               {showFailedDetails ? "Hide details" : "Show details"}
             </button>
           </div>
-          <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            Retry failed imports first. Copy details if the same tokens fail again.
-          </p>
           {showFailedDetails ? (
             failedImportGroups.length > 0 ? (
               failedImportGroups.map(group => (

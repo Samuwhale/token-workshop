@@ -60,7 +60,6 @@ interface WelcomePromptProps {
   onStartFromSelection: () => void;
   onAuthorFirstToken?: (collectionId: string) => void;
   onCreateCollection: (request: CreateCollectionRequest) => Promise<string>;
-  onGuidedSetupComplete: () => void;
   onCollectionCreated?: (collectionId: string) => void;
 }
 
@@ -137,7 +136,6 @@ export function WelcomePrompt({
   onStartFromSelection,
   onAuthorFirstToken,
   onCreateCollection,
-  onGuidedSetupComplete,
   onCollectionCreated,
 }: WelcomePromptProps) {
   const [branch, setBranch] = useState<StartHereBranch>(initialBranch);
@@ -217,7 +215,7 @@ export function WelcomePrompt({
         aria-modal="true"
         aria-labelledby="welcome-dialog-title"
       >
-        <div className="tm-start-dialog__header border-b border-[var(--color-figma-border)] px-2.5 py-2">
+        <div className="tm-start-dialog__header px-2.5 py-2">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
               {showBack && (
@@ -278,10 +276,6 @@ export function WelcomePrompt({
                 collectionIds={collectionIds}
                 connected={connected}
                 checking={checking}
-                embedded
-                onBack={() => setBranch("root")}
-                onClose={onClose}
-                onComplete={onGuidedSetupComplete}
                 onCollectionCreated={(collectionId) => {
                   onCollectionCreated?.(collectionId);
                   if (continueWithSelectionAfterCreate) {

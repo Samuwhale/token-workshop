@@ -1275,10 +1275,7 @@ export function TokenDetails({
   );
 
   const createSuggestions = NAMESPACE_SUGGESTIONS[tokenType]?.prefixes ?? [];
-  const footerNote =
-    isGeneratorLocked
-      ? "Managed by generator. Detach to edit."
-      : saveBlockReason;
+  const footerNote = isGeneratorLocked ? null : saveBlockReason;
   const showFooterMeta = Boolean(
     footerNote || (isCreateMode && onSaveAndCreateAnother),
   );
@@ -1345,11 +1342,13 @@ export function TokenDetails({
             Opened from another collection
           </span>
         ) : null}
-        <span
-          className={`tm-token-details__header-context-item ${headerStatusToneClass}`}
-        >
-          {headerStatus}
-        </span>
+        {!isGeneratorLocked ? (
+          <span
+            className={`tm-token-details__header-context-item ${headerStatusToneClass}`}
+          >
+            {headerStatus}
+          </span>
+        ) : null}
       </div>
     </div>
   );
@@ -1394,14 +1393,6 @@ export function TokenDetails({
               className={FLOATING_MENU_CLASS}
               role="menu"
             >
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => runDetailsMenuAction(handleCopyPath)}
-                className={FLOATING_MENU_ITEM_CLASS}
-              >
-                {copied ? "Path copied" : "Copy token path"}
-              </button>
               {onDuplicate ? (
                 <button
                   type="button"
@@ -1844,7 +1835,7 @@ export function TokenDetails({
           </div>
         ) : null}
 
-        <Section title="Identity" emphasis="secondary" className="pt-0">
+        <div className="pt-0">
           <div
             className={
               isCreateMode
@@ -1880,9 +1871,6 @@ export function TokenDetails({
                         autoComplete="off"
                         className={AUTHORING.inputMono}
                       />
-                      <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                        Use dots for subgroups.
-                      </p>
                     </div>
                   </Field>
                   <Field label="Name">
@@ -1911,12 +1899,9 @@ export function TokenDetails({
                     />
                   </Field>
                 </div>
-                <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                  Path:{" "}
-                  <span className="font-mono text-[color:var(--color-figma-text-secondary)]">
-                    {trimmedEditPath || "color.brand.primary"}
-                  </span>
-                </p>
+                <div className="mt-1 font-mono text-secondary text-[color:var(--color-figma-text-secondary)]">
+                  {trimmedEditPath || "color.brand.primary"}
+                </div>
                 {createPathError ? (
                   <p
                     role="alert"
@@ -2030,7 +2015,7 @@ export function TokenDetails({
             </div>
           ) : null}
 
-        </Section>
+        </div>
 
         <Section
           title={valueSectionTitle}
@@ -2100,7 +2085,7 @@ export function TokenDetails({
           </Stack>
         </Section>
 
-        <Section title="Details" emphasis="secondary">
+        <div>
           <Stack gap={4}>
             <Field label="Description">
               <TextArea
@@ -2150,24 +2135,19 @@ export function TokenDetails({
               </Field>
             </div>
           </Stack>
-        </Section>
+        </div>
 
-        {!isCreateMode ? (
+        {!isCreateMode && (referenceCount > 0 || tokenType === "color" || tokenLintViolations.length > 0) ? (
           <Section emphasis="support" className="tm-token-details__disclosures">
-            <Collapsible
-              open={relationshipsOpen}
-              onToggle={() => setRelationshipsOpen((open) => !open)}
-              label={referencesLabel}
-              className="tm-token-details__collapsible"
-            >
-              <div className="tm-token-details__collapsible-body tm-token-details__reference-body">
-                {ancestors.isEmpty && dependents.length === 0 ? (
-                  <p className="tm-token-details__empty-copy">
-                    No aliases or dependent tokens.
-                  </p>
-                ) : null}
-
-                {!ancestors.isEmpty ? (
+            {referenceCount > 0 ? (
+              <Collapsible
+                open={relationshipsOpen}
+                onToggle={() => setRelationshipsOpen((open) => !open)}
+                label={referencesLabel}
+                className="tm-token-details__collapsible"
+              >
+                <div className="tm-token-details__collapsible-body tm-token-details__reference-body">
+                  {!ancestors.isEmpty ? (
                   <div className="tm-token-details__reference-group">
                     <div className="tm-token-details__reference-heading">
                       Resolves through
@@ -2270,9 +2250,9 @@ export function TokenDetails({
                       ))}
                     </div>
                   </div>
-                ) : null}
+                  ) : null}
 
-                {dependents.length > 0 ? (
+                  {dependents.length > 0 ? (
                   <div className="tm-token-details__reference-group">
                     <div className="tm-token-details__reference-heading">
                       Used by
@@ -2316,9 +2296,10 @@ export function TokenDetails({
                       ) : null}
                     </div>
                   </div>
-                ) : null}
-              </div>
-            </Collapsible>
+                  ) : null}
+                </div>
+              </Collapsible>
+            ) : null}
 
             {tokenType === "color" ? (
               <ContrastChecker
@@ -2330,14 +2311,14 @@ export function TokenDetails({
               />
             ) : null}
 
-            <Collapsible
-              open={reviewOpen}
-              onToggle={() => setReviewOpen((open) => !open)}
-              label={reviewIssuesLabel}
-              className="tm-token-details__collapsible"
-            >
-              <div className="tm-token-details__collapsible-body">
-                {tokenLintViolations.length > 0 ? (
+            {tokenLintViolations.length > 0 ? (
+              <Collapsible
+                open={reviewOpen}
+                onToggle={() => setReviewOpen((open) => !open)}
+                label={reviewIssuesLabel}
+                className="tm-token-details__collapsible"
+              >
+                <div className="tm-token-details__collapsible-body">
                   <Stack gap={1}>
                     {tokenLintViolations.map((violation, index) => (
                       <ListItem key={`${violation.rule}:${index}`} allowWrap>
@@ -2347,24 +2328,20 @@ export function TokenDetails({
                       </ListItem>
                     ))}
                   </Stack>
-                ) : (
-                  <p className="m-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                    No review issues for this token.
-                  </p>
-                )}
-                {onOpenInHealth ? (
-                  <div className="tm-token-details__related-actions">
-                    <button
-                      type="button"
-                      onClick={onOpenInHealth}
-                      className="tm-token-details__text-button"
-                    >
-                      Open in review
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            </Collapsible>
+                  {onOpenInHealth ? (
+                    <div className="tm-token-details__related-actions">
+                      <button
+                        type="button"
+                        onClick={onOpenInHealth}
+                        className="tm-token-details__text-button"
+                      >
+                        Open in review
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </Collapsible>
+            ) : null}
           </Section>
         ) : null}
 

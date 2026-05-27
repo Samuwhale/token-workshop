@@ -7,7 +7,7 @@ import {
   useMemo,
 } from "react";
 import type { TokenCollection } from "@token-workshop/core";
-import { Filter, MoreHorizontal } from "lucide-react";
+import { Filter, Layers, MoreHorizontal } from "lucide-react";
 import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
@@ -1085,6 +1085,7 @@ export function SelectionInspector({
             freshSyncResult={freshSyncResult}
             connected={connected}
             totalBindings={totalBindings}
+            visibility="active"
           />
           {hasSelectionActions && (
             <button
@@ -1184,14 +1185,15 @@ export function SelectionInspector({
         </button>
         <button
           onClick={handleToggleDeepInspect}
-          className={`shrink-0 rounded px-1.5 py-0.5 text-secondary transition-colors ${
+          aria-label={deepInspect ? "Hide nested layers" : "Show nested layers"}
+          className={`shrink-0 rounded p-1 transition-colors ${
             deepInspect
               ? "bg-[var(--color-figma-accent)]/20 font-medium text-[color:var(--color-figma-text-accent)]"
               : "bg-[var(--color-figma-bg-hover)] text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
           }`}
           title={deepInspect ? "Hide nested layers" : "Show nested layers"}
         >
-          Nested layers
+          <Layers size={13} strokeWidth={1.75} aria-hidden />
         </button>
       </div>
 
@@ -1522,7 +1524,7 @@ export function SelectionInspector({
       {showClearConfirm && (
         <ConfirmModal
           title={`Clear ${totalBindings} binding${totalBindings !== 1 ? "s" : ""}?`}
-          description="Remove all token bindings from this layer. This can be undone."
+          description="Remove all token bindings from the selection. This can be undone."
           confirmLabel="Clear all"
           danger
           onConfirm={() => {

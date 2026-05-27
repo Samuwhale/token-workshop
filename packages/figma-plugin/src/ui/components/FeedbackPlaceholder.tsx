@@ -50,56 +50,8 @@ const SIZE_STYLES: Record<FeedbackPlaceholderSize, {
   },
 };
 
-const VARIANT_ICON_COLOR: Record<FeedbackPlaceholderVariant, string> = {
-  empty: 'text-[color:var(--color-figma-text-secondary)]',
-  'no-results': 'text-[color:var(--color-figma-text-secondary)]',
-  error: 'text-[color:var(--color-figma-text-error)]',
-  disconnected: 'text-[color:var(--color-figma-text-secondary)]',
-};
-
 function joinClasses(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(' ');
-}
-
-function defaultIcon(variant: FeedbackPlaceholderVariant): ReactNode {
-  switch (variant) {
-    case 'no-results':
-      return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7" />
-          <path d="M20 20l-3.5-3.5" />
-        </svg>
-      );
-    case 'error':
-      return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 8v5" />
-          <path d="M12 16h.01" />
-        </svg>
-      );
-    case 'disconnected':
-      return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M8.5 8.5a5 5 0 0 1 7 0" />
-          <path d="M5.2 5.2a9.5 9.5 0 0 1 13.4 0" />
-          <path d="M2 12.2a14 14 0 0 1 5.4-4.3" />
-          <path d="M22 12.2a14 14 0 0 0-5.4-4.3" />
-          <path d="M12 18h.01" />
-          <path d="M3 3l18 18" />
-        </svg>
-      );
-    case 'empty':
-    default:
-      return (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="4" y="4" width="6" height="6" rx="1.5" />
-          <rect x="14" y="4" width="6" height="6" rx="1.5" />
-          <rect x="4" y="14" width="6" height="6" rx="1.5" />
-          <rect x="14" y="14" width="6" height="6" rx="1.5" />
-        </svg>
-      );
-  }
 }
 
 function FeedbackActionButton({
@@ -131,7 +83,6 @@ function FeedbackActionButton({
 }
 
 export function FeedbackPlaceholder({
-  variant,
   size = 'full',
   title,
   description,
@@ -144,8 +95,7 @@ export function FeedbackPlaceholder({
   align = 'center',
 }: FeedbackPlaceholderProps) {
   const sizeStyles = SIZE_STYLES[size];
-  const iconColor = VARIANT_ICON_COLOR[variant];
-  const iconNode = icon === undefined ? defaultIcon(variant) : icon;
+  const iconNode = icon ?? null;
   const resolvedActions = actions ?? [
     primaryAction,
     secondaryAction,
@@ -172,7 +122,7 @@ export function FeedbackPlaceholder({
         )}
       >
         {iconNode !== null ? (
-          <div className={iconColor}>
+          <div>
             {iconNode}
           </div>
         ) : null}

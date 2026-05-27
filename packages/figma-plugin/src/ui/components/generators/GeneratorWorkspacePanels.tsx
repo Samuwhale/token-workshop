@@ -104,7 +104,6 @@ export function NodeLibraryPanel({
                   onClick={() => onAddNode(item)}
                   title={`Add ${item.label}`}
                   aria-label={`Add ${item.label}. Click to add or drag to the graph.`}
-                  aria-description="Press Enter to add this node. You can also drag it to the graph."
                   className="flex w-full cursor-grab items-start gap-2 rounded-[var(--radius-md)] border border-transparent px-1.5 py-1 text-left text-secondary transition-colors hover:border-[var(--border-muted)] hover:bg-[var(--color-figma-bg-hover)] focus-visible:border-[var(--color-figma-accent)] focus-visible:bg-[var(--surface-accent)] focus-visible:outline-none active:cursor-grabbing"
                 >
                   <Plus
@@ -114,7 +113,7 @@ export function NodeLibraryPanel({
                   <span className="min-w-0">
                     <span className="block truncate">{item.label}</span>
                     {item.description ? (
-                      <span className="block text-tertiary text-[color:var(--color-figma-text-secondary)]">
+                      <span className="sr-only">
                         {item.description}
                       </span>
                     ) : null}

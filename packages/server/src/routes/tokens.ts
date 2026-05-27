@@ -13,7 +13,6 @@ import {
   flattenTokenGroup,
   getTokenLifecycle,
   isReference,
-  parseReference,
   readGeneratorProvenance,
   readTokenCollectionModeValues,
   readTokenModeValuesForCollection,
@@ -66,6 +65,12 @@ interface TokenMutationRouteBody {
 interface TokenPathIndex {
   pathToCollectionId: Record<string, string>;
   collectionIdsByPath: Record<string, string[]>;
+}
+
+interface ModeValueValidationToken {
+  $value: unknown;
+  $type?: string;
+  $extensions?: Token['$extensions'];
 }
 
 function getGeneratorManagedPaths(
@@ -279,6 +284,47 @@ function validateCollectionScopedModeValues(
   for (const modeName of Object.keys(modeValues[collectionId] ?? {})) {
     if (!validModeNames.has(modeName)) {
       return `Token "${tokenPath}" defines unknown mode "${modeName}" for collection "${collectionId}"`;
+    }
+  }
+
+  return null;
+}
+
+function validateCompleteCollectionModeValues(
+  collection: TokenCollection,
+  tokenPath: string,
+  token: ModeValueValidationToken,
+): string | null {
+  const modeKeyError = validateCollectionScopedModeValues(
+    collection.id,
+    new Set(collection.modes.map((mode) => mode.name)),
+    tokenPath,
+    token,
+  );
+  if (modeKeyError) {
+    return modeKeyError;
+  }
+
+  if (collection.modes.length < 2) {
+    return null;
+  }
+
+  const valuesByMode = readTokenModeValuesForCollection(token, collection);
+  for (const mode of collection.modes) {
+    const modeValue = valuesByMode[mode.name];
+    if (modeValue === undefined || modeValue === null) {
+      return `Token "${tokenPath}" is missing a value for mode "${mode.name}" in collection "${collection.id}"`;
+    }
+
+    if (token.$type && TOKEN_TYPE_VALUES.has(token.$type)) {
+      const valueError = validateTokenValue(
+        modeValue,
+        token.$type,
+        `${tokenPath}.${mode.name}`,
+      );
+      if (valueError) {
+        return `Invalid value for mode "${mode.name}" on token "${tokenPath}" (type "${token.$type}"): ${valueError}`;
+      }
     }
   }
 
@@ -597,6 +643,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     );
   }
 
+  function validateCompleteTokenModesForCollectionWrite(
+    collection: TokenCollection,
+    tokenPath: string,
+    token: ModeValueValidationToken,
+  ): string | null {
+    return validateCompleteCollectionModeValues(collection, tokenPath, token);
+  }
+
   function findMissingTokenReference(
     collectionId: string,
     token: Token,
@@ -614,11 +668,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     collectionId: string,
     tokens: TokenGroup,
   ): Promise<string | null> {
-    const validModeNames = await loadCollectionModeNames(collectionId);
+    const collection = await loadCollectionDefinition(collectionId);
     for (const [tokenPath, token] of flattenTokenGroup(tokens)) {
-      const error = validateCollectionScopedModeValues(
-        collectionId,
-        validModeNames,
+      const error = validateCompleteCollectionModeValues(
+        collection,
         tokenPath,
         token,
       );
@@ -1170,6 +1223,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           }
 
           const candidateToken = { ...p.existingToken, ...p.patch } as Token;
+          const completeModeError = validateCompleteTokenModesForCollectionWrite(
+            collection,
+            p.path,
+            candidateToken,
+          );
+          if (completeModeError) {
+            return reply.status(400).send({ error: completeModeError });
+          }
           const tokenErr = validateTokenDefinition(candidateToken, p.path);
           if (tokenErr) {
             return reply.status(400).send({
@@ -1653,16 +1714,33 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           const tokenErr = tokenToValidate
             ? validateTokenDefinition(tokenToValidate, t.path)
             : null;
+          const completeModeError = tokenToValidate
+            ? validateCompleteTokenModesForCollectionWrite(
+                collection,
+                t.path,
+                tokenToValidate,
+              )
+            : null;
+          if (completeModeError) {
+            return reply.status(400).send({ error: completeModeError });
+          }
           if (tokenErr) {
             return reply.status(400).send({
               error: `Invalid token "${t.path}": ${tokenErr}`,
             });
           }
 
-          if (isReference(t.token.$value)) {
-            const targetPath = parseReference(t.token.$value as string);
-            if (!fastify.tokenStore.tokenPathExists(targetPath) && !batchPaths.has(targetPath)) {
-              return reply.status(400).send({ error: `Alias target "${targetPath}" in "${t.path}" does not exist` });
+          if (tokenToValidate) {
+            const missingReference = collectTokenReferencePaths(tokenToValidate, {
+              collectionId,
+              includeExtends: true,
+            }).find(
+              (targetPath) =>
+                !fastify.tokenStore.tokenPathExists(targetPath) &&
+                !batchPaths.has(targetPath),
+            );
+            if (missingReference) {
+              return reply.status(400).send({ error: `Alias target "${missingReference}" in "${t.path}" does not exist` });
             }
           }
         }
@@ -2268,7 +2346,10 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // Also try to resolve it
-      const resolved = await fastify.tokenStore.resolveToken(tokenPath);
+      const resolved = await fastify.tokenStore.resolveTokenInCollection(
+        tokenPath,
+        collectionId,
+      );
       return { path: tokenPath, token, resolved: resolved?.$value ?? null };
     } catch (err) {
       return handleRouteError(reply, err, 'Failed to get token');
@@ -2318,6 +2399,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           );
           if (modeError) {
             return reply.status(400).send({ error: modeError });
+          }
+          const completeModeError = validateCompleteTokenModesForCollectionWrite(
+            collection,
+            tokenPath,
+            normalizedBody,
+          );
+          if (completeModeError) {
+            return reply.status(400).send({ error: completeModeError });
           }
           const tokenErr = validateTokenDefinition(normalizedBody, tokenPath);
           if (tokenErr) {
@@ -2415,6 +2504,14 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.status(400).send({ error: modeError });
           }
           const candidateToken = { ...existingToken, ...normalizedBody } as Token;
+          const completeModeError = validateCompleteTokenModesForCollectionWrite(
+            collection,
+            tokenPath,
+            candidateToken,
+          );
+          if (completeModeError) {
+            return reply.status(400).send({ error: completeModeError });
+          }
           const tokenErr = validateTokenDefinition(candidateToken, tokenPath);
           if (tokenErr) {
             return reply.status(400).send({

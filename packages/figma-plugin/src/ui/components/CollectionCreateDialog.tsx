@@ -133,10 +133,6 @@ function CollectionCreateDialogContent({
               setDraft((current) => ({ ...current, name: value }));
               setError("");
             }}
-            onModeNamesChange={(modeNames) => {
-              setDraft((current) => ({ ...current, modeNames }));
-              setError("");
-            }}
             onModeNameChange={(index, value) => {
               setDraft((current) => ({
                 ...current,
@@ -163,7 +159,7 @@ function CollectionCreateDialogContent({
           />
         </div>
 
-        <div className="tm-modal-footer tm-modal-footer--confirm border-t border-[var(--color-figma-border)] pt-3">
+        <div className="tm-modal-footer tm-modal-footer--confirm pt-3">
           <Button
             type="button"
             onClick={onClose}

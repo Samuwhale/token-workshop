@@ -428,14 +428,6 @@ export function PlatformExportConfig({
   return (
     <>
       <div>
-        <div className="mb-1">
-          <div className="text-body font-semibold text-[color:var(--color-figma-text)]">
-            Export intent
-          </div>
-          <div className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-            Pick the handoff first. Refine the file settings after.
-          </div>
-        </div>
         <div className="tm-export-intents">
           <Button
             onClick={() =>
@@ -522,7 +514,7 @@ export function PlatformExportConfig({
       <div>
         <DisclosureRow
           title="Scope"
-          summary={changesOnly ? 'Changed since last shared version' : 'All tokens'}
+          summary={changesOnly ? 'Changed tokens only' : 'All tokens'}
           open={scopeOpen}
           onToggle={() => setScopeOpen((v) => !v)}
           className="mb-1"
@@ -532,11 +524,11 @@ export function PlatformExportConfig({
             <CheckboxRow
               checked={changesOnly}
               onChange={toggleChangesOnly}
-              title="Only changed since last shared version"
+              title="Changed tokens only"
               description={
                 isGitRepo === false
-                  ? 'Export tokens changed since the current baseline. Each successful export resets the baseline to now.'
-                  : 'Export tokens added or modified since the last commit.'
+                  ? 'Changed since baseline; export resets it.'
+                  : 'Added or modified since last commit.'
               }
               className="px-0"
             />
@@ -639,12 +631,6 @@ export function PlatformExportConfig({
               </div>
             )}
 
-            {presets.length === 0 && !showSavePreset && (
-              <div className="text-secondary text-[color:var(--color-figma-text-tertiary)] leading-relaxed">
-                Save a repeat export.
-              </div>
-            )}
-
             {presets.length > 0 && (
               <div className="flex flex-col gap-1">
                 {presets.map((preset) => (
@@ -739,12 +725,6 @@ export function PlatformExportConfig({
                       spellCheck={false}
                       className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-body font-mono text-[color:var(--color-figma-text)] transition-colors placeholder:text-[color:var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
                     />
-                    <div className="text-secondary leading-relaxed text-[color:var(--color-figma-text-tertiary)]">
-                      Wrap CSS variables with a custom selector, such as{' '}
-                      <span className="font-mono">.light</span>,{' '}
-                      <span className="font-mono">[data-theme="dark"]</span>, or{' '}
-                      <span className="font-mono">:root .brand</span>.
-                    </div>
                   </div>
                 ) : null}
               </div>
@@ -904,9 +884,7 @@ export function PlatformExportConfig({
                     className="w-full rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2.5 py-1.5 text-body font-mono text-[color:var(--color-figma-text)] transition-colors placeholder:text-[color:var(--color-figma-text-tertiary)] focus-visible:border-[var(--color-figma-accent)]"
                   />
                   <div className="mt-1 text-secondary leading-relaxed text-[color:var(--color-figma-text-tertiary)]">
-                    Export only tokens under this path, such as{' '}
-                    <span className="font-mono">color</span> or{' '}
-                    <span className="font-mono">spacing.scale</span>.
+                    Filters exported token paths.
                   </div>
                 </>
               ) : null}

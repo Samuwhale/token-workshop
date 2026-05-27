@@ -82,8 +82,7 @@ export function useSelectionSyncStatus({
         : syncing ||
           Boolean(syncError) ||
           Boolean(syncResult) ||
-          Boolean(freshSyncResult) ||
-          (connected && totalBindings > 0);
+          Boolean(freshSyncResult);
 
     return { label, toneClass, visible };
   }, [

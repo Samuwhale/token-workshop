@@ -8,7 +8,7 @@ import { FeedbackPlaceholder } from "../FeedbackPlaceholder";
 interface ReviewRow {
   id: string;
   label: string;
-  description: string;
+  description?: string;
   count: number;
   severity: HealthStatus;
   pending?: boolean;
@@ -141,12 +141,6 @@ export function HealthDashboard({
     {
       id: "issues",
       label: "Validation issues",
-      description:
-        issueCount > 0
-          ? "Fix rule failures and invalid token values."
-          : validationLoading
-            ? "Checking token rules."
-            : "No token rule issues found.",
       count: issueCount,
       severity: issueStatus,
       onOpen: openView("issues"),
@@ -155,8 +149,7 @@ export function HealthDashboard({
       id: "generators",
       label: "Generated-token updates",
       description:
-        highestPriorityGeneratorIssue?.message ??
-        "Preview outputs, resolve conflicts, then apply to a collection.",
+        highestPriorityGeneratorIssue?.message,
       count: generatorIssueCount,
       severity: generatorStatus,
       disabled: !onNavigateToGenerators && !onViewGeneratorIssue,
@@ -171,7 +164,6 @@ export function HealthDashboard({
     {
       id: "deprecated",
       label: "Deprecated references",
-      description: "Replace active references to retired tokens.",
       count: deprecatedCount,
       severity: sevFromCount(deprecatedCount),
       onOpen: openView("deprecated"),
@@ -182,9 +174,6 @@ export function HealthDashboard({
     {
       id: "unused",
       label: "Unused tokens",
-      description: unusedReady
-        ? "Review tokens not found on the Figma canvas."
-        : "Scanning Figma usage.",
       count: unusedCount,
       severity: sevFromCount(unusedCount),
       pending: !unusedReady,
@@ -193,7 +182,6 @@ export function HealthDashboard({
     {
       id: "alias-opportunities",
       label: "Suggested references",
-      description: "Promote repeated values into shared tokens.",
       count: aliasOpportunitiesCount,
       severity: sevFromCount(aliasOpportunitiesCount),
       onOpen: openView("alias-opportunities"),
@@ -201,7 +189,6 @@ export function HealthDashboard({
     {
       id: "duplicates",
       label: "Duplicates",
-      description: "Merge matching values that can share one token.",
       count: duplicateCount,
       severity: sevFromCount(duplicateCount),
       onOpen: openView("duplicates"),
@@ -212,7 +199,6 @@ export function HealthDashboard({
     cleanupRows.push({
       id: "hidden",
       label: "Hidden",
-      description: "Restore issues hidden from Review.",
       count: hiddenCount,
       severity: "healthy",
       onOpen: openView("hidden"),
@@ -229,10 +215,10 @@ export function HealthDashboard({
   const statusDetail = validationError
     ? validationError
     : !unusedReady
-      ? `${scopeLabel} Checking Figma usage.`
+      ? `Checking usage in ${scopeLabel}.`
     : totalIssueCount === 0
-      ? `${scopeLabel} No review items.`
-      : `${totalIssueCount} review item${totalIssueCount === 1 ? "" : "s"} found. Fix blockers first. Cleanup can wait.`;
+      ? null
+      : `${totalIssueCount} review item${totalIssueCount === 1 ? "" : "s"}.`;
 
   return (
     <div className="tm-health-dashboard" style={{ scrollbarWidth: "thin" }}>
@@ -244,9 +230,11 @@ export function HealthDashboard({
           <h2 className="text-body font-semibold text-[color:var(--color-figma-text)]">
             {statusTitle}
           </h2>
-          <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-            {statusDetail}
-          </p>
+          {statusDetail ? (
+            <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
+              {statusDetail}
+            </p>
+          ) : null}
         </div>
         {validationLastRefreshed && !validationLoading && !validationError ? (
           <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-tertiary)]">

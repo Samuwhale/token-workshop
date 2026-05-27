@@ -2106,7 +2106,7 @@ export function App() {
         </div>
 
         {/* Bottom utilities */}
-        <div className={`flex flex-col gap-px border-t border-[var(--border-muted)] bg-[var(--surface-panel-header)] ${sidebarCollapsed ? 'items-center px-1 py-1.5' : 'px-2 py-2'}`}>
+        <div className={`flex flex-col gap-px ${sidebarCollapsed ? 'items-center px-1 py-1.5' : 'px-2 py-2'}`}>
           {sidebarCollapsed ? (
             <>
               <div className="flex flex-col items-center gap-0.5">
@@ -2136,7 +2136,6 @@ export function App() {
                   </button>
                 </Tooltip>
               </div>
-              <div className="my-1 w-5 border-t border-[var(--border-muted)]" />
               <div className="flex flex-col items-center gap-0.5">
                 <Tooltip label={undoButtonLabel} position="right">
                   <button onClick={executeUndo} disabled={!canUndo} className={`h-8 w-8 ${SIDEBAR_ICON_BUTTON_CLASS} text-[color:var(--color-figma-text-secondary)]`} aria-label={undoButtonLabel} title={undoButtonLabel}>
@@ -2176,7 +2175,6 @@ export function App() {
                   <Settings size={14} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Settings</span>
                 </button>
-                <div className="my-1 h-px w-full bg-[var(--border-muted)]" />
                 <button onClick={executeUndo} disabled={!canUndo} className="tm-sidebar-utility-button text-[color:var(--color-figma-text-secondary)]" aria-label={undoButtonLabel} title={undoButtonLabel}>
                   <Undo2 size={13} strokeWidth={1.5} aria-hidden className="shrink-0" />
                   <span className="tm-sidebar-utility-button__label">Undo</span>
@@ -2210,7 +2208,6 @@ export function App() {
           )}
           {!responsiveSidebarCollapsed ? (
             <>
-              <div className={`${sidebarCollapsed ? 'my-1 w-5 mx-auto' : 'my-1 w-full'} border-t border-[var(--border-muted)]`} />
               <Tooltip label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} position="right" hidden={!sidebarCollapsed}>
                 <button
                   onClick={toggleSidebarCollapsed}
@@ -2575,14 +2572,6 @@ export function App() {
                   mode: "edit",
                   isCreate: true,
                 });
-              },
-              { completeFirstRun: true },
-            );
-          }}
-          onGuidedSetupComplete={() => {
-            runStartHereAction(
-              () => {
-                refreshAll();
               },
               { completeFirstRun: true },
             );

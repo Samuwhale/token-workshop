@@ -472,9 +472,6 @@ function ModesSection({
     <div>
       <SectionHeader>Modes</SectionHeader>
       <div className="px-3">
-        <p className="px-1 pb-2 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-          Every token in this collection has one value per mode.
-        </p>
         {collection.modes.map((mode, index) => (
           <ModeRow
             key={mode.name}
@@ -542,8 +539,8 @@ function ModesSection({
               {!addError ? (
                 <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
                   {addSourceModeName === EMPTY_MODE_SOURCE
-                    ? "Existing tokens get an empty value in this mode."
-                    : `Existing tokens start with copies of their ${addSourceModeName} values.`}
+                    ? "Existing tokens: empty."
+                    : `Existing tokens: copied from ${addSourceModeName}.`}
                 </p>
               ) : null}
               <div className="mt-2 flex items-center justify-end gap-2">
@@ -802,7 +799,7 @@ export function CollectionDetailsPanel({
             </div>
           ) : null}
           <div className="flex flex-1 items-center justify-center px-6 text-center text-body text-[color:var(--color-figma-text-secondary)]">
-            Choose a collection to review its structure.
+            Choose a collection.
           </div>
         </div>
       </div>
@@ -1007,19 +1004,19 @@ export function CollectionDetailsPanel({
                     </div>
                   ) : null}
                   <ActionRow onClick={() => onDuplicate?.(collection.id)}>
-                    Duplicate collection
+                    Duplicate
                   </ActionRow>
                   <ActionRow
                     onClick={() => onMerge?.(collection.id)}
                     disabled={!canMerge}
                   >
-                    Merge into another collection
+                    Merge into…
                   </ActionRow>
                   <ActionRow onClick={() => onSplit?.(collection.id)}>
-                    Split by top-level groups
+                    Split by top-level group
                   </ActionRow>
                   <ActionRow onClick={() => onDelete?.(collection.id)} tone="danger">
-                    Delete collection
+                    Delete
                   </ActionRow>
                 </div>
               </Collapsible>

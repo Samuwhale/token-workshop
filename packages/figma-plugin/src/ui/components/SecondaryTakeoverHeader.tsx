@@ -12,7 +12,7 @@ export function SecondaryTakeoverHeader({
   closeLabel = "Back",
 }: SecondaryTakeoverHeaderProps) {
   return (
-    <div className="flex items-center gap-1 border-b border-[var(--color-figma-border)] bg-[var(--surface-panel-header)] px-2 py-1.5">
+    <div className="flex items-center gap-1 px-2 py-1.5">
       <button
         type="button"
         onClick={onClose}
@@ -21,7 +21,7 @@ export function SecondaryTakeoverHeader({
         title={closeLabel}
       >
         <ChevronLeft size={12} strokeWidth={1.7} aria-hidden />
-        <span>{closeLabel}</span>
+        <span className="sr-only">{closeLabel}</span>
       </button>
       <h2 className="min-w-0 text-body font-medium text-[color:var(--color-figma-text)]">
         {title}
