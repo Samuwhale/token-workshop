@@ -234,15 +234,6 @@ export function ImportPreviewFooter() {
             >
               Retry compare
             </Button>
-          ) : hasPreviewConflicts ? (
-            <Button
-              onClick={handleImportStyles}
-              variant="ghost"
-              size="sm"
-              wrap
-            >
-              Review matches
-            </Button>
           ) : null}
         </div>
       )}

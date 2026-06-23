@@ -3,7 +3,7 @@ import { apiFetch } from "./apiFetch";
 
 export const DUPLICATE_MODE_NAME_MESSAGE = "Mode names must be different.";
 export const EMPTY_MODE_SOURCE = "__token-workshop-empty-mode-source__";
-export const MODE_STARTING_VALUES_LABEL = "Initial values";
+export const MODE_STARTING_VALUES_LABEL = "Fill existing tokens from";
 
 interface CollectionModeRequest {
   serverUrl: string;

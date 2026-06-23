@@ -20,6 +20,7 @@ interface RequestPluginMessageOptions<
   unavailableMessage: string;
   progressType?: TProgress["type"];
   onProgress?: (message: TProgress) => void;
+  cancelOnTimeout?: (correlationId: string) => void;
 }
 
 export function requestPluginMessage<
@@ -34,6 +35,7 @@ export function requestPluginMessage<
 
   return new Promise((resolve, reject) => {
     const timeout = window.setTimeout(() => {
+      options.cancelOnTimeout?.(correlationId);
       cleanup();
       reject(new Error(options.timeoutMessage));
     }, options.timeoutMs);

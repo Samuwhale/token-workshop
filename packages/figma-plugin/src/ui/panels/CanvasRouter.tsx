@@ -22,13 +22,10 @@ import {
   useTokensWorkspaceController,
 } from "../contexts/WorkspaceControllerContext";
 import type { useTokenContextNavigation } from "../hooks/useTokenContextNavigation";
-import type { LibraryReviewSummary } from "../shared/reviewSummary";
 type SubTab = "inspect" | "repair";
 
 interface CanvasRouterProps {
   subTab: SubTab;
-  reviewTotals: LibraryReviewSummary["totals"];
-  openScopedHealth: (collectionId: string) => void;
   openTokenInContext: ReturnType<typeof useTokenContextNavigation>;
 }
 
@@ -59,8 +56,6 @@ function CanvasRepairPanelMount({
 
 export function CanvasRouter({
   subTab,
-  reviewTotals,
-  openScopedHealth,
   openTokenInContext,
 }: CanvasRouterProps): ReactNode {
   const { serverUrl, connected } = useConnectionContext();
@@ -88,14 +83,11 @@ export function CanvasRouter({
   const syncCtrl = useSyncWorkspaceController();
   const deliveryStrip = (
     <DeliveryStatusStrip
-      reviewStatus={reviewTotals.status}
-      reviewItemCount={reviewTotals.reviewItems}
       pendingPublishCount={syncCtrl.pendingPublishCount}
       publishApplying={syncCtrl.publishApplying}
       syncing={syncing}
       syncError={syncError}
       syncResult={syncResult}
-      onOpenHealth={() => openScopedHealth(currentCollectionId)}
       onOpenPublishCompare={() => {
         navigateTo("publish", "publish-figma");
         syncCtrl.publishPanelHandleRef.current?.focusStage("compare");

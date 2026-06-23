@@ -1,15 +1,11 @@
-import type { HealthStatus } from "../hooks/useHealthSignals";
 import type { SyncCompleteMessage } from "../../shared/types";
 
 interface DeliveryStatusStripProps {
-  reviewStatus: HealthStatus;
-  reviewItemCount: number;
   pendingPublishCount: number;
   publishApplying: boolean;
   syncing: boolean;
   syncError: string | null;
   syncResult: SyncCompleteMessage | null;
-  onOpenHealth: () => void;
   onOpenPublishCompare: () => void;
   onOpenRepair?: () => void;
   onOpenSync: () => void;
@@ -38,12 +34,6 @@ const LABEL_TONE: Record<Tone, string> = {
   warning: "text-[color:var(--color-figma-text-warning)]",
   error: "text-[color:var(--color-figma-text-error)]",
 };
-
-function healthTone(status: HealthStatus): Tone {
-  if (status === "critical") return "error";
-  if (status === "warning") return "warning";
-  return "neutral";
-}
 
 function syncChip(
   syncing: boolean,
@@ -93,29 +83,16 @@ function syncChip(
 }
 
 export function DeliveryStatusStrip({
-  reviewStatus,
-  reviewItemCount,
   pendingPublishCount,
   publishApplying,
   syncing,
   syncError,
   syncResult,
-  onOpenHealth,
   onOpenPublishCompare,
   onOpenRepair,
   onOpenSync,
 }: DeliveryStatusStripProps) {
   const chips: Chip[] = [];
-
-  if (reviewItemCount > 0) {
-    chips.push({
-      id: "health",
-      label: `Fix library (${reviewItemCount})`,
-      tone: healthTone(reviewStatus),
-      onClick: onOpenHealth,
-      title: "Open Library Review",
-    });
-  }
 
   if (publishApplying) {
     chips.push({
@@ -141,7 +118,7 @@ export function DeliveryStatusStrip({
   if (chips.length === 0) return null;
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-[var(--color-figma-border)] px-3 py-1">
+    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 border-b border-[var(--color-figma-border)] px-3 py-1">
       {chips.map((chip) => (
         <button
           key={chip.id}

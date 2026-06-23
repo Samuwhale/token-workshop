@@ -23,9 +23,8 @@ import {
   readGeneratorProvenance,
   readTokenModeValuesForCollection,
   resolveCollectionIdForPath,
-  resolveRefValue,
 } from "@token-workshop/core";
-import type { TokenCollection, TokenType } from "@token-workshop/core";
+import type { TokenCollection } from "@token-workshop/core";
 import type { EditorSessionRegistration } from "../contexts/WorkspaceControllerContext";
 import { ConfirmModal } from "./ConfirmModal";
 import type { TokenMapEntry } from "../../shared/types";
@@ -33,7 +32,6 @@ import { TypePicker } from "./TypePicker";
 import { COMPOSITE_TOKEN_TYPES } from "@token-workshop/core";
 import { isAlias, extractAliasPath } from "../../shared/resolveAlias";
 import { ContrastChecker } from "./ContrastChecker";
-import { DerivationEditor } from "./DerivationEditor";
 import { ScopeEditor } from "./ScopeEditor";
 import { FIGMA_SCOPE_OPTIONS } from "../shared/tokenMetadata";
 import { useTokenEditorModeValue } from "../hooks/useTokenEditorModeValue";
@@ -133,7 +131,6 @@ interface TokenDetailsProps {
   syncSnapshot?: Record<string, string>;
   onDuplicate?: () => void;
   onOpenInHealth?: () => void;
-  onManageCollectionModes?: (collectionId: string) => void;
 }
 
 function isEmptyModeValue(value: unknown): boolean {
@@ -236,7 +233,6 @@ export function TokenDetails({
   syncSnapshot,
   onDuplicate,
   onOpenInHealth,
-  onManageCollectionModes,
 }: TokenDetailsProps) {
   const ownerCollectionId = useMemo(
     () =>
@@ -323,7 +319,6 @@ export function TokenDetails({
     colorFlatMap,
   } = fields;
 
-  const valueIsAlias = typeof value === "string" && isAlias(value);
   const activeCollection = useMemo(
     () =>
       collections.find((collection) => collection.id === ownerCollectionId) ??
@@ -812,12 +807,12 @@ export function TokenDetails({
             path: tokenPath,
           }),
         },
-	      );
-	      setDetachedFromGenerator(true);
-	      if (passthroughTokenWorkshopRef.current) {
-	        delete passthroughTokenWorkshopRef.current.generator;
-	      }
-	      onRefresh?.();
+        );
+      setDetachedFromGenerator(true);
+      if (passthroughTokenWorkshopRef.current) {
+        delete passthroughTokenWorkshopRef.current.generator;
+      }
+      onRefresh?.();
       setShowDetachGeneratorConfirm(false);
       dispatchToast(`Detached "${tokenPath}" from generator`, "success", {
         destination: {
@@ -1289,16 +1284,14 @@ export function TokenDetails({
       ? "Modified"
       : syncChanged
         ? "Not synced"
-        : isCreateMode
-          ? "New"
-          : "Saved";
+        : null;
   const headerStatusToneClass = isGeneratorLocked
     ? "tm-token-details__header-context-item--locked"
     : isDirty
       ? "tm-token-details__header-context-item--dirty"
       : syncChanged
         ? "tm-token-details__header-context-item--sync"
-        : "tm-token-details__header-context-item--saved";
+        : "";
 
   const headerTitle = (
     <div className="tm-token-details__header-title">
@@ -1317,18 +1310,16 @@ export function TokenDetails({
           >
             <Lock size={12} strokeWidth={1.7} aria-hidden />
           </span>
-        ) : (
+        ) : isDirty || syncChanged ? (
           <span
             className={`tm-token-details__status-dot ${
               isDirty
                 ? "tm-token-details__status-dot--dirty"
-                : syncChanged
-                  ? "tm-token-details__status-dot--sync"
-                  : "tm-token-details__status-dot--saved"
+                : "tm-token-details__status-dot--sync"
             }`}
             aria-hidden
           />
-        )}
+        ) : null}
       </div>
       <div className="tm-token-details__header-context">
         <span
@@ -1342,7 +1333,7 @@ export function TokenDetails({
             Opened from another collection
           </span>
         ) : null}
-        {!isGeneratorLocked ? (
+        {headerStatus ? (
           <span
             className={`tm-token-details__header-context-item ${headerStatusToneClass}`}
           >
@@ -1355,23 +1346,6 @@ export function TokenDetails({
 
   const headerActions = (
     <>
-      {valueIsAlias &&
-        tokenType === "color" &&
-        (() => {
-          const refPath = extractAliasPath(value as string);
-          const resolved = refPath
-            ? resolveRefValue(refPath, colorFlatMap)
-            : null;
-          if (!resolved) return null;
-          return (
-            <div
-              className="w-3.5 h-3.5 rounded-sm border border-white/50 ring-1 ring-[var(--color-figma-border)]"
-              style={{ backgroundColor: resolved }}
-              title={resolved}
-              aria-hidden="true"
-            />
-          );
-        })()}
       {!isCreateMode && (
         <div className="relative">
           <IconButton
@@ -1556,12 +1530,12 @@ export function TokenDetails({
     </div>
   );
 
-  const extendsSection =
-    !valueIsAlias && COMPOSITE_TOKEN_TYPES.has(tokenType) ? (
-      <div className="flex flex-col gap-1">
-        <label className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-          Reuse properties from token
-        </label>
+  const hasAnyModeAlias = modeValue.modes.some(
+    (modeItem) => typeof modeItem.value === "string" && isAlias(modeItem.value),
+  );
+  const reusePropertiesSection =
+    !hasAnyModeAlias && COMPOSITE_TOKEN_TYPES.has(tokenType) ? (
+      <Section title="Reuse properties" className="tm-token-details__reuse-section">
         {extendsPath ? (
           <div className="flex items-center gap-1.5">
             <Link2
@@ -1599,7 +1573,7 @@ export function TokenDetails({
           />
         ) : (
           <p className="text-secondary text-[color:var(--color-figma-text-tertiary)]">
-            Not reusing another token
+            None
           </p>
         )}
         {extendsPath &&
@@ -1625,11 +1599,11 @@ export function TokenDetails({
             }
             return (
               <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                Empty properties use values from this token.
+                Unset properties use this token.
               </p>
             );
           })()}
-      </div>
+      </Section>
     ) : null;
 
   const readOnlyExtensionsText = extensionsJsonText.trim() || "{}";
@@ -1655,20 +1629,6 @@ export function TokenDetails({
 
   const valueSectionTitle =
     modeValue.modes.length >= 2 ? "Mode values" : "Mode value";
-  const modeSectionActions =
-    fieldEditable && onManageCollectionModes ? (
-      <div className="tm-token-details__mode-section-actions">
-        {onManageCollectionModes ? (
-          <button
-            type="button"
-            onClick={() => onManageCollectionModes(ownerCollectionId)}
-            className="tm-token-details__text-button"
-          >
-            Edit collection modes
-          </button>
-        ) : null}
-      </div>
-    ) : undefined;
   const modeRows = modeValue.modes.map((modeItem, modeIdx) => {
     const modeVal = modeItem.value;
     const inheritedValue = extendsPath
@@ -1770,8 +1730,6 @@ export function TokenDetails({
           displayError={displayError}
           retryAction={retryAction}
           lintViolations={tokenLintViolations}
-          lifecycle={lifecycle}
-          isCreateMode={isCreateMode}
           isEditMode
           pendingTypeChange={pendingTypeChange}
           tokenType={tokenType}
@@ -1835,7 +1793,7 @@ export function TokenDetails({
           </div>
         ) : null}
 
-        <div className="pt-0">
+        <div className="tm-token-details__identity-panel">
           <div
             className={
               isCreateMode
@@ -2017,10 +1975,11 @@ export function TokenDetails({
 
         </div>
 
+        {reusePropertiesSection}
+
         <Section
           title={valueSectionTitle}
           emphasis="primary"
-          actions={modeSectionActions}
         >
           <Stack
             gap={3}
@@ -2071,23 +2030,12 @@ export function TokenDetails({
                 ))}
               </Stack>
             </div>
-
-            {fieldEditable && valueIsAlias ? (
-              <DerivationEditor
-                sourceType={tokenType as TokenType | undefined}
-                reference={value as string}
-                allTokensFlat={allTokensFlat}
-                derivationOps={derivationOps}
-                onDerivationOpsChange={setDerivationOps}
-              />
-            ) : null}
-
           </Stack>
         </Section>
 
-        <div>
-          <Stack gap={4}>
-            <Field label="Description">
+        <Section title="Details">
+          <div className="tm-token-details__details-grid">
+            <Field label="Description" className="tm-token-details__details-description">
               <TextArea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -2098,44 +2046,42 @@ export function TokenDetails({
               />
             </Field>
 
-            <div className="tm-token-details__details-list">
-              {FIGMA_SCOPE_OPTIONS[tokenType] ? (
-                <Field label="Can apply to">
-                  <ScopeEditor
-                    tokenTypes={[tokenType]}
-                    selectedScopes={scopes}
-                    onChange={setScopes}
-                    disabled={!fieldEditable}
-                    compact
-                    showDescriptions={false}
-                  />
-                </Field>
-              ) : null}
-
-              <Field label="Lifecycle">
-                <div className="tm-token-details__lifecycle-row">
-                  <span
-                    className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`}
-                    aria-hidden
-                  />
-                  <select
-                    value={lifecycle}
-                    onChange={(e) =>
-                      setLifecycle(e.target.value as typeof lifecycle)
-                    }
-                    disabled={!fieldEditable}
-                    className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
-                    aria-label="Lifecycle"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="deprecated">Deprecated</option>
-                  </select>
-                </div>
+            {FIGMA_SCOPE_OPTIONS[tokenType] ? (
+              <Field label="Can apply to" className="tm-token-details__details-scope">
+                <ScopeEditor
+                  tokenTypes={[tokenType]}
+                  selectedScopes={scopes}
+                  onChange={setScopes}
+                  disabled={!fieldEditable}
+                  compact
+                  showDescriptions={false}
+                />
               </Field>
-            </div>
-          </Stack>
-        </div>
+            ) : null}
+
+            <Field label="Lifecycle" className="tm-token-details__details-lifecycle">
+              <div className="tm-token-details__lifecycle-row">
+                <span
+                  className={`tm-token-details__lifecycle-dot ${lifecycleDotClass}`}
+                  aria-hidden
+                />
+                <select
+                  value={lifecycle}
+                  onChange={(e) =>
+                    setLifecycle(e.target.value as typeof lifecycle)
+                  }
+                  disabled={!fieldEditable}
+                  className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] px-2 py-1 text-body text-[color:var(--color-figma-text)] outline-none focus-visible:border-[var(--color-figma-accent)] disabled:opacity-60"
+                  aria-label="Lifecycle"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="deprecated">Deprecated</option>
+                </select>
+              </div>
+            </Field>
+          </div>
+        </Section>
 
         {!isCreateMode && (referenceCount > 0 || tokenType === "color" || tokenLintViolations.length > 0) ? (
           <Section emphasis="support" className="tm-token-details__disclosures">
@@ -2302,13 +2248,15 @@ export function TokenDetails({
             ) : null}
 
             {tokenType === "color" ? (
-              <ContrastChecker
-                tokenPath={tokenPath}
-                value={value}
-                allTokensFlat={allTokensFlat}
-                pathToCollectionId={pathToCollectionId}
-                colorFlatMap={colorFlatMap}
-              />
+              modeValue.modes.length === 1 ? (
+                <ContrastChecker
+                  tokenPath={tokenPath}
+                  value={value}
+                  allTokensFlat={allTokensFlat}
+                  pathToCollectionId={pathToCollectionId}
+                  colorFlatMap={colorFlatMap}
+                />
+              ) : null
             ) : null}
 
             {tokenLintViolations.length > 0 ? (
@@ -2348,7 +2296,6 @@ export function TokenDetails({
         <TokenDetailsAdvancedSection
           open={detailsOpen}
           onToggle={toggleDetails}
-          extendsSection={extendsSection}
           readOnlyExtensionsText={readOnlyExtensionsText}
           extensionsJsonText={extensionsJsonText}
           onExtensionsJsonTextChange={setExtensionsJsonText}

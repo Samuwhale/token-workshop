@@ -74,11 +74,11 @@ function DiffPre({ lines, side, isExpanded }: { lines: DiffLine[]; side: 'ours' 
 function CollapsibleCard({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+    <div className="border-t border-[var(--color-figma-border)]">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+        className="flex w-full items-center justify-between rounded px-0 py-2 text-left transition-colors hover:text-[color:var(--color-figma-text)]"
       >
         <span className="text-secondary text-[color:var(--color-figma-text-secondary)] font-medium">{title}</span>
         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`text-[color:var(--color-figma-text-tertiary)] transition-transform ${open ? 'rotate-90' : ''}`} aria-hidden="true">
@@ -169,13 +169,13 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
       )}
 
       {!git.gitLoading && git.gitStatus?.isRepo && (
-        <div className="p-3 flex flex-col gap-2">
-          {/* Branch */}
-          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-            <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Shared branch
+          <div className="p-3 flex flex-col gap-2">
+            {/* Branch */}
+            <div className="py-1">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
+                    Shared branch
                 </span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2">
                   <line x1="6" y1="3" x2="6" y2="15" />
@@ -454,8 +454,8 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
 
           {/* Save version */}
           {!git.gitStatus.status?.isClean && (
-            <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+            <div className="flex flex-col gap-2 border-t border-[var(--color-figma-border)] pt-2">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-secondary text-[color:var(--color-figma-text-secondary)] font-medium">Version note</span>
                 {git.commitMsgUserEdited?.current && (
                   <button
@@ -467,7 +467,7 @@ export function GitSubPanel({ git, diffFilter: _diffFilter, onRequestConfirm }: 
                   </button>
                 )}
               </div>
-              <div className="p-3 flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 <div className="relative">
                   <input
                     type="text"

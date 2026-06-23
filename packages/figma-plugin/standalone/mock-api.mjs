@@ -233,6 +233,181 @@ const mockPublicIcons = [
   ),
 ];
 
+const MOCK_GENERATOR_UPDATED_AT = '2026-04-23T16:20:04.706Z';
+const MOCK_COLOR_RAMP_CONFIG = {
+  steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950],
+  lightEnd: 97,
+  darkEnd: 8,
+  chromaBoost: 1,
+  includeSource: false,
+};
+const MOCK_SPACING_SCALE_CONFIG = {
+  steps: [
+    { name: '1', multiplier: 1 },
+    { name: '2', multiplier: 2 },
+    { name: '4', multiplier: 4 },
+    { name: '8', multiplier: 8 },
+  ],
+  unit: 'px',
+  roundTo: 0,
+};
+const mockGenerators = [
+  {
+    id: 'mock-generator-brand-ramp',
+    name: 'Brand ramp',
+    targetCollectionId: '-0--color-primitives',
+    nodes: [
+      {
+        id: 'source',
+        kind: 'literal',
+        label: 'Source color',
+        position: { x: 80, y: 140 },
+        data: { type: 'color', value: '#6366f1' },
+      },
+      {
+        id: 'ramp',
+        kind: 'colorRamp',
+        label: 'Color ramp',
+        position: { x: 360, y: 120 },
+        data: MOCK_COLOR_RAMP_CONFIG,
+      },
+      {
+        id: 'output',
+        kind: 'groupOutput',
+        label: 'Brand output',
+        position: { x: 650, y: 150 },
+        data: { pathPrefix: 'brand.generated' },
+      },
+    ],
+    edges: [
+      {
+        id: 'source-ramp',
+        from: { nodeId: 'source', port: 'value' },
+        to: { nodeId: 'ramp', port: 'value' },
+      },
+      {
+        id: 'ramp-output',
+        from: { nodeId: 'ramp', port: 'value' },
+        to: { nodeId: 'output', port: 'value' },
+      },
+    ],
+    viewport: { x: 0, y: 0, zoom: 1 },
+    createdAt: MOCK_GENERATOR_UPDATED_AT,
+    updatedAt: MOCK_GENERATOR_UPDATED_AT,
+  },
+  {
+    id: 'mock-generator-spacing-scale',
+    name: 'Spacing scale',
+    targetCollectionId: 'constants',
+    nodes: [
+      {
+        id: 'source',
+        kind: 'literal',
+        label: 'Step',
+        position: { x: 80, y: 140 },
+        data: { type: 'dimension', value: 4, unit: 'px' },
+      },
+      {
+        id: 'scale',
+        kind: 'spacingScale',
+        label: 'Spacing scale',
+        position: { x: 360, y: 120 },
+        data: MOCK_SPACING_SCALE_CONFIG,
+      },
+      {
+        id: 'output',
+        kind: 'groupOutput',
+        label: 'Spacing output',
+        position: { x: 650, y: 150 },
+        data: { pathPrefix: 'space.generated' },
+      },
+    ],
+    edges: [
+      {
+        id: 'source-scale',
+        from: { nodeId: 'source', port: 'value' },
+        to: { nodeId: 'scale', port: 'value' },
+      },
+      {
+        id: 'scale-output',
+        from: { nodeId: 'scale', port: 'value' },
+        to: { nodeId: 'output', port: 'value' },
+      },
+    ],
+    viewport: { x: 0, y: 0, zoom: 1 },
+    createdAt: MOCK_GENERATOR_UPDATED_AT,
+    updatedAt: MOCK_GENERATOR_UPDATED_AT,
+  },
+];
+
+function readMockGeneratorModes(generator) {
+  if (generator.targetCollectionId === 'constants') {
+    return ['Web', 'Tablet', 'Mobile'];
+  }
+  return ['IDS'];
+}
+
+function readMockGeneratorOutput(generator) {
+  if (generator.id === 'mock-generator-spacing-scale') {
+    return {
+      path: 'space.generated.100',
+      type: 'dimension',
+      modeValues: {
+        Web: { value: 4, unit: 'px' },
+        Tablet: { value: 6, unit: 'px' },
+        Mobile: { value: 8, unit: 'px' },
+      },
+      nodeId: 'output',
+      outputKey: '100',
+      hash: 'mock-spacing-output-100',
+      change: 'updated',
+      collision: false,
+    };
+  }
+
+  return {
+    path: 'brand.generated.500',
+    type: 'color',
+    modeValues: { IDS: '#6366f1' },
+    nodeId: 'output',
+    outputKey: '500',
+    hash: 'mock-brand-output-500',
+    change: 'updated',
+    collision: false,
+  };
+}
+
+function buildMockGeneratorPreview(generator) {
+  const output = readMockGeneratorOutput(generator);
+  return {
+    generatorId: generator.id,
+    targetCollectionId: generator.targetCollectionId,
+    targetModes: readMockGeneratorModes(generator),
+    outputs: [output],
+    nodePreviews: {},
+    nodePreviewDiagnostics: [],
+    diagnostics: [],
+    blocking: false,
+    hash: `mock-preview-${generator.id}`,
+    previewedAt: MOCK_GENERATOR_UPDATED_AT,
+  };
+}
+
+function buildMockGeneratorStatus(generator) {
+  return {
+    generator,
+    preview: buildMockGeneratorPreview(generator),
+    stale: false,
+    unapplied: false,
+    blocking: false,
+    managedTokenCount: 1,
+  };
+}
+
+function findMockGenerator(generatorId) {
+  return mockGenerators.find((generator) => generator.id === generatorId);
+}
+
 function publicIcon(id, name, iconPath, collection, svg) {
   return {
     id,
@@ -951,6 +1126,59 @@ export async function handleMockApiRequest(req, res, url) {
     return true;
   }
 
+  if (pathname === '/api/generators') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(res, 200, { generators: clone(mockGenerators) }, method);
+    return true;
+  }
+
+  if (pathname === '/api/generators/status') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(
+      res,
+      200,
+      { generators: mockGenerators.map((generator) => buildMockGeneratorStatus(generator)) },
+      method,
+    );
+    return true;
+  }
+
+  const generatorPreviewMatch = pathname.match(/^\/api\/generators\/([^/]+)\/preview$/u);
+  if (generatorPreviewMatch) {
+    if (method !== 'GET' && method !== 'POST' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'POST', 'HEAD'], method);
+      return true;
+    }
+    const generator = findMockGenerator(decodeURIComponent(generatorPreviewMatch[1]));
+    if (!generator) {
+      sendJson(res, 404, { error: 'Generator not found' }, method);
+      return true;
+    }
+    sendJson(res, 200, { preview: buildMockGeneratorPreview(generator) }, method);
+    return true;
+  }
+
+  const generatorDraftPreviewMatch = pathname.match(/^\/api\/generators\/([^/]+)\/preview-draft$/u);
+  if (generatorDraftPreviewMatch) {
+    if (method !== 'POST' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['POST', 'HEAD'], method);
+      return true;
+    }
+    const generator = findMockGenerator(decodeURIComponent(generatorDraftPreviewMatch[1]));
+    if (!generator) {
+      sendJson(res, 404, { error: 'Generator not found' }, method);
+      return true;
+    }
+    sendJson(res, 200, { preview: buildMockGeneratorPreview(generator) }, method);
+    return true;
+  }
+
   const operationDiffMatch = pathname.match(/^\/api\/operations\/([^/]+)\/diff$/u);
   if (operationDiffMatch) {
     if (method !== 'GET' && method !== 'HEAD') {
@@ -977,6 +1205,114 @@ export async function handleMockApiRequest(req, res, url) {
       return true;
     }
     sendJson(res, 200, clone(snapshot.syncStatus), method);
+    return true;
+  }
+
+  if (pathname === '/api/sync/branches') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(
+      res,
+      200,
+      { branches: [snapshot.syncStatus?.branch || 'main'] },
+      method,
+    );
+    return true;
+  }
+
+  if (pathname === '/api/sync/conflicts') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(res, 200, { conflicts: [] }, method);
+    return true;
+  }
+
+  if (pathname === '/api/sync/conflicts/resolve' || pathname === '/api/sync/conflicts/abort') {
+    if (method !== 'POST' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['POST', 'HEAD'], method);
+      return true;
+    }
+    sendJson(res, 200, { ok: true, conflicts: [] }, method);
+    return true;
+  }
+
+  if (pathname === '/api/sync/diff') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(res, 200, { localOnly: [], remoteOnly: [], conflicts: [] }, method);
+    return true;
+  }
+
+  if (pathname === '/api/sync/diff/tokens') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(res, 200, { changes: [], fileCount: 0 }, method);
+    return true;
+  }
+
+  if (pathname === '/api/sync/push/preview' || pathname === '/api/sync/pull/preview') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(res, 200, { commits: [], changes: [], fileCount: 0 }, method);
+    return true;
+  }
+
+  if (pathname === '/api/sync/apply-diff') {
+    if (method !== 'POST' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['POST', 'HEAD'], method);
+      return true;
+    }
+    sendJson(
+      res,
+      200,
+      {
+        ok: true,
+        applied: false,
+        pullFailedFiles: [],
+        pullCommitFailed: false,
+        pushCommitFailed: false,
+        pushFailed: false,
+      },
+      method,
+    );
+    return true;
+  }
+
+  if (pathname === '/api/sync/log') {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(res, 200, { data: [], hasMore: false }, method);
+    return true;
+  }
+
+  const syncLogTokensMatch = pathname.match(/^\/api\/sync\/log\/([^/]+)\/tokens$/u);
+  if (syncLogTokensMatch) {
+    if (method !== 'GET' && method !== 'HEAD') {
+      sendMethodNotAllowed(res, ['GET', 'HEAD'], method);
+      return true;
+    }
+    sendJson(
+      res,
+      200,
+      {
+        hash: decodeURIComponent(syncLogTokensMatch[1]),
+        changes: [],
+        fileCount: 0,
+      },
+      method,
+    );
     return true;
   }
 

@@ -9,8 +9,6 @@
  */
 
 import {
-  Suspense,
-  lazy,
   useCallback,
   useEffect,
   useMemo,
@@ -99,9 +97,6 @@ const DEFAULT_CREATE_TYPE = "color";
 const LIBRARY_MAIN_PANE_MIN_WIDTH = 320;
 const CONTEXTUAL_PANEL_MIN_WIDTH = 320;
 const CONTEXTUAL_PANEL_FULL_WIDTH_BREAKPOINT = 640;
-const LazyGeneratorsPanel = lazy(() =>
-  Promise.resolve({ default: GeneratorsPanel }),
-);
 
 interface ContextualPanelLayout {
   renderAsOverlay: boolean;
@@ -540,23 +535,6 @@ export function PanelRouter({
           tokenPath: tokenPath ?? null,
           issueKey: null,
           view: "issues",
-        }),
-      );
-      navigateTo("library", "health");
-    },
-    [createLibraryHealthScope, navigateTo],
-  );
-
-  const openScopedHealth = useCallback(
-    (collectionId: string) => {
-      healthRouteIntentRef.current = "deep-link";
-      setHealthScope(
-        createLibraryHealthScope({
-          mode: "current",
-          collectionId,
-          tokenPath: null,
-          issueKey: null,
-          view: "dashboard",
         }),
       );
       navigateTo("library", "health");
@@ -1098,14 +1076,6 @@ export function PanelRouter({
         onOpenInHealth: tokenDetails.isCreate
           ? undefined
           : () => openCollectionIssues(tokenDetails.collectionId),
-        onManageCollectionModes: (collectionId: string) => {
-          controller.guardEditorAction(() => {
-            switchContextualSurface({
-              surface: "collection-details",
-              collection: { collectionId },
-            });
-          });
-        },
       }
     : null;
 
@@ -1381,8 +1351,6 @@ export function PanelRouter({
   const renderCanvasSubTab = (subTab: "inspect" | "repair") => (
     <CanvasRouter
       subTab={subTab}
-      reviewTotals={libraryReview.totals}
-      openScopedHealth={openScopedHealth}
       openTokenInContext={openTokenInContext}
     />
   );
@@ -1499,18 +1467,10 @@ export function PanelRouter({
       return;
     }
 
-    if (activeSubTab === "history") {
-      setHistoryScope({
-        ...historyScope,
-        mode: "current",
-        collectionId,
-        tokenPath: null,
-      });
-    }
   }
 
   function renderCollectionTabs(
-    section: "tokens" | "health" | "history",
+    section: "tokens" | "health",
   ): ReactNode {
     type CollectionScopeValue = "current" | "all";
     const allCollectionsScope: {
@@ -1520,42 +1480,22 @@ export function PanelRouter({
       section === "tokens"
         ? undefined
         : {
-            value:
-              section === "health"
-                ? healthScope.mode === "all"
-                  ? "all"
-                  : "current"
-                : historyScope.mode === "all"
-                  ? "all"
-                  : "current",
+            value: healthScope.mode === "all" ? "all" : "current",
             onChange: (value: "current" | "all") => {
               if (value === "all") {
-                if (section === "health") {
-                  setHealthScope({
-                    ...healthScope,
-                    mode: "all",
-                    collectionId: null,
-                    tokenPath: null,
-                    issueKey: null,
-                    view: "dashboard",
-                    nonce: Date.now(),
-                  });
-                  return;
-                }
-
-                setHistoryScope({
-                  ...historyScope,
+                setHealthScope({
+                  ...healthScope,
                   mode: "all",
                   collectionId: null,
                   tokenPath: null,
+                  issueKey: null,
+                  view: "dashboard",
+                  nonce: Date.now(),
                 });
                 return;
               }
 
-              const collectionId =
-                section === "health"
-                  ? (healthScope.collectionId ?? currentCollectionId)
-                  : (historyScope.collectionId ?? currentCollectionId);
+              const collectionId = healthScope.collectionId ?? currentCollectionId;
               if (collectionId) {
                 handleLibraryCollectionSelect(collectionId);
               }
@@ -1565,9 +1505,7 @@ export function PanelRouter({
     const tabsCurrentId =
       section === "tokens"
         ? currentCollectionId
-        : section === "health"
-          ? (healthScope.collectionId ?? currentCollectionId)
-          : (historyScope.collectionId ?? currentCollectionId);
+        : (healthScope.collectionId ?? currentCollectionId);
 
     return (
       <CollectionTabs
@@ -1880,44 +1818,36 @@ export function PanelRouter({
           panelName="Generators"
           onReset={() => navigateTo("library", "tokens")}
         >
-          <Suspense
-            fallback={
-              <div className="flex h-full items-center justify-center text-secondary text-[color:var(--color-figma-text-secondary)]">
-                Loading generators...
-              </div>
-            }
-          >
-            <LazyGeneratorsPanel
-              serverUrl={serverUrl}
-              collections={collections}
-              initialCollectionId={currentCollectionId}
-              perCollectionFlat={perCollectionFlat}
-              onActiveTargetCollectionChange={setActiveGeneratorTargetCollectionId}
-              tokenChangeKey={controller.tokenChangeKey}
-              initialGeneratorId={pendingGeneratorDocumentId}
-              initialView={pendingGeneratorInitialView}
-              initialFocus={pendingGeneratorFocus}
-              initialCreateOutputPrefix={pendingGeneratorCreateOutputPrefix}
-              editorSessionHost={generatorEditorSessionHost}
-              onInitialGeneratorHandled={() => {
-                setPendingGeneratorDocumentId(null);
-                setPendingGeneratorFocus(null);
-                setPendingGeneratorInitialView(null);
-              }}
-              onInitialCreateHandled={() => {
-                setPendingGeneratorCreateOutputPrefix(undefined);
-              }}
-              onNavigateToToken={(path, collectionId) => {
-                openTokenInContext({
-                  path,
-                  collectionId,
-                  mode: "inspect",
-                  origin: "generators",
-                  returnLabel: "Back to generators",
-                });
-              }}
-            />
-          </Suspense>
+          <GeneratorsPanel
+            serverUrl={serverUrl}
+            collections={collections}
+            initialCollectionId={currentCollectionId}
+            perCollectionFlat={perCollectionFlat}
+            onActiveTargetCollectionChange={setActiveGeneratorTargetCollectionId}
+            tokenChangeKey={controller.tokenChangeKey}
+            initialGeneratorId={pendingGeneratorDocumentId}
+            initialView={pendingGeneratorInitialView}
+            initialFocus={pendingGeneratorFocus}
+            initialCreateOutputPrefix={pendingGeneratorCreateOutputPrefix}
+            editorSessionHost={generatorEditorSessionHost}
+            onInitialGeneratorHandled={() => {
+              setPendingGeneratorDocumentId(null);
+              setPendingGeneratorFocus(null);
+              setPendingGeneratorInitialView(null);
+            }}
+            onInitialCreateHandled={() => {
+              setPendingGeneratorCreateOutputPrefix(undefined);
+            }}
+            onNavigateToToken={(path, collectionId) => {
+              openTokenInContext({
+                path,
+                collectionId,
+                mode: "inspect",
+                origin: "generators",
+                returnLabel: "Back to generators",
+              });
+            }}
+          />
         </ErrorBoundary>
       </div>
     );
@@ -2085,7 +2015,6 @@ export function PanelRouter({
 
     return renderLibraryScaffold({
       body,
-      tabs: renderCollectionTabs("history"),
       contextualPanel: renderTokensContextualPanel(),
     });
   }

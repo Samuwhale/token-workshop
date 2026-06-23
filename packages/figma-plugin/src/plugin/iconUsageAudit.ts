@@ -20,8 +20,10 @@ import {
   looksLikeIconLayerName,
 } from './iconSlotUtils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
+import { walkNodes } from './walkNodes.js';
 
-type AuditNode = SceneNode | ComponentNode;
+type ScanSignal = { aborted: boolean };
+type AuditNode = SceneNode;
 
 interface IconUsageIndex {
   byId: Map<string, IconUsageAuditInput>;
@@ -43,17 +45,23 @@ export async function scanIconUsage(options: {
   scope: IconUsageAuditScope;
   icons: IconUsageAuditInput[];
   correlationId?: string;
+  signal?: ScanSignal;
 }): Promise<void> {
   try {
-    const index = await createIconUsageIndex(options.icons);
-    const nodes = collectAuditNodes(options.scope);
+    const index = await createIconUsageIndex(options.icons, options.signal);
+    if (isScanAborted(options.signal)) return;
+
     const findings: IconUsageAuditFinding[] = [];
     const usageCounts = new Map<string, number>();
     const componentOccurrences = new Map<string, ComponentNode[]>();
+    let scannedNodes = 0;
 
-    await collectRegistryLinkFindings(index, findings, componentOccurrences);
+    await collectRegistryLinkFindings(index, findings, componentOccurrences, options.signal);
+    if (isScanAborted(options.signal)) return;
 
-    for (const node of nodes) {
+    for await (const node of walkAuditNodes(options.scope, options.signal)) {
+      if (isScanAborted(options.signal)) return;
+      scannedNodes += 1;
       if (node.type === 'COMPONENT') {
         collectComponentFindings(node, index, findings, componentOccurrences);
         continue;
@@ -76,10 +84,11 @@ export async function scanIconUsage(options: {
       scope: options.scope,
       findings,
       summary,
-      scannedNodes: nodes.length,
+      scannedNodes,
       correlationId: options.correlationId,
     } satisfies IconUsageAuditResultMessage);
   } catch (error) {
+    if (isScanAborted(options.signal)) return;
     figma.ui.postMessage({
       type: 'icon-usage-audit-result',
       scope: options.scope,
@@ -92,7 +101,14 @@ export async function scanIconUsage(options: {
   }
 }
 
-async function createIconUsageIndex(icons: IconUsageAuditInput[]): Promise<IconUsageIndex> {
+function isScanAborted(signal?: ScanSignal): boolean {
+  return signal?.aborted === true;
+}
+
+async function createIconUsageIndex(
+  icons: IconUsageAuditInput[],
+  signal?: ScanSignal,
+): Promise<IconUsageIndex> {
   const byId = new Map<string, IconUsageAuditInput>();
   const byComponentId = new Map<string, IconUsageAuditInput>();
   const byComponentKey = new Map<string, IconUsageAuditInput>();
@@ -103,6 +119,7 @@ async function createIconUsageIndex(icons: IconUsageAuditInput[]): Promise<IconU
   const activePreferredValueKeysByIconId = new Map<string, Set<string>>();
 
   for (const icon of icons) {
+    if (isScanAborted(signal)) break;
     byId.set(icon.id, icon);
     if (icon.componentId) {
       byComponentId.set(icon.componentId, icon);
@@ -149,26 +166,26 @@ async function createIconUsageIndex(icons: IconUsageAuditInput[]): Promise<IconU
   };
 }
 
-function collectAuditNodes(scope: IconUsageAuditScope): AuditNode[] {
+async function* walkAuditNodes(
+  scope: IconUsageAuditScope,
+  signal?: ScanSignal,
+): AsyncGenerator<AuditNode> {
   if (scope === 'selection') {
-    return figma.currentPage.selection.flatMap((node) => [
-      node,
-      ...collectDescendantNodes(node),
-    ]);
+    for (const node of figma.currentPage.selection) {
+      yield* walkNodes([node], { signal });
+    }
+    return;
   }
 
   if (scope === 'page') {
-    return collectPageAuditNodes(figma.currentPage);
+    yield* walkNodes(figma.currentPage.children, { signal });
+    return;
   }
 
-  return figma.root.children.flatMap((page) => collectPageAuditNodes(page));
-}
-
-function collectPageAuditNodes(page: PageNode): AuditNode[] {
-  return page.children.flatMap((node) => [
-    node,
-    ...collectDescendantNodes(node),
-  ]);
+  for (const page of figma.root.children) {
+    if (isScanAborted(signal)) return;
+    yield* walkNodes(page.children, { signal });
+  }
 }
 
 function collectDescendantNodes(node: SceneNode): SceneNode[] {
@@ -176,23 +193,38 @@ function collectDescendantNodes(node: SceneNode): SceneNode[] {
     return [];
   }
 
-  return node.children.flatMap((child) => [
-    child,
-    ...collectDescendantNodes(child),
-  ]);
+  const descendants: SceneNode[] = [];
+  const stack: SceneNode[] = [...node.children].reverse();
+
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    descendants.push(current);
+
+    if ('children' in current) {
+      const children = current.children;
+      for (let index = children.length - 1; index >= 0; index -= 1) {
+        stack.push(children[index]);
+      }
+    }
+  }
+
+  return descendants;
 }
 
 async function collectRegistryLinkFindings(
   index: IconUsageIndex,
   findings: IconUsageAuditFinding[],
   componentOccurrences: Map<string, ComponentNode[]>,
+  signal?: ScanSignal,
 ): Promise<void> {
   for (const icon of index.byId.values()) {
+    if (isScanAborted(signal)) return;
     if (!icon.componentId) {
       continue;
     }
 
     const node = await figma.getNodeByIdAsync(icon.componentId);
+    if (isScanAborted(signal)) return;
     if (node?.type !== 'COMPONENT') {
       findings.push({
         id: findingId('missing-component', icon.id, icon.componentId),

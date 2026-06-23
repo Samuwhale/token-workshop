@@ -38,23 +38,13 @@ function operationSubtitle(op: OperationEntry): string {
 
 function ActivitySectionHeader({
   title,
-  tone = "default",
 }: {
   title: string;
-  tone?: "default" | "muted";
 }) {
   return (
-    <div
-      className={`sticky top-0 z-[1] flex items-start justify-between gap-3 px-3 py-1.5 ${
-        tone === "muted"
-          ? "bg-[var(--surface-group-quiet)]"
-          : "bg-[var(--color-figma-bg-secondary)]"
-      }`}
-    >
-      <div className="min-w-0">
-        <div className="text-secondary font-medium text-[color:var(--color-figma-text)]">
-          {title}
-        </div>
+    <div className="sticky top-0 z-[1] bg-[var(--color-figma-bg)] px-3 pb-1 pt-2">
+      <div className="min-w-0 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+        {title}
       </div>
     </div>
   );
@@ -212,10 +202,7 @@ export function HistoryRecentView({
           <>
             {filteredLocal.length > 0 ? (
               <>
-                <ActivitySectionHeader
-                  title="Undo queue"
-                  tone="muted"
-                />
+                <ActivitySectionHeader title="Undo queue" />
                 {filteredLocal.map(({ description, stepsToUndo }) => {
                   const isTop = stepsToUndo === 1;
                   const isUndoingThis =

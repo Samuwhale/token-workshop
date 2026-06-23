@@ -61,7 +61,7 @@ const VIEW_OPTIONS: SegmentedOption<"tree" | "json">[] = [
 ];
 
 const SEARCH_SCOPE_OPTIONS: SegmentedOption<"collection" | "all">[] = [
-  { value: "collection", label: "This" },
+  { value: "collection", label: "Current" },
   { value: "all", label: "All" },
 ];
 
@@ -218,9 +218,12 @@ export function TokenListToolbar({
   const hasGroupOps = showTreeActions && overflowMenuProps?.hasGroups === true;
   const hasOverflowActions = hasEditActions || hasGroupOps;
   const showOverflow = hasOverflowActions;
-  const showCreate = viewMode === "tree";
-  const showPrimaryCreateAction = onCreateToken !== undefined;
-  const showCreateMenu = viewMode === "tree";
+  const showCreate =
+    viewMode === "tree" &&
+    (onCreateToken !== undefined ||
+      Boolean(onCreateGenerator) ||
+      Boolean(handleOpenNewGroupDialog) ||
+      Boolean(openTableCreate));
   const groupToggleAction =
     overflowMenuProps?.allGroupsExpanded === true
       ? overflowMenuProps.onCollapseAll
@@ -273,24 +276,6 @@ export function TokenListToolbar({
             {showSearch ? (
               <div className="tm-responsive-toolbar__search relative">
                 <div className="tm-token-toolbar__search-control">
-                  {showSearchScopeToggle ? (
-                    <SegmentedControl
-                      value={searchScope}
-                      options={SEARCH_SCOPE_OPTIONS}
-                      onChange={(value) => {
-                        if (
-                          overflowMenuProps &&
-                          (value === "all") !==
-                            overflowMenuProps.crossCollectionSearch
-                        ) {
-                          overflowMenuProps.onToggleCrossCollectionSearch();
-                        }
-                      }}
-                      ariaLabel="Search scope"
-                      allowWrap
-                      size="compact"
-                    />
-                  ) : null}
                   <SearchField
                     ref={searchRef}
                     role={viewMode === "tree" ? "combobox" : "searchbox"}
@@ -390,6 +375,25 @@ export function TokenListToolbar({
                     }}
                     containerClassName="min-w-[148px] flex-1"
                   />
+
+                  {showSearchScopeToggle && overflowMenuProps ? (
+                    <div className="tm-token-toolbar__search-scope">
+                      <SegmentedControl
+                        value={searchScope}
+                        options={[...SEARCH_SCOPE_OPTIONS]}
+                        onChange={(value) => {
+                          if (
+                            (value === "all") !==
+                            overflowMenuProps.crossCollectionSearch
+                          ) {
+                            overflowMenuProps.onToggleCrossCollectionSearch();
+                          }
+                        }}
+                        ariaLabel="Search scope"
+                        size="compact"
+                      />
+                    </div>
+                  ) : null}
                 </div>
 
                 {showQualifierHints &&
@@ -631,56 +635,46 @@ export function TokenListToolbar({
             {showCreate ? (
               <div className="tm-token-toolbar__create relative shrink-0">
                 <div className="tm-token-toolbar__create-group">
-                  {showPrimaryCreateAction ? (
-                    <Button
-                      type="button"
-                      onClick={() => onCreateToken?.()}
-                      disabled={!connected}
-                      title="New token"
-                      aria-label="New token"
-                      variant="primary"
-                      size="sm"
-                      wrap
-                      className="justify-start"
-                    >
-                      <Plus size={12} strokeWidth={2} aria-hidden />
-                      <span className="tm-toolbar-action__label tm-token-toolbar__button-label tm-token-toolbar__primary-label">
-                        New token
-                      </span>
-                    </Button>
-                  ) : null}
-
-                  {showCreateMenu ? (
-                    <Button
-                      ref={createMenu.triggerRef}
-                      type="button"
-                      onClick={createMenu.toggle}
-                      disabled={!connected}
-                      aria-expanded={createMenu.open}
-                      aria-haspopup="menu"
-                      aria-label="More add actions"
-                      title="More add actions"
-                      variant="secondary"
-                      size="sm"
-                      wrap
-                      className={`${TOOLBAR_BUTTON_CLASS} justify-start disabled:opacity-40`}
-                    >
-                      <span className="tm-toolbar-action__label tm-token-toolbar__button-label">
-                        Add
-                      </span>
-                      <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
-                    </Button>
-                  ) : null}
-
+                  <Button
+                    ref={createMenu.triggerRef}
+                    type="button"
+                    onClick={createMenu.toggle}
+                    disabled={!connected}
+                    aria-expanded={createMenu.open}
+                    aria-haspopup="menu"
+                    aria-label="Create"
+                    title="Create"
+                    variant="primary"
+                    size="sm"
+                    wrap
+                    className={`${TOOLBAR_BUTTON_CLASS} justify-start disabled:opacity-40`}
+                  >
+                    <Plus size={12} strokeWidth={2} aria-hidden />
+                    <span className="tm-toolbar-action__label tm-token-toolbar__button-label">
+                      Create
+                    </span>
+                    <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
+                  </Button>
                 </div>
 
-                {showCreateMenu && createMenu.open ? (
+                {createMenu.open ? (
                   <div
                     ref={createMenu.menuRef}
                     style={createMenuStyle ?? { visibility: "hidden" }}
                     className={FLOATING_MENU_CLASS}
                     role="menu"
                   >
+                    {onCreateToken ? (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => runCreateAction(onCreateToken)}
+                        disabled={!connected}
+                        className={FLOATING_MENU_ITEM_CLASS}
+                      >
+                        New token
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       role="menuitem"

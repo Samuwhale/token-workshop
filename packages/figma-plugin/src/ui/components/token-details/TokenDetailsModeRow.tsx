@@ -173,7 +173,7 @@ export function TokenDetailsModeRow({
   const defaultModeValueLabel = formatTokenValueForDisplay(
     tokenType,
     defaultModeValue,
-    { emptyPlaceholder: "default" },
+    { emptyPlaceholder: "value" },
   );
   const inheritedPreviewLabel = hasInheritedValue
     ? formatTokenValueForDisplay(tokenType, inheritedValue, {
@@ -345,14 +345,14 @@ export function TokenDetailsModeRow({
             ? `${modeName} value source cannot be changed here`
             : aliasMode
               ? `${modeName} uses a token reference`
-              : `${modeName} uses a direct value`
+              : `${modeName} uses a value`
         }
       >
         <SegmentedControl
           value={aliasMode ? "reference" : "value"}
           options={[
             { value: "value", label: "Value" },
-            { value: "reference", label: "Reference" },
+            { value: "reference", label: "Token" },
           ]}
           onChange={(next) => setReferenceMode(next === "reference")}
           ariaLabel={`${modeName} value source`}
@@ -442,7 +442,6 @@ export function TokenDetailsModeRow({
               ) : null}
             </div>
           </div>
-          {controls}
         </div>
       )}
       <div className="tm-token-mode-row__body">
@@ -469,7 +468,7 @@ export function TokenDetailsModeRow({
                   }
                 }}
                 autoFocus={autoFocus}
-                placeholder="Reference a token"
+                placeholder="Token path"
                 aria-label={`${modeName} reference`}
                 aria-describedby={
                   showAliasMissingState || showAliasAmbiguousState
@@ -545,7 +544,7 @@ export function TokenDetailsModeRow({
               {hasInheritedValue ? (
                 <div className="tm-token-mode-row__inherited-preview">
                   <span className="tm-token-mode-row__inherited-label">
-                    From source token
+                    From reused token
                   </span>
                   <span
                     className="tm-token-mode-row__inherited-value"
@@ -579,26 +578,26 @@ export function TokenDetailsModeRow({
                 }
                 aria-label={
                   hasInheritedValue
-                    ? `Use source value for ${modeName}`
-                    : `Set direct value for ${modeName}`
+                    ? `Copy reused token value into ${modeName}`
+                    : `Add value for ${modeName}`
                 }
                 title={
                   hasInheritedValue
-                    ? `Use value from source token for ${modeName}`
-                    : `Set ${defaultModeValueLabel} for ${modeName}`
+                    ? `Copy reused token value into ${modeName}`
+                    : `Add ${defaultModeValueLabel} to ${modeName}`
                 }
                 variant="primary"
                 size="sm"
                 wrap
                 className="justify-start"
               >
-                {hasInheritedValue ? "Use source value" : "Set direct value"}
+                {hasInheritedValue ? "Copy value" : "Add value"}
               </Button>
               {showInlineEmptyAlternatives ? (
                 <Button
                   onClick={handleAliasToggle}
-                  aria-label={`Reference another token for ${modeName}`}
-                  title={`Reference another token for ${modeName}`}
+                  aria-label={`Reference token for ${modeName}`}
+                  title={`Reference token for ${modeName}`}
                   variant="secondary"
                   size="sm"
                   wrap
@@ -606,7 +605,7 @@ export function TokenDetailsModeRow({
                 >
                   <Link2 size={12} strokeWidth={1.5} aria-hidden />
                   <span className="tm-token-mode-row__action-button-label">
-                    Reference
+                    Reference token
                   </span>
                 </Button>
               ) : null}
@@ -680,6 +679,12 @@ export function TokenDetailsModeRow({
             </div>
           )}
         </div>
+
+        {showHeader && controls ? (
+          <div className="tm-token-mode-row__inline-controls tm-token-mode-row__inline-controls--header">
+            {controls}
+          </div>
+        ) : null}
 
         {(!showHeader && (controls || showInlineModified)) ? (
           <div className="tm-token-mode-row__inline-controls">

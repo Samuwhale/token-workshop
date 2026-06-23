@@ -420,6 +420,11 @@ export function GeneratorSelectorRowDetails({
             <p>No output nodes</p>
           )}
         </section>
+
+        <section className="tm-generator-selector-detail-block">
+          <h3>Collection</h3>
+          <p>{row.collectionLabel}</p>
+        </section>
       </div>
 
       {diagnostics.length > 0 ? (

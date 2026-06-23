@@ -1,6 +1,5 @@
 import { AlertTriangle, RefreshCcw } from "lucide-react";
 import type { ReactNode } from "react";
-import type { TokenLifecycle } from "@token-workshop/core";
 import type { LintViolation } from "../../hooks/useLint";
 import { ListItem, Stack } from "../../primitives";
 import { TokenEditorLintBanner } from "../token-editor/TokenEditorLintBanner";
@@ -14,8 +13,6 @@ interface TokenDetailsStatusBannersProps {
   displayError: string | null;
   retryAction?: ReactNode;
   lintViolations: LintViolation[];
-  lifecycle: TokenLifecycle;
-  isCreateMode: boolean;
   isEditMode: boolean;
   pendingTypeChange: string | null;
   tokenType: string;
@@ -36,8 +33,6 @@ export function TokenDetailsStatusBanners({
   displayError,
   retryAction,
   lintViolations,
-  lifecycle,
-  isCreateMode,
   isEditMode,
   pendingTypeChange,
   tokenType,
@@ -50,21 +45,6 @@ export function TokenDetailsStatusBanners({
   onTogglePendingDependents,
   onNavigateToToken,
 }: TokenDetailsStatusBannersProps) {
-  const lifecycleMessage =
-    !isCreateMode && lifecycle === "draft"
-      ? {
-          tone: "warning" as const,
-          title: "Draft token",
-          description: "This token is still marked draft.",
-        }
-      : !isCreateMode && lifecycle === "deprecated"
-        ? {
-            tone: "muted" as const,
-            title: "Deprecated token",
-            description: "This token is kept for reference and should be phased out.",
-          }
-        : null;
-
   return (
     <>
       {displayError ? (
@@ -74,19 +54,6 @@ export function TokenDetailsStatusBanners({
             <div className="tm-token-details__banner-description">{displayError}</div>
           </div>
           {retryAction ? <div className="tm-token-details__banner-actions">{retryAction}</div> : null}
-        </div>
-      ) : null}
-
-      {lifecycleMessage ? (
-        <div
-          className={`tm-token-details__banner tm-token-details__banner--${lifecycleMessage.tone}`}
-        >
-          <div className="tm-token-details__banner-copy">
-            <div className="tm-token-details__banner-title">{lifecycleMessage.title}</div>
-            <div className="tm-token-details__banner-description">
-              {lifecycleMessage.description}
-            </div>
-          </div>
         </div>
       ) : null}
 
@@ -100,8 +67,8 @@ export function TokenDetailsStatusBanners({
             </div>
             <div className="tm-token-details__banner-description">
               {modeValueCount > 1
-                ? `All ${modeValueCount} mode values will reset to the default for that token type.`
-                : "This mode value will reset to the default for that token type."}
+                ? `All ${modeValueCount} mode values will reset to the starter value for that token type.`
+                : "This mode value will reset to the starter value for that token type."}
             </div>
             {dependents.length > 0 ? (
               <div className="tm-token-details__dependent-warning">

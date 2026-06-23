@@ -78,7 +78,7 @@ export function SegmentedControl<T extends string>({
 
   return (
     <div
-      className={`tm-segmented-control inline-flex max-w-full items-stretch gap-[2px] rounded-[var(--radius-md)] bg-[var(--surface-group-quiet)] p-[2px] ${
+      className={`tm-segmented-control inline-flex max-w-full items-stretch gap-[2px] rounded-[var(--radius-md)] bg-transparent p-[2px] ${
         adaptiveWrap
           ? "tm-segmented-control--adaptive"
           : "flex-nowrap overflow-x-auto"
@@ -112,9 +112,9 @@ export function SegmentedControl<T extends string>({
                 : "min-h-7 min-w-[3rem] px-2 py-1 text-secondary"
             } ${
               disabled && selected
-                ? "bg-[var(--surface-muted)] text-[color:var(--color-figma-text-tertiary)] shadow-none"
+                ? "bg-[var(--surface-muted)] text-[color:var(--color-figma-text-tertiary)]"
                 : selected
-                ? "bg-[var(--surface-panel-header)] text-[color:var(--color-figma-text)] shadow-[inset_0_0_0_1px_var(--border-muted)]"
+                ? "bg-[var(--surface-selected)] text-[color:var(--color-figma-text)]"
                 : disabled
                   ? "bg-transparent text-[color:var(--color-figma-text-tertiary)]"
                   : "bg-transparent text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"

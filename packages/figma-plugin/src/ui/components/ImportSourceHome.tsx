@@ -81,7 +81,7 @@ export function ImportSourceHome() {
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className={`tm-import-home__dropzone flex flex-col items-center justify-center gap-1 rounded border border-dashed transition-colors cursor-pointer ${
+          className={`tm-import-home__dropzone flex items-center justify-start gap-2 rounded border border-dashed transition-colors cursor-pointer ${
             isDragging
               ? "border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5"
               : "border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)]"
@@ -108,13 +108,13 @@ export function ImportSourceHome() {
           <span className={`text-body ${isDragging ? "text-[color:var(--color-figma-text-accent)]" : "text-[color:var(--color-figma-text-secondary)]"}`}>
             {isDragging ? "Drop to import" : "Import file"}
           </span>
+          <span
+            id="import-source-file-types"
+            className="text-secondary text-[color:var(--color-figma-text-tertiary)]"
+          >
+            JSON, CSS, Tailwind, Tokens Studio
+          </span>
         </button>
-        <div
-          id="import-source-file-types"
-          className="text-secondary text-[color:var(--color-figma-text-tertiary)] text-center"
-        >
-          JSON, CSS, Tailwind, Tokens Studio
-        </div>
       </div>
 
       {fileImportValidation && (

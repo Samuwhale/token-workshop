@@ -4,6 +4,12 @@ import {
   DEFAULT_PUBLISH_PREFLIGHT_STATE,
   type PublishPreflightState,
 } from "../shared/syncWorkflow";
+import {
+  PUBLISH_PENDING_COUNT_EVENT,
+  PUBLISH_PREFLIGHT_STATE_EVENT,
+  normalizePublishPreflightState,
+  readPublishPendingCountEvent,
+} from "../shared/publishStatusEvents";
 import type { PublishPanelHandle } from "../components/PublishPanel";
 import type { TokenCollection } from "@token-workshop/core";
 import type { TokenMapEntry } from "../../shared/types";
@@ -39,22 +45,30 @@ export function useSyncState({
   const publishPanelHandleRef = useRef<PublishPanelHandle | null>(null);
 
   useEffect(() => {
-    const handler = (e: Event) =>
-      setPendingPublishCount(
-        (e as CustomEvent<{ total: number }>).detail.total,
-      );
-    window.addEventListener("publish-pending-count", handler);
-    return () => window.removeEventListener("publish-pending-count", handler);
+    const handler = (event: Event) => {
+      setPendingPublishCount(readPublishPendingCountEvent(event));
+    };
+    window.addEventListener(PUBLISH_PENDING_COUNT_EVENT, handler);
+    return () => window.removeEventListener(PUBLISH_PENDING_COUNT_EVENT, handler);
   }, []);
 
   useEffect(() => {
-    const handler = (e: Event) =>
+    const handler = (event: Event) => {
       setPublishPreflightState(
-        (e as CustomEvent<PublishPreflightState>).detail,
+        normalizePublishPreflightState(
+          (event as CustomEvent<unknown>).detail,
+        ),
       );
-    window.addEventListener("publish-preflight-state", handler);
-    return () => window.removeEventListener("publish-preflight-state", handler);
+    };
+    window.addEventListener(PUBLISH_PREFLIGHT_STATE_EVENT, handler);
+    return () => window.removeEventListener(PUBLISH_PREFLIGHT_STATE_EVENT, handler);
   }, []);
+
+  useEffect(() => {
+    if (connected) return;
+    setPendingPublishCount(0);
+    setPublishPreflightState(DEFAULT_PUBLISH_PREFLIGHT_STATE);
+  }, [connected]);
 
   useEffect(() => {
     if (figmaSync.publishError) setErrorToast(figmaSync.publishError);

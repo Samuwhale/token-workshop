@@ -40,36 +40,10 @@ export function SyncRouter({
   const { perCollectionFlat } = useTokenFlatMapContext();
   const { navigateTo } = useNavigationContext();
   const controller = useSyncWorkspaceController();
-  const { publishPreflightState, pendingPublishCount, publishPanelHandleRef } = controller;
-
-  let publishAction: { label: string; onClick: () => void; disabled?: boolean };
-  if (publishPreflightState.stage === "running") {
-    publishAction = { label: "Checking…", onClick: () => {}, disabled: true };
-  } else if (publishPreflightState.stage === "blocked") {
-    publishAction = {
-      label: "Resolve issues",
-      onClick: () => publishPanelHandleRef.current?.focusStage("preflight"),
-    };
-  } else if (publishPreflightState.targetDirty) {
-    publishAction = {
-      label: "Save destination",
-      onClick: () => publishPanelHandleRef.current?.focusPublishTarget(),
-    };
-  } else if (pendingPublishCount > 0) {
-    publishAction = {
-      label: "Apply to Figma",
-      onClick: () => publishPanelHandleRef.current?.focusStage("compare"),
-    };
-  } else {
-    publishAction = {
-      label: "Check readiness",
-      onClick: () => publishPanelHandleRef.current?.runReadinessChecks(),
-    };
-  }
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <PanelContentHeader primaryAction={publishAction} />
+      <PanelContentHeader title="Figma variables" />
       <div className="min-h-0 flex-1 overflow-hidden">
         <ErrorBoundary
           panelName="Handoff · Figma variables"

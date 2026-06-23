@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
+import { ChevronLeft } from 'lucide-react';
 import { useImportSourceContext } from './ImportPanelContext';
 import { type ImportToken } from './importPanelTypes';
 import { tokenTypeBadgeClass } from '../../shared/types';
-import { SearchField } from '../primitives';
-import { SecondaryTakeoverHeader } from './SecondaryTakeoverHeader';
+import { Button, SearchField } from '../primitives';
 
 const ALIAS_VALUE_PATTERN = /^\{(.+)\}$/;
 const COLOR_HEX_PATTERN = /^#[0-9a-fA-F]{3,8}$/;
@@ -78,7 +78,7 @@ function TokenRow({
       : null;
 
   return (
-    <div className="flex items-start gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors">
+    <div className="flex items-start gap-2 rounded px-3 py-1.5 transition-colors hover:bg-[var(--color-figma-bg-hover)]">
       <input
         type="checkbox"
         checked={selected}
@@ -192,11 +192,6 @@ export function ImportTokenListView() {
 
   return (
     <>
-      <SecondaryTakeoverHeader
-        title="Review tokens"
-        onClose={handleBack}
-      />
-
       {skippedCount > 0 && (
         <details className="rounded bg-[var(--color-figma-warning)]/8 px-2.5 py-1.5 text-secondary text-[color:var(--color-figma-text-warning)]">
           <summary className="cursor-pointer font-medium">
@@ -228,21 +223,32 @@ export function ImportTokenListView() {
       )}
 
       {duplicatePathWarnings.length > 0 && (
-        <div className="px-2 py-1 rounded bg-[var(--color-figma-warning)]/10 border border-[var(--color-figma-warning)]/30 text-secondary text-[color:var(--color-figma-text-warning)]">
+        <div className="rounded bg-[var(--color-figma-warning)]/10 px-2 py-1 text-secondary text-[color:var(--color-figma-text-warning)]">
           Duplicate paths: {duplicatePathWarnings.length} token{duplicatePathWarnings.length === 1 ? '' : 's'} share a path. Only the last value will be saved.
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          aria-label="Back to import sources"
+          title="Back"
+          className="px-1.5"
+        >
+          <ChevronLeft size={13} strokeWidth={1.7} aria-hidden />
+        </Button>
         <span className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-          {selectedTokens.size} of {tokens.length} included
+          {selectedTokens.size} selected
         </span>
         <button
           type="button"
           onClick={toggleAll}
           className="shrink-0 rounded px-1.5 py-0.5 text-secondary font-medium text-[color:var(--color-figma-text-accent)] transition-colors hover:bg-[var(--color-figma-bg-hover)]"
         >
-          {allTokensSelected ? 'Include none' : 'Include all'}
+          {allTokensSelected ? 'Select none' : 'Select all'}
         </button>
 
         {types.length > 1 && (
@@ -273,7 +279,7 @@ export function ImportTokenListView() {
         )}
       </div>
 
-      <div className="overflow-hidden rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+      <div className="min-h-0 overflow-auto">
         {filteredTokens.length === 0 ? (
           <div className="px-3 py-4 text-center text-secondary text-[color:var(--color-figma-text-secondary)]">
             No tokens match "{searchText}"

@@ -48,7 +48,7 @@ function withSyncLock<T>(fn: () => Promise<T>): Promise<T> {
 // all active scans when no requestId is supplied.
 // ---------------------------------------------------------------------------
 
-type ScanKind = 'token-usage-map';
+type ScanKind = 'token-usage-map' | 'icon-usage-audit';
 
 type ActiveScanState = {
   kind: ScanKind;
@@ -659,11 +659,19 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
       break;
     case 'scan-icon-usage':
-      await scanIconUsage({
-        scope: msg.scope,
-        icons: msg.icons,
-        correlationId: msg.correlationId,
-      });
+      {
+        const signal = createScanSignal('icon-usage-audit', msg.correlationId);
+        try {
+          await scanIconUsage({
+            scope: msg.scope,
+            icons: msg.icons,
+            correlationId: msg.correlationId,
+            signal,
+          });
+        } finally {
+          clearScanSignal('icon-usage-audit', signal);
+        }
+      }
       break;
     case 'cancel-scan':
       cancelActiveScan(msg.requestId);

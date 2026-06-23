@@ -1,11 +1,9 @@
-import type { ReactNode } from "react";
 import { Collapsible } from "../Collapsible";
 import { MetadataEditor } from "../MetadataEditor";
 
 interface TokenDetailsAdvancedSectionProps {
   open: boolean;
   onToggle: () => void;
-  extendsSection?: ReactNode;
   readOnlyExtensionsText: string;
   extensionsJsonText: string;
   onExtensionsJsonTextChange: (value: string) => void;
@@ -18,7 +16,6 @@ interface TokenDetailsAdvancedSectionProps {
 export function TokenDetailsAdvancedSection({
   open,
   onToggle,
-  extendsSection,
   readOnlyExtensionsText,
   extensionsJsonText,
   onExtensionsJsonTextChange,
@@ -50,10 +47,6 @@ export function TokenDetailsAdvancedSection({
             />
           )}
         </section>
-
-        {extendsSection ? (
-          <section className="tm-token-details__subsection">{extendsSection}</section>
-        ) : null}
 
         <section className="tm-token-details__subsection">
           <div className="tm-token-details__subsection-copy">

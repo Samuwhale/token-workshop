@@ -7,16 +7,15 @@ import { FeedbackPlaceholder } from "./FeedbackPlaceholder";
 import { HistoryRecentView } from "./history/HistoryRecentView";
 import { HistorySavedView } from "./history/HistorySavedView";
 import { Button, SegmentedControl, TextInput } from "../primitives";
-import { getCollectionDisplayName } from "../shared/libraryCollections";
 
-const HISTORY_VIEWS: Array<{ id: HistoryView; label: string }> = [
-  { id: "recent", label: "Recent" },
-  { id: "saved", label: "Checkpoints" },
+const HISTORY_VIEW_OPTIONS: Array<{ value: HistoryView; label: string }> = [
+  { value: "recent", label: "Recent" },
+  { value: "saved", label: "Checkpoints" },
 ];
 
 const HISTORY_SCOPE_OPTIONS = [
-  { value: "current", label: "This collection" },
-  { value: "all", label: "All collections" },
+  { value: "current", label: "Current" },
+  { value: "all", label: "All" },
 ] as const;
 
 export function HistoryPanel({
@@ -52,38 +51,11 @@ export function HistoryPanel({
         ? scope.collectionId
         : validWorkingCollectionId
       : null;
-  const scopeLabel =
-    scope.view === "saved"
-      ? activeCollectionFilter || scope.tokenPath
-        ? "Checkpoints are workspace-wide; filter applies to compare"
-        : "Workspace-wide checkpoints"
-      : scope.mode === "all"
-        ? "All collections"
-        : activeCollectionFilter ?? "Current collection";
   const tokenScopeLabel = scope.tokenPath
     ? scope.tokenPath
     : null;
-  const scopedCollectionLabel =
-    activeCollectionFilter !== null
-      ? getCollectionDisplayName(activeCollectionFilter, collectionDisplayNames)
-      : null;
   const showAllHistoryAction =
     scope.mode === "current" || tokenScopeLabel !== null;
-  const historyScopeSummary =
-    scope.view === "saved"
-      ? activeCollectionFilter || tokenScopeLabel
-        ? "Checkpoints are workspace-wide. Compare results are filtered below."
-        : "Workspace-wide checkpoints"
-      : scope.mode === "all"
-        ? "Showing activity from all collections."
-        : scopedCollectionLabel
-          ? `Showing activity from ${scopedCollectionLabel}.`
-          : "Showing activity from the current collection.";
-  const historyScopeDetails = tokenScopeLabel
-    ? `Token filter: ${tokenScopeLabel}`
-    : scope.view === "saved" && scopedCollectionLabel
-      ? `Collection compare filter: ${scopedCollectionLabel}`
-      : null;
 
   useEffect(() => {
     if (scope.mode !== "current") {
@@ -164,60 +136,41 @@ export function HistoryPanel({
       <div className="shrink-0 px-3 py-1.5">
         <div className="tm-responsive-toolbar">
           <div className="tm-responsive-toolbar__row">
-            <div
-              role="tablist"
-              aria-label="Activity views"
-              className="tm-responsive-toolbar__leading inline-flex min-w-0 max-w-full flex-wrap items-center rounded bg-[var(--color-figma-bg-secondary)] p-0.5"
-              onKeyDown={(event) => {
-                const currentIndex = HISTORY_VIEWS.findIndex((view) => view.id === scope.view);
-                if (event.key === "ArrowRight") {
-                  event.preventDefault();
-                  const next = HISTORY_VIEWS[(currentIndex + 1) % HISTORY_VIEWS.length];
-                  handleViewChange(next.id);
-                  document.getElementById(`history-tab-${next.id}`)?.focus();
-                } else if (event.key === "ArrowLeft") {
-                  event.preventDefault();
-                  const next =
-                    HISTORY_VIEWS[
-                      (currentIndex - 1 + HISTORY_VIEWS.length) % HISTORY_VIEWS.length
-                    ];
-                  handleViewChange(next.id);
-                  document.getElementById(`history-tab-${next.id}`)?.focus();
-                }
-              }}
-            >
-              {HISTORY_VIEWS.map((view) => (
-                <button
-                  key={view.id}
-                  role="tab"
-                  id={`history-tab-${view.id}`}
-                  aria-selected={scope.view === view.id}
-                  aria-controls={`history-tabpanel-${view.id}`}
-                  tabIndex={scope.view === view.id ? 0 : -1}
-                  onClick={() => handleViewChange(view.id)}
-                  className={`rounded px-2.5 py-1 text-secondary font-medium transition-colors ${
-                    scope.view === view.id
-                      ? "bg-[var(--color-figma-bg-selected)] text-[color:var(--color-figma-text)]"
-                      : "text-[color:var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[color:var(--color-figma-text)]"
-                  }`}
-                >
-                  {view.label}
-                </button>
-              ))}
+            <div className="tm-responsive-toolbar__leading tm-history-view-switcher">
+              <SegmentedControl
+                value={scope.view}
+                options={HISTORY_VIEW_OPTIONS}
+                onChange={handleViewChange}
+                ariaLabel="Activity view"
+                size="compact"
+              />
             </div>
 
             {scope.view === "recent" && collectionIds.length > 1 ? (
-              <SegmentedControl
-                value={scope.mode}
-                options={[...HISTORY_SCOPE_OPTIONS]}
-                onChange={handleScopeModeChange}
-                ariaLabel="Activity scope"
-                allowWrap
-                size="compact"
-              />
+              <div className="tm-history-scope-switcher">
+                <SegmentedControl
+                  value={scope.mode}
+                  options={[...HISTORY_SCOPE_OPTIONS]}
+                  onChange={handleScopeModeChange}
+                  ariaLabel="Activity scope"
+                  size="compact"
+                />
+              </div>
             ) : null}
 
             <div className="tm-responsive-toolbar__actions">
+              {showAllHistoryAction ? (
+                <Button
+                  onClick={handleClearFilters}
+                  variant="ghost"
+                  size="sm"
+                  className="px-1.5 text-[color:var(--color-figma-text-secondary)] hover:text-[color:var(--color-figma-text)]"
+                  title="Show all activity"
+                >
+                  Clear filter
+                </Button>
+              ) : null}
+
               {showSaveInput ? (
                 <div className="tm-panel-inline-form">
                   <TextInput
@@ -278,41 +231,10 @@ export function HistoryPanel({
         </div>
       </div>
 
-      <div className="shrink-0 px-3 pb-2">
-        <div className="tm-panel-filter-summary">
-          <div className="tm-panel-filter-summary__copy">
-            <p
-              className="tm-panel-filter-summary__title"
-              title={[scopeLabel, tokenScopeLabel].filter(Boolean).join(" · ")}
-            >
-              {historyScopeSummary}
-            </p>
-            {historyScopeDetails ? (
-              <p
-                className="tm-panel-filter-summary__detail"
-                title={historyScopeDetails}
-              >
-                {historyScopeDetails}
-              </p>
-            ) : null}
-          </div>
-          {showAllHistoryAction ? (
-            <Button
-              onClick={handleClearFilters}
-              variant="ghost"
-              size="sm"
-              className="tm-panel-filter-summary__action"
-            >
-              Show all activity
-            </Button>
-          ) : null}
-        </div>
-      </div>
-
       <div
-        role="tabpanel"
+        role="region"
         id="history-tabpanel-recent"
-        aria-labelledby="history-tab-recent"
+        aria-label="Recent activity"
         hidden={scope.view !== "recent"}
         tabIndex={scope.view === "recent" ? 0 : -1}
         className={`${scope.view === "recent" ? "flex" : "hidden"} min-h-0 flex-1 overflow-hidden`}
@@ -337,9 +259,9 @@ export function HistoryPanel({
       </div>
 
       <div
-        role="tabpanel"
+        role="region"
         id="history-tabpanel-saved"
-        aria-labelledby="history-tab-saved"
+        aria-label="Checkpoints"
         hidden={scope.view !== "saved"}
         tabIndex={scope.view === "saved" ? 0 : -1}
         className={`${scope.view === "saved" ? "flex" : "hidden"} min-h-0 flex-1 overflow-hidden`}

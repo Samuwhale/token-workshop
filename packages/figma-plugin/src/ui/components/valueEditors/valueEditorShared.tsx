@@ -210,7 +210,7 @@ export const SubPropInput = memo(function SubPropInput({
   // Open reference picker directly
   const openRefPicker = () => {
     if (isAliasVal) {
-      // Already a reference — clear it to go back to direct value
+      // Already a reference — clear it to go back to a literal value.
       onChange(inputType === 'number' ? 0 : '');
     } else {
       // Start typing a reference
@@ -252,7 +252,7 @@ export const SubPropInput = memo(function SubPropInput({
       <ReferenceToggleButton
         active={isAliasVal}
         onClick={openRefPicker}
-        title={isAliasVal ? 'Clear reference — use direct value' : 'Reference a token'}
+        title={isAliasVal ? 'Clear reference — use value' : 'Reference a token'}
         ariaLabel={isAliasVal ? 'Clear reference' : 'Reference a token'}
       />
       {showAC && (
@@ -390,7 +390,7 @@ export const FontFamilySubProp = memo(function FontFamilySubProp({
           <ReferenceToggleButton
             active
             onClick={() => { onChange(''); setShowAC(false); }}
-            title="Clear reference — use direct value"
+            title="Clear reference — use value"
             ariaLabel="Clear reference"
           />
         )}

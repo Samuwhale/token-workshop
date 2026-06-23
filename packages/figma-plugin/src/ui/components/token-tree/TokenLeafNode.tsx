@@ -438,7 +438,7 @@ export const TokenLeafNode = memo(
       ? "hidden"
       : contextMenuPos || isRowActive
         ? "opacity-100"
-        : "opacity-95 group-hover:opacity-100 group-focus-within:opacity-100";
+        : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto";
     const quickApplyVisibilityClass =
       contextMenuPos || isRowActive
         ? "opacity-100 pointer-events-auto"

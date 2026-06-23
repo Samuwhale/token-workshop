@@ -19,6 +19,7 @@ import type {
   SelectionNodeInfo,
   SetIconSwapPropertyMessage,
 } from "../../../shared/types";
+import { postPluginMessage } from "../../../shared/utils";
 import { requestPluginMessage } from "../../shared/pluginMessaging";
 import {
   ArrowLeft,
@@ -247,7 +248,7 @@ function iconReviewCount(icons: ManagedIcon[], defaultIconSize: number): number 
 }
 
 function reviewActionLabel(count: number): string {
-  return count > 0 ? `Manage ${count}` : "Manage";
+  return count > 0 ? `Review ${count}` : "Handoff";
 }
 
 function publishIconsInFigma(
@@ -321,6 +322,9 @@ function runIconUsageAudit(
       timeoutMs: 30_000,
       timeoutMessage: "Figma did not finish auditing icon usage.",
       unavailableMessage: "Open the plugin in Figma to audit icon usage.",
+      cancelOnTimeout: (correlationId) => {
+        postPluginMessage({ type: "cancel-scan", requestId: correlationId });
+      },
     },
   );
 }
@@ -567,7 +571,7 @@ function IconGrid({
               className="flex h-full min-h-[112px] w-full min-w-0 flex-col items-center gap-1.5 rounded-md p-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-figma-accent)]"
               title={`${icon.name} · ${icon.path}${markerLabel ? ` · ${markerLabel}` : ""}`}
             >
-              <span className="flex h-12 w-full items-center justify-center rounded bg-[var(--color-figma-bg-secondary)] group-hover:bg-[var(--color-figma-bg)]">
+              <span className="flex h-12 w-full items-center justify-center">
                 <IconPreview icon={icon} content={iconContent[icon.id]?.content} />
               </span>
               <span className="min-w-0 max-w-full self-stretch">
@@ -1078,6 +1082,9 @@ function IconDetailPanel({
     ["Color", colorBehaviorLabel(icon)],
     ["Paint", colorDetails(icon)],
     ["Readiness", qualityStateLabel(icon)],
+    ...(icon.tags && icon.tags.length > 0
+      ? [["Tags", icon.tags.join(", ")] as [string, string]]
+      : []),
     ["Hash", shortHash(icon.svg.hash)],
   ];
   const colorNote = colorBehaviorNote(icon);
@@ -1097,6 +1104,7 @@ function IconDetailPanel({
         ? "The registry source changed since this component was last published."
         : "Publish this icon before designers use it from Figma assets."
       : null;
+  const showHeaderPreview = variant !== "side";
 
   if (variant === "compact") {
     return (
@@ -1185,7 +1193,7 @@ function IconDetailPanel({
     <section
       className={
         variant === "side"
-          ? "flex min-h-full flex-col gap-3 bg-[var(--color-figma-bg-secondary)] p-3"
+          ? "flex min-h-full flex-col gap-3 bg-[var(--color-figma-bg)] p-3"
           : "flex min-h-0 shrink-0 flex-col gap-3 border-t border-[color:var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3"
       }
     >
@@ -1202,9 +1210,11 @@ function IconDetailPanel({
             <ArrowLeft size={14} strokeWidth={1.75} aria-hidden />
           </Button>
         ) : null}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--color-figma-bg)]">
-          <IconPreview icon={icon} content={content} />
-        </div>
+        {showHeaderPreview ? (
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded bg-[var(--color-figma-bg)]">
+            <IconPreview icon={icon} content={content} />
+          </div>
+        ) : null}
         <div className="min-w-0 flex-1">
           <div className="truncate text-body font-medium text-[color:var(--color-figma-text)]">
             {icon.name}
@@ -1322,6 +1332,19 @@ function IconDetailPanel({
         </div>
       ) : null}
 
+      <dl className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+        {primaryRows.map(([label, value]) => (
+          <div key={label} className="min-w-0">
+            <dt className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
+              {label}
+            </dt>
+            <dd className="break-words text-secondary text-[color:var(--color-figma-text)]">
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
       <div className="flex flex-wrap gap-1.5">
         {icon.status === "deprecated" || icon.status === "blocked" ? (
           <Button
@@ -1343,10 +1366,11 @@ function IconDetailPanel({
         {icon.status !== "deprecated" ? (
           <Button
             type="button"
-            variant="secondary"
+            variant="ghost"
             size="sm"
             onClick={() => onUpdateStatus("deprecated")}
             disabled={statusActionBusy}
+            className="px-1.5"
           >
             Deprecate
           </Button>
@@ -1363,19 +1387,6 @@ function IconDetailPanel({
           </Button>
         ) : null}
       </div>
-
-      <dl className="grid min-w-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-        {primaryRows.map(([label, value]) => (
-          <div key={label} className="min-w-0">
-            <dt className="text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-              {label}
-            </dt>
-            <dd className="break-words text-secondary text-[color:var(--color-figma-text)]">
-              {value}
-            </dd>
-          </div>
-        ))}
-      </dl>
 
       {developerRows.length > 0 ? (
         <div className="flex min-w-0 flex-col gap-2">
@@ -1499,31 +1510,17 @@ function IconDetailPanel({
         </div>
       ) : null}
 
-      {icon.tags && icon.tags.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {icon.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded bg-[var(--color-figma-bg)] px-1.5 py-0.5 text-[11px] text-[color:var(--color-figma-text-secondary)]"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      ) : null}
     </section>
   );
 }
 
 function IconLibraryEmptyState({
   onAdd,
-  onOpenReview,
 }: {
   onAdd: () => void;
-  onOpenReview: () => void;
 }) {
   return (
-    <div className="flex min-h-full min-w-0 flex-col items-center justify-center gap-3 px-3 py-8 text-center">
+    <div className="flex min-h-full w-full min-w-0 flex-1 flex-col items-center justify-center gap-3 px-3 py-8 text-center">
       <div className="flex size-12 items-center justify-center rounded bg-[var(--color-figma-bg-secondary)] text-[color:var(--color-figma-text-secondary)]">
         <Shapes size={24} strokeWidth={1.5} aria-hidden />
       </div>
@@ -1535,16 +1532,10 @@ function IconLibraryEmptyState({
           Add icons from Figma selection, public libraries, SVG files, or the local workspace.
         </p>
       </div>
-      <div className="flex flex-wrap justify-center gap-2">
-        <Button type="button" variant="primary" size="sm" onClick={onAdd}>
-          <Plus size={13} strokeWidth={1.5} aria-hidden />
-          Add icons
-        </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={onOpenReview}>
-          <RefreshCw size={13} strokeWidth={1.5} aria-hidden />
-          Manage
-        </Button>
-      </div>
+      <Button type="button" variant="primary" size="sm" onClick={onAdd}>
+        <Plus size={13} strokeWidth={1.5} aria-hidden />
+        Add icons
+      </Button>
     </div>
   );
 }
@@ -2316,11 +2307,11 @@ export function IconPanel() {
                 <div className="min-w-0 flex-1 text-body font-medium text-[color:var(--color-figma-text)]">
                   Icons
                 </div>
-                <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  {icons.length > 0 && filteredIcons.length !== icons.length
-                    ? `${filteredIcons.length} of ${icons.length}`
-                    : formatIconCount(icons.length)}
-                </div>
+                {icons.length > 0 && filteredIcons.length !== icons.length ? (
+                  <div className="shrink-0 text-secondary text-[color:var(--color-figma-text-secondary)]">
+                    {filteredIcons.length} of {icons.length}
+                  </div>
+                ) : null}
                 <Button
                   type="button"
                   variant="ghost"
@@ -2498,10 +2489,7 @@ export function IconPanel() {
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           {icons.length === 0 ? (
-            <IconLibraryEmptyState
-              onAdd={() => setWorkspaceSurface("add")}
-              onOpenReview={() => setWorkspaceSurface("review")}
-            />
+            <IconLibraryEmptyState onAdd={() => setWorkspaceSurface("add")} />
           ) : filteredIcons.length === 0 ? (
             <FeedbackPlaceholder
               variant="no-results"
@@ -2521,7 +2509,7 @@ export function IconPanel() {
                 />
               </div>
               {selectedIcon ? (
-                <div className="hidden min-h-0 w-[18rem] shrink-0 overflow-auto border-l border-[color:var(--color-figma-border)] min-[640px]:block">
+                <div className="hidden min-h-0 w-[15.5rem] shrink-0 overflow-auto border-l border-[color:var(--color-figma-border)] min-[640px]:block">
                   <IconDetailPanel
                     icon={selectedIcon}
                     content={iconContent[selectedIcon.id]?.content}

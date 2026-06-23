@@ -26,7 +26,7 @@ export function SelectionInspectorEmptyState({
     : "No layer selected";
   const description = extractPending
     ? "Pick a frame, shape, or text layer with unbound colors, type, or spacing. The extract sheet will open automatically."
-    : "Search above or select a layer on the canvas to inspect its token bindings.";
+    : undefined;
 
   return (
     <div className="flex flex-1 flex-col gap-3 px-4 pt-4">

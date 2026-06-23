@@ -423,7 +423,7 @@ export function PlatformExportConfig({
         ? 'All file formats'
         : selectedPlatformLabels.join(', ');
 
-  const intentButtonClass = 'justify-start text-[color:var(--color-figma-text-secondary)]';
+  const intentButtonClass = 'text-[color:var(--color-figma-text-secondary)]';
 
   return (
     <>

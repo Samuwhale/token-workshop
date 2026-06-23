@@ -1768,17 +1768,13 @@ export function App() {
       });
       return;
     }
+    const workspace = WORKSPACE_TABS.find(
+      (candidate) => candidate.id === item.workspaceId,
+    );
+    const hasSections = (workspace?.sections?.length ?? 0) > 0;
     const isAlreadyActive = item.workspaceId === activeWorkspace.id && activeSecondarySurface === null;
     if (isAlreadyActive) {
-      setExpandedWorkspaces((prev) => {
-        const next = new Set(prev);
-        if (next.has(item.workspaceId)) {
-          next.delete(item.workspaceId);
-        } else {
-          next.add(item.workspaceId);
-        }
-        return next;
-      });
+      setExpandedWorkspaces(hasSections ? new Set([item.workspaceId]) : new Set());
       return;
     }
     guardEditorAction(() => {
@@ -1787,7 +1783,7 @@ export function App() {
       closeSecondarySurface();
       closeNotifications();
       clearHandoff();
-      setExpandedWorkspaces((prev) => new Set(prev).add(item.workspaceId));
+      setExpandedWorkspaces(hasSections ? new Set([item.workspaceId]) : new Set());
     });
   }, [
     activeWorkspace.id,
@@ -1861,6 +1857,27 @@ export function App() {
     switchContextualSurface,
   ]);
 
+  useEffect(() => {
+    const activeSection = document.querySelector<HTMLButtonElement>(
+      'nav[aria-label="Workspaces"] .tm-sidebar-section-button[aria-current="page"]',
+    );
+    const activeWorkspaceButton = document.querySelector<HTMLButtonElement>(
+      'nav[aria-label="Workspaces"] .tm-sidebar-workspace-button[aria-current="page"]',
+    );
+    const activeNavItem = activeSection ?? activeWorkspaceButton;
+    activeNavItem?.scrollIntoView({ block: "center" });
+    const settleTimer = window.setTimeout(() => {
+      activeNavItem?.scrollIntoView({ block: "center" });
+    }, 180);
+    return () => window.clearTimeout(settleTimer);
+  }, [
+    activeSecondarySurface,
+    activeSubTab,
+    activeWorkspace.id,
+    expandedWorkspaces,
+    sidebarCollapsed,
+  ]);
+
   return (
     <div className="relative flex h-screen min-h-0 overflow-hidden">
       <h1 className="sr-only">Token Workshop</h1>
@@ -1871,7 +1888,7 @@ export function App() {
         aria-label="Workspaces"
       >
         {/* Accordion navigation */}
-        <div className={`flex flex-1 flex-col overflow-y-auto overflow-x-hidden ${sidebarCollapsed ? 'px-1 pt-1.5 pb-1' : 'px-2 pt-2 pb-1'}`}>
+        <div className={`flex min-h-0 flex-1 basis-0 flex-col overflow-y-auto overflow-x-hidden scroll-pb-4 ${sidebarCollapsed ? 'px-1 pt-1.5 pb-3' : 'px-2 pt-2 pb-4'}`}>
           {SIDEBAR_GROUPS.map((group) => (
             <div
               key={group.id}
@@ -2052,7 +2069,9 @@ export function App() {
                           id={sectionListId}
                           aria-hidden={!isSectionExpanded}
                           className={`ml-6 flex flex-col gap-px overflow-hidden transition-[max-height,opacity] duration-150 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                            isSectionExpanded ? "max-h-40 opacity-100 mt-0.5 mb-1" : "max-h-0 opacity-0"
+                            isSectionExpanded
+                              ? "visible max-h-96 opacity-100 mt-0.5 mb-1"
+                              : "invisible pointer-events-none max-h-0 opacity-0"
                           }`}
                         >
                           {sections.map((section) => {
@@ -2106,7 +2125,7 @@ export function App() {
         </div>
 
         {/* Bottom utilities */}
-        <div className={`flex flex-col gap-px ${sidebarCollapsed ? 'items-center px-1 py-1.5' : 'px-2 py-2'}`}>
+        <div className={`flex max-h-[40%] min-h-0 shrink flex-col gap-px overflow-y-auto ${sidebarCollapsed ? 'items-center px-1 py-1.5' : 'px-2 py-2'}`}>
           {sidebarCollapsed ? (
             <>
               <div className="flex flex-col items-center gap-0.5">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SlidersHorizontal } from "lucide-react";
+import { ChevronRight, SlidersHorizontal } from "lucide-react";
 import type { UndoSlot } from "../hooks/useUndo";
 import type { TokenMapEntry } from "../../shared/types";
 import type { HealthSignalsResult, HealthStatus } from "../hooks/useHealthSignals";
@@ -344,8 +344,8 @@ export function HealthPanel({
     "the current collection";
   const scopeLabel =
     scope.mode === "all"
-      ? "Reviewing every collection in the library."
-      : `Reviewing ${scopedCollectionLabel}.`;
+      ? "every collection"
+      : scopedCollectionLabel;
 
   const handlePromote = async (group: AliasOpportunityGroup) => {
     const sampleToken = group.tokens[0];
@@ -506,13 +506,6 @@ export function HealthPanel({
   const libraryReviewErrors = [validationError, deprecatedUsageError, generatorStatusError].filter(
     (message): message is string => Boolean(message),
   );
-  const clearCollectionCount =
-    scope.mode === "all" &&
-    !collectionSummariesPending &&
-    libraryReviewErrors.length === 0
-      ? Math.max(collectionIds.length - collectionSummaries.length, 0)
-      : 0;
-
   let content: JSX.Element;
   if (activeView === "rules") {
     content = (
@@ -540,11 +533,11 @@ export function HealthPanel({
             : "Review is clear";
     const allScopeStatusDetail =
       libraryReviewErrors.length > 0
-        ? "Some checks failed. Reconnect and refresh Review."
+        ? "Reconnect and refresh Review."
         : collectionSummariesPending
-          ? "Scanning collections, token usage, and generator outputs."
+          ? "Checking collections."
           : collectionSummaries.length > 0
-            ? `${collectionSummaries.length} collection${collectionSummaries.length === 1 ? "" : "s"} have review items. Fix blockers first. Cleanup can wait.`
+            ? `${collectionSummaries.length} collection${collectionSummaries.length === 1 ? "" : "s"} with review items.`
             : "No review items in any collection.";
     const renderCollectionRow = (
       collectionId: string,
@@ -570,8 +563,8 @@ export function HealthPanel({
               {meta}
             </span>
           </span>
-          <span className="shrink-0 text-secondary font-medium text-[color:var(--color-figma-text-secondary)]">
-            Review
+          <span className="shrink-0 text-[color:var(--color-figma-text-tertiary)]">
+            <ChevronRight size={14} strokeWidth={1.75} aria-hidden />
           </span>
         </button>
       );
@@ -589,11 +582,6 @@ export function HealthPanel({
           <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
             {allScopeStatusDetail}
           </p>
-          {clearCollectionCount > 0 ? (
-            <p className="mt-1 text-secondary text-[color:var(--color-figma-text-tertiary)]">
-              {clearCollectionCount} collection{clearCollectionCount === 1 ? "" : "s"} clear.
-            </p>
-          ) : null}
         </div>
 
         {libraryReviewErrors.length > 0 ? (
@@ -622,9 +610,6 @@ export function HealthPanel({
                   <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
                     Fix next
                   </h3>
-                  <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                    Errors and actionable warnings.
-                  </p>
                 </div>
                 <div>
                   {fixNextCollections.map(([collectionId, summary]) =>
@@ -640,9 +625,6 @@ export function HealthPanel({
                   <h3 className="text-body font-semibold text-[color:var(--color-figma-text)]">
                     Clean up
                   </h3>
-                  <p className="mt-0.5 text-secondary text-[color:var(--color-figma-text-secondary)]">
-                    Non-blocking review items.
-                  </p>
                 </div>
                 <div>
                   {cleanupCollections.map(([collectionId, summary]) =>
@@ -662,7 +644,7 @@ export function HealthPanel({
           </p>
         )}
 
-        <div className="mt-auto pt-4">
+        <div className="mt-3">
           <button
             type="button"
             onClick={openRulesView}

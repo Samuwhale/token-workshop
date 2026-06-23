@@ -20,7 +20,6 @@ import { useDropdownMenu } from "../../hooks/useDropdownMenu";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { useAnchoredFloatingStyle } from "../../shared/floatingPosition";
 import {
-  FLOATING_MENU_CLASS,
   FLOATING_MENU_ITEM_CLASS,
   FLOATING_MENU_WIDE_CLASS,
 } from "../../shared/menuClasses";
@@ -36,8 +35,8 @@ import { Button, SearchField, SegmentedControl } from "../../primitives";
 const COLLECTION_ACTION_BUTTON_CLASS =
   "tm-collection-toolbar__action inline-flex min-h-[28px] shrink-0 items-center gap-1 rounded px-2 py-1 text-secondary font-medium transition-colors";
 const COLLECTION_SCOPE_OPTIONS = [
-  { value: "current", label: "This collection" },
-  { value: "all", label: "All collections" },
+  { value: "current", label: "Current" },
+  { value: "all", label: "All" },
 ] as const;
 
 interface AllCollectionsScope {
@@ -149,14 +148,6 @@ export function CollectionTabs({
     preferredHeight: 380,
     align: "start",
   });
-  const createMenu = useDropdownMenu();
-  const createMenuStyle = useAnchoredFloatingStyle({
-    triggerRef: createMenu.triggerRef,
-    open: createMenu.open,
-    preferredWidth: 220,
-    preferredHeight: 220,
-    align: "end",
-  });
 
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -213,25 +204,6 @@ export function CollectionTabs({
     scopeValue !== "all";
   const showCreateButton = Boolean(onOpenCreateCollection);
   const showImportButton = Boolean(onOpenImport);
-  const showCreateMenu = showCreateButton && showImportButton;
-  const primaryAction =
-    showCreateButton
-      ? {
-          icon: createActionIcon ?? (
-            <Plus size={12} strokeWidth={1.5} aria-hidden />
-          ),
-          label: createActionLabel,
-          title: createActionTitle,
-          onClick: () => onOpenCreateCollection?.(),
-        }
-      : showImportButton
-        ? {
-            icon: <Upload size={12} strokeWidth={1.5} aria-hidden />,
-            label: "Import",
-            title: "Import into library",
-            onClick: () => onOpenImport?.(),
-          }
-        : null;
   const hasNoMatches = query.trim().length > 0 && filteredCollections.length === 0;
   const triggerTitle = [
     visibleTitle,
@@ -254,8 +226,8 @@ export function CollectionTabs({
         : "Choose collection";
   const triggerStateClass =
     switcherOpen || scopeValue === "all"
-      ? "border-[var(--border-accent)] bg-[var(--surface-group)] text-[color:var(--color-figma-text)]"
-      : "border-[var(--border-muted)] bg-[var(--surface-group-quiet)] text-[color:var(--color-figma-text)] hover:border-[var(--border-accent)] hover:bg-[var(--surface-group)]";
+      ? "border-[var(--border-accent)] bg-[var(--surface-selected)] text-[color:var(--color-figma-text)]"
+      : "border-transparent bg-transparent text-[color:var(--color-figma-text)] hover:bg-[var(--surface-hover)]";
 
   const closeSwitcher = useCallback(() => {
     closeSwitcherMenu({ restoreFocus: false });
@@ -457,55 +429,52 @@ export function CollectionTabs({
           })
         )}
       </div>
+
+      {showCreateButton || showImportButton ? (
+        <div className="mt-1 border-t border-[var(--border-muted)] pt-1">
+          {showCreateButton ? (
+            <button
+              type="button"
+              onClick={() => {
+                closeSwitcher();
+                onOpenCreateCollection?.();
+              }}
+              className={FLOATING_MENU_ITEM_CLASS}
+              title={createActionTitle}
+            >
+              <span className="shrink-0 text-[color:var(--color-figma-text-secondary)]">
+                {createActionIcon ?? <Plus size={12} strokeWidth={1.5} aria-hidden />}
+              </span>
+              <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
+                {createActionLabel}
+              </span>
+            </button>
+          ) : null}
+          {showImportButton ? (
+            <button
+              type="button"
+              onClick={() => {
+                closeSwitcher();
+                onOpenImport?.();
+              }}
+              className={FLOATING_MENU_ITEM_CLASS}
+            >
+              <span className="shrink-0 text-[color:var(--color-figma-text-secondary)]">
+                <Upload size={12} strokeWidth={1.5} aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
+                Import
+              </span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   ) : null;
 
-  const createMenuPopover =
-    showCreateMenu && createMenu.open ? (
-      <div
-        ref={createMenu.menuRef}
-        style={createMenuStyle ?? { visibility: "hidden" }}
-        className={FLOATING_MENU_CLASS}
-        role="menu"
-      >
-        <button
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            onOpenCreateCollection?.();
-            createMenu.close({ restoreFocus: false });
-          }}
-          className={FLOATING_MENU_ITEM_CLASS}
-        >
-          <span className="shrink-0 text-[color:var(--color-figma-text-secondary)]">
-            {createActionIcon ?? <Plus size={12} strokeWidth={1.5} aria-hidden />}
-          </span>
-          <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
-            {createActionLabel}
-          </span>
-        </button>
-        <button
-          type="button"
-          role="menuitem"
-          onClick={() => {
-            onOpenImport?.();
-            createMenu.close({ restoreFocus: false });
-          }}
-          className={FLOATING_MENU_ITEM_CLASS}
-        >
-          <span className="shrink-0 text-[color:var(--color-figma-text-secondary)]">
-            <Upload size={12} strokeWidth={1.5} aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1 text-left leading-tight [overflow-wrap:anywhere]">
-            Import
-          </span>
-        </button>
-      </div>
-    ) : null;
-
   return (
     <>
-      <div className="flex min-w-0 shrink-0 border-b border-[var(--border-muted)] bg-[var(--surface-panel-header)] px-2 py-1">
+      <div className="flex min-w-0 shrink-0 bg-[var(--color-figma-bg)] px-2 py-1">
         <div className="tm-responsive-toolbar tm-collection-toolbar w-full">
           <div className="tm-responsive-toolbar__row tm-collection-toolbar__row">
             <div className="tm-responsive-toolbar__leading tm-collection-toolbar__leading">
@@ -543,11 +512,6 @@ export function CollectionTabs({
                     ) : null}
                     <span className="min-w-0 truncate">{visibleTitle}</span>
                   </span>
-                  {visibleMeta ? (
-                    <span className="tm-collection-toolbar__summary-meta block truncate text-secondary text-[color:var(--color-figma-text-tertiary)]">
-                      {visibleMeta}
-                    </span>
-                  ) : null}
                 </span>
                 <ChevronDown
                   size={12}
@@ -560,43 +524,8 @@ export function CollectionTabs({
               </button>
             </div>
 
-            <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
-              {showCreateMenu ? (
-                <Button
-                  ref={createMenu.triggerRef}
-                  onClick={createMenu.toggle}
-                  aria-expanded={createMenu.open}
-                  aria-haspopup="menu"
-                  aria-label="Add to library"
-                  title="Add to library"
-                  variant="secondary"
-                  size="sm"
-                  wrap
-                  className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary justify-start`}
-                >
-                  {primaryAction?.icon}
-                  <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                    Add
-                  </span>
-                  <ChevronDown size={12} strokeWidth={1.8} aria-hidden />
-                </Button>
-              ) : primaryAction ? (
-                <Button
-                  onClick={primaryAction.onClick}
-                  aria-label={primaryAction.title}
-                  title={primaryAction.title}
-                  variant="secondary"
-                  size="sm"
-                  wrap
-                  className={`${COLLECTION_ACTION_BUTTON_CLASS} tm-collection-toolbar__action--primary justify-start`}
-                >
-                  {primaryAction.icon}
-                  <span className="tm-toolbar-action__label tm-collection-toolbar__action-label">
-                    {primaryAction.label}
-                  </span>
-                </Button>
-              ) : null}
-              {showManageButton ? (
+            {showManageButton ? (
+              <div className="tm-responsive-toolbar__actions tm-collection-toolbar__actions">
                 <Button
                   onClick={() =>
                     activeCollectionSettings?.onToggle(currentCollectionId!)
@@ -622,15 +551,12 @@ export function CollectionTabs({
                     Modes
                   </span>
                 </Button>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
       {switcherMenu ? createPortal(switcherMenu, document.body) : null}
-      {showCreateMenu && createMenuPopover
-        ? createPortal(createMenuPopover, document.body)
-        : null}
     </>
   );
 }

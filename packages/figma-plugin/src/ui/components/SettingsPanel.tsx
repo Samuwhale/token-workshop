@@ -511,6 +511,17 @@ export function SettingsPanel({
       ? new Set(parsed)
       : new Set(["css"]);
   });
+  const selectedPlatformLabels = PLATFORMS.filter((platform) =>
+    exportPlatforms.has(platform.id),
+  ).map((platform) => platform.label);
+  const selectedPlatformSummary =
+    selectedPlatformLabels.length === 0
+      ? "None"
+      : selectedPlatformLabels.length <= 3
+        ? selectedPlatformLabels.join(", ")
+        : `${selectedPlatformLabels.slice(0, 3).join(", ")} +${
+            selectedPlatformLabels.length - 3
+          }`;
   const [cssSelector, setCssSelector] = useState<string>(
     () => lsGet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, ":root") ?? ":root",
   );
@@ -583,24 +594,18 @@ export function SettingsPanel({
   }, [connectToServer]);
 
   const activeServerUrl = serverUrl || serverUrlInput || DEFAULT_SERVER_URL;
-  const connectionTone = connected ? "success" : checking ? "neutral" : "danger";
   const connectionTitle = connected
     ? "Connected"
     : checking
       ? "Checking connection"
       : "Disconnected";
-  const connectionDescription = connected
-    ? `Using ${activeServerUrl}`
-    : checking
-      ? `Checking ${activeServerUrl}`
-      : "Start the local server, then reconnect from here.";
 
   return (
     <>
       <SecondaryTakeoverHeader title="Settings" onClose={onClose} />
 
-      <div className="flex-1 overflow-y-auto bg-[var(--surface-app)]">
-        <div className="flex min-w-0 flex-col gap-5 px-3 py-3">
+      <div className="flex-1 overflow-y-auto scroll-pb-10 bg-[var(--surface-app)]">
+        <div className="flex min-w-0 flex-col gap-4 px-3 pb-10 pt-3">
           <SettingsSection
             title="Preferences"
           >
@@ -613,7 +618,7 @@ export function SettingsPanel({
             <SettingsItem
               title="Color values"
             >
-              <div className="flex min-w-0 flex-col gap-1.5 [&_.tm-segmented-control]:w-full">
+              <div className="tm-settings-choice-stack flex min-w-0 flex-col items-start gap-1.5">
                 <SegmentedControl
                   options={COLOR_FORMAT_OPTIONS}
                   value={colorFormat}
@@ -621,7 +626,7 @@ export function SettingsPanel({
                   ariaLabel="Color format"
                   size="compact"
                 />
-                <div className="flex min-w-0 items-center gap-2 rounded-[var(--radius-md)] bg-[var(--surface-group-quiet)] px-2 py-1">
+                <div className="flex min-w-0 items-center gap-2 px-0.5 py-0.5">
                   <span
                     className="h-3.5 w-3.5 shrink-0 rounded-sm border border-[var(--color-figma-border)]"
                     style={{ backgroundColor: "#3B82F6" }}
@@ -637,7 +642,7 @@ export function SettingsPanel({
             <SettingsItem
               title="Copy format"
             >
-              <div className="min-w-0 [&_.tm-segmented-control]:w-full">
+              <div className="tm-settings-choice-stack min-w-0">
                 <SegmentedControl
                   options={COPY_FORMAT_OPTIONS}
                   value={preferredCopyFormat}
@@ -704,9 +709,24 @@ export function SettingsPanel({
           <SettingsSection
             title="Connection"
           >
-            <StatusBanner tone={connectionTone} title={connectionTitle}>
-              <span className="break-all">{connectionDescription}</span>
-            </StatusBanner>
+            <div className="flex min-w-0 flex-wrap items-center gap-2 text-secondary">
+              <span
+                aria-hidden="true"
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  connected
+                    ? "bg-[var(--color-figma-success)]"
+                    : checking
+                      ? "bg-[var(--color-figma-warning)]"
+                      : "bg-[var(--color-figma-error)]"
+                }`}
+              />
+              <span className="font-medium text-[color:var(--color-figma-text)]">
+                {connectionTitle}
+              </span>
+              <span className="min-w-0 break-all font-mono text-[color:var(--color-figma-text-secondary)]">
+                {activeServerUrl}
+              </span>
+            </div>
 
             <Field label="Server URL">
               <TextInput
@@ -735,7 +755,7 @@ export function SettingsPanel({
               </StatusBanner>
             )}
 
-            <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <Button
                 onClick={handleResetServerUrl}
                 disabled={checking}
@@ -761,24 +781,29 @@ export function SettingsPanel({
             <SettingsItem
               title="Default platforms"
             >
-              <div className="flex min-w-0 flex-wrap gap-1.5">
-                {PLATFORMS.map((platform) => (
-                  <button
-                    type="button"
-                    key={platform.id}
-                    aria-pressed={exportPlatforms.has(platform.id)}
-                    onClick={() => handleExportPlatformToggle(platform.id)}
-                    className={`min-h-7 rounded-[var(--radius-md)] border px-2 py-1 text-secondary font-medium transition-colors ${
-                      exportPlatforms.has(platform.id)
-                        ? "border-[var(--color-figma-accent)] bg-[var(--surface-selected)] text-[color:var(--color-figma-text)]"
-                        : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
-                    }`}
-                    title={platform.description}
-                  >
-                    {platform.label}
-                  </button>
-                ))}
-              </div>
+              <details className="min-w-0">
+                <summary className="cursor-pointer rounded px-2 py-1 text-body text-[color:var(--color-figma-text)] transition-colors hover:bg-[var(--surface-hover)]">
+                  {selectedPlatformSummary}
+                </summary>
+                <div className="mt-2 flex min-w-0 flex-wrap gap-1.5">
+                  {PLATFORMS.map((platform) => (
+                    <button
+                      type="button"
+                      key={platform.id}
+                      aria-pressed={exportPlatforms.has(platform.id)}
+                      onClick={() => handleExportPlatformToggle(platform.id)}
+                      className={`min-h-7 rounded-[var(--radius-md)] border px-2 py-1 text-secondary font-medium transition-colors ${
+                        exportPlatforms.has(platform.id)
+                          ? "border-[var(--color-figma-accent)] bg-[var(--surface-selected)] text-[color:var(--color-figma-text)]"
+                          : "border-[var(--color-figma-border)] text-[color:var(--color-figma-text-secondary)] hover:border-[color:var(--color-figma-text-tertiary)] hover:bg-[var(--surface-hover)] hover:text-[color:var(--color-figma-text)]"
+                      }`}
+                      title={platform.description}
+                    >
+                      {platform.label}
+                    </button>
+                  ))}
+                </div>
+              </details>
             </SettingsItem>
             <Field label="CSS selector">
               <TextInput
@@ -795,7 +820,7 @@ export function SettingsPanel({
           <SettingsSection
             title="Setup and backups"
           >
-            <div className="grid min-w-0 grid-cols-[repeat(auto-fit,minmax(132px,1fr))] gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <Button onClick={handleOpenDocumentation} wrap>
                 <BookOpen size={13} strokeWidth={1.75} aria-hidden />
                 Documentation

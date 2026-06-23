@@ -21,6 +21,7 @@ export interface CheckboxRowProps {
   onChange: (checked: boolean) => void;
   meta?: ReactNode;
   disabled?: boolean;
+  selectedSurface?: boolean;
   className?: string;
   children?: ReactNode;
 }
@@ -75,6 +76,7 @@ export function CheckboxRow({
   onChange,
   meta,
   disabled,
+  selectedSurface = true,
   className,
   children,
 }: CheckboxRowProps) {
@@ -82,7 +84,7 @@ export function CheckboxRow({
     <label
       className={cx(
         "group flex min-w-0 cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-left outline-none transition-colors hover:bg-[var(--color-figma-bg-hover)] focus-within:outline focus-within:outline-[1.5px] focus-within:outline-[var(--color-figma-accent)] focus-within:outline-offset-[-1px]",
-        checked && "bg-[var(--surface-selected)]",
+        checked && selectedSurface && "bg-[var(--surface-selected)]",
         disabled && "cursor-default opacity-50 hover:bg-transparent",
         className,
       )}

@@ -43,6 +43,7 @@ import {
   buildPublishPullPayload,
   loadVariablePublishSnapshot,
   getDiffRowId,
+  DEFAULT_PUBLISH_PREFLIGHT_STATE,
   type ResolverPublishSyncMapping,
   stylePublishDiffConfig,
   variablePublishDiffConfig,
@@ -54,6 +55,10 @@ import {
   type SyncDirection,
   type SyncWorkflowStage,
 } from '../shared/syncWorkflow';
+import {
+  dispatchPublishPendingCount,
+  dispatchPublishPreflightState,
+} from '../shared/publishStatusEvents';
 import { buildStylePublishTokens } from '../shared/stylePublish';
 import { Button, CheckboxRow } from '../primitives';
 import { getCollectionDisplayName } from '../shared/libraryCollections';
@@ -263,17 +268,17 @@ interface PublishPanelProps {
     routing: PublishRoutingDraft,
   ) => Promise<{ collectionName?: string; modeName?: string }>;
   refreshValidation: () => Promise<ValidationSnapshot | null>;
-	  onOpenGenerator?: (
-	    generatorId: string,
-	    options?: {
-	      preserveHandoff?: boolean;
-	      focus?: {
-	        diagnosticId?: string;
-	        nodeId?: string;
-	        edgeId?: string;
-	      };
-	    },
-	  ) => void;
+  onOpenGenerator?: (
+    generatorId: string,
+    options?: {
+      preserveHandoff?: boolean;
+      focus?: {
+        diagnosticId?: string;
+        nodeId?: string;
+        edgeId?: string;
+      };
+    },
+  ) => void;
   /** Increments whenever tokens are edited — used to detect stale readiness results */
   tokenChangeKey?: number;
   publishPanelHandle?: React.MutableRefObject<PublishPanelHandle | null>;
@@ -1082,14 +1087,17 @@ export function PublishPanel({
   // ── Broadcast pending count to Sync tab badge ────────────────────────────
   // Fires whenever either check completes (or resets). Clears on unmount.
   useEffect(() => {
+    if (!connected) {
+      dispatchPublishPendingCount(0);
+      return;
+    }
+
     const varCount = canProceedToSync && varSync.checked ? varSync.syncCount : 0;
     const styleCount = canProceedToSync && !isResolverPublishCompareActive && styleSync.checked ? styleSync.syncCount : 0;
-    window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: varCount + styleCount } }));
-    return () => {
-      window.dispatchEvent(new CustomEvent('publish-pending-count', { detail: { total: 0 } }));
-    };
+    dispatchPublishPendingCount(varCount + styleCount);
   }, [
     canProceedToSync,
+    connected,
     isResolverPublishCompareActive,
     varSync.checked,
     varSync.syncCount,
@@ -1098,13 +1106,17 @@ export function PublishPanel({
   ]);
 
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('publish-preflight-state', { detail: publishPreflightState }));
+    dispatchPublishPreflightState(
+      connected ? publishPreflightState : DEFAULT_PUBLISH_PREFLIGHT_STATE,
+    );
+  }, [connected, publishPreflightState]);
+
+  useEffect(() => {
     return () => {
-      window.dispatchEvent(new CustomEvent('publish-preflight-state', {
-        detail: { stage: 'idle', isOutdated: false, blockingCount: 0, advisoryCount: 0, canProceed: false, targetDirty: false },
-      }));
+      dispatchPublishPendingCount(0);
+      dispatchPublishPreflightState(DEFAULT_PUBLISH_PREFLIGHT_STATE);
     };
-  }, [publishPreflightState]);
+  }, []);
 
   /* ── Derived UI state ─────────────────────────────────────────────────── */
 
@@ -1223,7 +1235,7 @@ export function PublishPanel({
           {/* ── Publish destination ──────────────────────────────────── */}
           <div ref={targetRef}>
             <DisclosureSection
-              title="Destination"
+              title="Figma target"
               summary={`${resolvedCollectionName} / ${resolvedModeName}`}
               statusLabel={
                 standardRoutingDirty
@@ -1258,20 +1270,12 @@ export function PublishPanel({
             checked={createStylesPref}
             onChange={setCreateStylesPref}
             title="Also create Figma styles"
-            description="Keep variables as the source. Add styles for Figma color, text, effect, and gradient pickers."
+            selectedSurface={false}
             className="px-0"
           />
 
           {!hasComparedAnything && !isSyncing && !isApplying && !hasIssues && preflightStage === 'idle' && !readinessError && (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-[var(--color-figma-bg-secondary)] px-2 py-2">
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-body font-medium text-[color:var(--color-figma-text)]">
-                  Compare with Figma
-                </span>
-                <span className="text-secondary text-[color:var(--color-figma-text-secondary)]">
-                  Review changes before Token Workshop updates variables or styles.
-                </span>
-              </div>
+            <div className="py-1">
               <button
                 type="button"
                 onClick={() => {
@@ -1287,7 +1291,7 @@ export function PublishPanel({
                 }}
                 disabled={readinessLoading || compareAllLoading || standardRoutingSaving}
                 title={standardRoutingDirty || readinessChecks.length > 0 ? compareLockedMessage : undefined}
-                className="shrink-0 rounded-md bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
+                className="rounded-md bg-[var(--color-figma-action-bg)] px-3 py-1.5 text-secondary font-medium text-[color:var(--color-figma-text-onbrand)] transition-colors hover:bg-[var(--color-figma-action-bg-hover)] disabled:opacity-40"
               >
                 {standardRoutingSaving
                   ? 'Saving…'
@@ -1551,12 +1555,6 @@ function StandardPublishRoutingCard({
           <div className="text-body font-medium text-[color:var(--color-figma-text)]" title={currentCollectionId}>
             {currentCollectionLabel}
           </div>
-          <p className="mt-1 max-w-[520px] text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
-            Choose where this collection publishes in Figma variables.
-            {usesAllModes
-              ? ' Each mode syncs to a Figma mode with the matching name.'
-              : ' This changes the destination only; the token value stays the same.'}
-          </p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
@@ -1607,16 +1605,6 @@ function StandardPublishRoutingCard({
             suggestions={modeSuggestions}
           />
         )}
-      </div>
-
-      <div className="text-secondary leading-relaxed text-[color:var(--color-figma-text-secondary)]">
-        Leave the collection blank to sync into{' '}
-        <span className="text-[color:var(--color-figma-text)]">
-          {DEFAULT_VARIABLE_COLLECTION_NAME}
-        </span>
-        {usesAllModes
-          ? '. Mode names come from this collection.'
-          : ". Leave the mode blank to use Figma's default mode for that collection."}
       </div>
 
       {dirty ? (

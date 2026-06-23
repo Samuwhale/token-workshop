@@ -283,7 +283,7 @@ export function InlineValuePopover({
   const typeBadgeClass = tokenTypeBadgeClass(tokenType);
   const showMultilineLiteral =
     tokenType === 'string' && literalText.length > 48;
-  const modeCaption = modeLabel ? `${modeLabel} mode` : 'Default mode';
+  const modeCaption = modeLabel ? `${modeLabel} mode` : 'Mode value';
   const errorId = 'inline-value-popover-error';
   const switchSource = (nextSource: 'value' | 'reference') => {
     setError(null);
@@ -351,7 +351,7 @@ export function InlineValuePopover({
             value={source}
             options={[
               { value: 'value', label: 'Value' },
-              { value: 'reference', label: 'Reference' },
+              { value: 'reference', label: 'Token' },
             ]}
             onChange={switchSource}
             ariaLabel={`${modeLabel ?? tokenName} value source`}

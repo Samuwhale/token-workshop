@@ -9,6 +9,8 @@ interface PrimaryAction {
 }
 
 interface PanelContentHeaderProps {
+  title?: string;
+  meta?: string;
   primaryAction?: PrimaryAction | null;
 }
 
@@ -39,7 +41,11 @@ function computeVisibleHandoff(
   return activeHandoff;
 }
 
-export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
+export function PanelContentHeader({
+  title,
+  meta,
+  primaryAction,
+}: PanelContentHeaderProps) {
   const {
     activeHandoff,
     returnFromHandoff,
@@ -55,7 +61,7 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
     activeSubTab,
   );
 
-  if (!visibleHandoff && !primaryAction) return null;
+  if (!visibleHandoff && !title && !meta && !primaryAction) return null;
 
   return (
     <div className="shrink-0 px-3 py-2">
@@ -76,24 +82,34 @@ export function PanelContentHeader({ primaryAction }: PanelContentHeaderProps) {
               </span>
             </Button>
           )}
+          {title ? (
+            <span className="tm-panel-bar__title text-body font-semibold text-[color:var(--color-figma-text)]">
+              {title}
+            </span>
+          ) : null}
+          {meta ? (
+            <span className="tm-panel-bar__meta text-secondary text-[color:var(--color-figma-text-tertiary)]">
+              {meta}
+            </span>
+          ) : null}
         </div>
 
-        <div className="tm-panel-bar__actions">
-        {primaryAction && (
-          <Button
-            onClick={primaryAction.onClick}
-            disabled={primaryAction.disabled}
-            variant="primary"
-            size="md"
-            wrap
-            className="max-w-full"
-          >
-            <span className="block min-w-0 [overflow-wrap:anywhere]">
-              {primaryAction.label}
-            </span>
-          </Button>
-        )}
-        </div>
+        {primaryAction ? (
+          <div className="tm-panel-bar__actions">
+            <Button
+              onClick={primaryAction.onClick}
+              disabled={primaryAction.disabled}
+              variant="primary"
+              size="md"
+              wrap
+              className="max-w-full"
+            >
+              <span className="block min-w-0 [overflow-wrap:anywhere]">
+                {primaryAction.label}
+              </span>
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

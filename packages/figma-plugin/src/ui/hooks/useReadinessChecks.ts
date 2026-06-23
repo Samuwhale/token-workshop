@@ -2,8 +2,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { getTokenLifecycle, type TokenCollection } from '@token-workshop/core';
 import type { OrphanVariableDeleteTarget, VariableSyncToken } from '../../shared/types';
 import { postPluginMessage } from '../../shared/utils';
-import { describeError } from '../shared/utils';
+import { describeError, isAbortError } from '../shared/utils';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+import { createFetchSignal } from '../shared/apiFetch';
 import {
   getSyncRowsByCategory,
   getDiffRowId,
@@ -385,6 +386,7 @@ async function loadVariableSyncSnapshot(
   modeMap: Record<string, string>,
   resolverName?: string | null,
   resolverPublishMappings?: ResolverPublishSyncMapping[],
+  signal?: AbortSignal,
 ) {
   return loadVariablePublishSnapshot({
     serverUrl,
@@ -397,6 +399,7 @@ async function loadVariableSyncSnapshot(
     figmaTimeoutMessage: 'No response from Figma after 15 s — make sure the plugin is open and try again.',
     resolverName,
     resolverPublishMappings,
+    signal,
   });
 }
 
@@ -446,12 +449,22 @@ export function useReadinessChecks({
     useState<MissingVariablesConfirmState | null>(null);
 
   const isRunningRef = useRef(false);
+  const readinessRunIdRef = useRef(0);
+  const readinessAbortControllerRef = useRef<AbortController | null>(null);
   const latestTokenChangeKeyRef = useRef<number | undefined>(tokenChangeKey);
   useEffect(() => { latestTokenChangeKeyRef.current = tokenChangeKey; }, [tokenChangeKey]);
 
   const runReadinessChecks = useCallback(async () => {
-    if (!currentCollectionId || isRunningRef.current) return;
+    if (!connected || !currentCollectionId || isRunningRef.current) return;
     isRunningRef.current = true;
+    const runId = readinessRunIdRef.current + 1;
+    readinessRunIdRef.current = runId;
+    readinessAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    readinessAbortControllerRef.current = abortController;
+    const isCurrentRun = () =>
+      readinessRunIdRef.current === runId && !abortController.signal.aborted;
+
     setReadinessLoading(true);
     setReadinessError(null);
 
@@ -465,16 +478,23 @@ export function useReadinessChecks({
         modeMap,
         resolverName,
         resolverPublishMappings,
+        abortController.signal,
       );
+      if (!isCurrentRun()) return;
       const validationSnapshot = await refreshValidation();
+      if (!isCurrentRun()) return;
       let generatorStatuses: GeneratorStatusItem[] = [];
       let generatorStatusError: string | null = null;
       try {
-        generatorStatuses = await fetchGeneratorStatuses(serverUrl);
+        generatorStatuses = await fetchGeneratorStatuses(serverUrl, {
+          signal: createFetchSignal(abortController.signal, READINESS_TIMEOUT_MS),
+        });
       } catch (error) {
+        if (abortController.signal.aborted || isAbortError(error)) return;
         generatorStatuses = [];
         generatorStatusError = describeError(error);
       }
+      if (!isCurrentRun()) return;
       const activeValidationIssues =
         validationSnapshot?.issues.filter((issue) => issue.collectionId === currentCollectionId && issue.severity === 'error') ?? [];
       const generatorIssues = generatorStatuses.filter((item) =>
@@ -661,18 +681,26 @@ export function useReadinessChecks({
       setChecksStale(false);
       lsSet(STORAGE_KEYS.READINESS_CHANGE_KEY, String(runKey));
     } catch (err) {
+      if (abortController.signal.aborted || isAbortError(err)) return;
       setReadinessError(describeError(err, 'Readiness checks'));
     } finally {
-      setReadinessLoading(false);
-      isRunningRef.current = false;
+      if (readinessAbortControllerRef.current === abortController) {
+        readinessAbortControllerRef.current = null;
+      }
 
-      const thisRunKey = tokenChangeKey ?? 0;
-      const latestKey = latestTokenChangeKeyRef.current ?? 0;
-      if (latestKey !== thisRunKey) {
-        Promise.resolve().then(() => runReadinessChecksRef.current());
+      if (readinessRunIdRef.current === runId) {
+        setReadinessLoading(false);
+        isRunningRef.current = false;
+
+        const thisRunKey = tokenChangeKey ?? 0;
+        const latestKey = latestTokenChangeKeyRef.current ?? 0;
+        if (latestKey !== thisRunKey) {
+          Promise.resolve().then(() => runReadinessChecksRef.current());
+        }
       }
     }
   }, [
+    connected,
     currentCollectionId,
     collections,
     collectionMap,
@@ -785,14 +813,43 @@ export function useReadinessChecks({
   useEffect(() => { runReadinessChecksRef.current = runReadinessChecks; }, [runReadinessChecks]);
   const restoredReadinessRef = useRef(false);
 
+  const cancelActiveReadinessRun = useCallback(() => {
+    readinessRunIdRef.current += 1;
+    readinessAbortControllerRef.current?.abort();
+    readinessAbortControllerRef.current = null;
+    isRunningRef.current = false;
+    setReadinessLoading(false);
+  }, []);
+
   useEffect(() => {
+    cancelActiveReadinessRun();
     restoredReadinessRef.current = false;
     setChecksRunAtKey(null);
     setChecksStale(false);
     setReadinessError(null);
     setReadinessChecks([]);
     setMissingVariablesConfirm(null);
-  }, [currentCollectionId]);
+  }, [cancelActiveReadinessRun, currentCollectionId]);
+
+  useEffect(() => {
+    if (connected) return;
+    cancelActiveReadinessRun();
+    restoredReadinessRef.current = false;
+    setChecksRunAtKey(null);
+    setChecksStale(false);
+    setReadinessError(null);
+    setReadinessChecks([]);
+    setMissingVariablesConfirm(null);
+  }, [cancelActiveReadinessRun, connected]);
+
+  useEffect(() => {
+    return () => {
+      readinessRunIdRef.current += 1;
+      readinessAbortControllerRef.current?.abort();
+      readinessAbortControllerRef.current = null;
+      isRunningRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (restoredReadinessRef.current) return;

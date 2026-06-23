@@ -242,20 +242,49 @@ function scopesEqual(a: string[] | undefined, b: string[] | undefined): boolean 
   return aArr.length === bArr.length && aArr.every((scope, index) => scope === bArr[index]);
 }
 
-function withOptionalTimeout<T>(promise: Promise<T>, timeoutMs?: number, timeoutMessage?: string): Promise<T> {
-  if (!timeoutMs) return promise;
+function createAbortError(): Error {
+  if (typeof DOMException === 'function') {
+    return new DOMException('This operation was aborted.', 'AbortError');
+  }
+  const error = new Error('This operation was aborted.');
+  error.name = 'AbortError';
+  return error;
+}
+
+function withOptionalTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs?: number,
+  timeoutMessage?: string,
+  signal?: AbortSignal,
+): Promise<T> {
+  const hasTimeout = typeof timeoutMs === 'number' && timeoutMs > 0;
+  if (!hasTimeout && !signal) return promise;
+  if (signal?.aborted) return Promise.reject(createAbortError());
+
   return new Promise<T>((resolve, reject) => {
-    const timeoutId = setTimeout(() => {
+    const timeoutId = hasTimeout ? setTimeout(() => {
+      cleanup();
       reject(new Error(timeoutMessage ?? `Timed out after ${timeoutMs} ms.`));
-    }, timeoutMs);
+    }, timeoutMs) : undefined;
+
+    const cleanup = () => {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', handleAbort);
+    };
+    const handleAbort = () => {
+      cleanup();
+      reject(createAbortError());
+    };
+
+    signal?.addEventListener('abort', handleAbort, { once: true });
 
     promise.then(
       (value) => {
-        clearTimeout(timeoutId);
+        cleanup();
         resolve(value);
       },
       (error) => {
-        clearTimeout(timeoutId);
+        cleanup();
         reject(error);
       },
     );
@@ -490,6 +519,7 @@ async function loadResolverVariablePublishSnapshot({
     readFigmaTokens(),
     figmaTimeoutMs,
     figmaTimeoutMessage,
+    signal,
   );
 
   const typedCollections = figmaTokens as ReadVariableCollection[];
@@ -869,6 +899,7 @@ export async function loadVariablePublishSnapshot({
     readFigmaTokens(),
     figmaTimeoutMs,
     figmaTimeoutMessage,
+    signal,
   );
   const data = await apiFetch<{ tokens?: Record<string, unknown> }>(
     `${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}`,
@@ -947,6 +978,7 @@ export async function loadSyncSnapshot<TLocal, TFigma, TRow extends DiffRowBase>
     readFigmaTokens(),
     figmaTimeoutMs,
     figmaTimeoutMessage,
+    signal,
   );
   const data = await apiFetch<{ tokens?: Record<string, unknown> }>(
     `${serverUrl}/api/tokens/${encodeURIComponent(currentCollectionId)}`,

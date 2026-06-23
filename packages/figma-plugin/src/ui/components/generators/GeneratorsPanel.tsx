@@ -65,9 +65,10 @@ import { cloneValue } from "../../../shared/clone";
 import type { TokenMapEntry } from "../../../shared/types";
 import type { EditorSessionRegistration } from "../../contexts/WorkspaceControllerContext";
 import { useElementWidth } from "../../hooks/useElementWidth";
-import { apiFetch } from "../../shared/apiFetch";
+import { apiFetch, createFetchSignal } from "../../shared/apiFetch";
 import { clampPopoverToViewport } from "../../shared/floatingPosition";
 import { createUiId } from "../../shared/ids";
+import { isAbortError } from "../../shared/utils";
 import {
   fetchGeneratorStatuses,
   type FullGeneratorStatusItem,
@@ -246,6 +247,7 @@ type CreateMenuAnchorRect = Pick<DOMRectReadOnly, "top" | "bottom" | "left" | "r
 const COMPACT_GENERATORS_WIDTH = 560;
 const CREATE_GENERATOR_MENU_WIDTH = 360;
 const CREATE_GENERATOR_MENU_HEIGHT = 620;
+const GENERATOR_STATUS_TIMEOUT_MS = 15_000;
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -486,9 +488,6 @@ export function GeneratorsPanel({
   const [expandedSelectorGeneratorIds, setExpandedSelectorGeneratorIds] =
     useState<Set<string>>(() => new Set());
   const [outputDockOpen, setOutputDockOpen] = useState(false);
-  const [reviewedPreviewHash, setReviewedPreviewHash] = useState<string | null>(
-    null,
-  );
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [pendingDelete, setPendingDelete] =
     useState<PendingDeleteAction | null>(null);
@@ -518,6 +517,8 @@ export function GeneratorsPanel({
   const suppressNextPaneClickRef = useRef(false);
   const localGraphEditRef = useRef(false);
   const dirtyRef = useRef(false);
+  const busyRef = useRef<string | null>(busy);
+  const mountedRef = useRef(true);
   const dirtyGeneratorIdRef = useRef<string | null>(null);
   const initialCollectionIdRef = useRef(initialCollectionId);
   const generatorListCollectionIdRef = useRef(generatorListCollectionId);
@@ -526,6 +527,8 @@ export function GeneratorsPanel({
   const suppressedViewportCommitCountRef = useRef(0);
   const lastGraphAutoFitKeyRef = useRef<string | null>(null);
   const autoPreviewRunRef = useRef(0);
+  const autoPreviewAbortControllerRef = useRef<AbortController | null>(null);
+  const generatorStatusAbortControllerRef = useRef<AbortController | null>(null);
   const latestPreviewSignatureRef = useRef("");
   const tokenChangeInitializedRef = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -535,6 +538,16 @@ export function GeneratorsPanel({
   const panelWidth = useElementWidth(panelRef);
   const compactGenerators =
     panelWidth !== null && panelWidth < COMPACT_GENERATORS_WIDTH;
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const markGeneratorDirty = useCallback((generatorId: string) => {
     setDirty(true);
@@ -556,12 +569,6 @@ export function GeneratorsPanel({
 
   const openOutputReview = useCallback(() => {
     setOutputDockOpen(true);
-  }, []);
-
-  const markCurrentPreviewReviewed = useCallback(() => {
-    if (previewRef.current) {
-      setReviewedPreviewHash(previewRef.current.hash);
-    }
   }, []);
 
   useEffect(() => {
@@ -816,17 +823,35 @@ export function GeneratorsPanel({
   }, []);
 
   const loadGeneratorStatuses = useCallback(async () => {
-    const statuses =
-      await fetchGeneratorStatuses<TokenGeneratorDocument>(serverUrl);
-    setGeneratorStatusesById(
-      Object.fromEntries(
-        statuses.map((status) => [status.generator.id, status]),
-      ),
-    );
+    generatorStatusAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    generatorStatusAbortControllerRef.current = abortController;
+
+    try {
+      const statuses = await fetchGeneratorStatuses<TokenGeneratorDocument>(serverUrl, {
+        signal: createFetchSignal(abortController.signal, GENERATOR_STATUS_TIMEOUT_MS),
+      });
+      if (
+        abortController.signal.aborted ||
+        generatorStatusAbortControllerRef.current !== abortController
+      ) {
+        return;
+      }
+      setGeneratorStatusesById(
+        Object.fromEntries(
+          statuses.map((status) => [status.generator.id, status]),
+        ),
+      );
+    } finally {
+      if (generatorStatusAbortControllerRef.current === abortController) {
+        generatorStatusAbortControllerRef.current = null;
+      }
+    }
   }, [serverUrl]);
 
   const refreshGeneratorStatuses = useCallback(() => {
     void loadGeneratorStatuses().catch((statusError) => {
+      if (isAbortError(statusError)) return;
       setError(
         statusError instanceof Error
           ? statusError.message
@@ -834,6 +859,13 @@ export function GeneratorsPanel({
       );
     });
   }, [loadGeneratorStatuses]);
+
+  useEffect(() => {
+    return () => {
+      generatorStatusAbortControllerRef.current?.abort();
+      generatorStatusAbortControllerRef.current = null;
+    };
+  }, []);
 
   const loadGenerators = useCallback(async () => {
     const data = await apiFetch<GeneratorListResponse>(
@@ -895,12 +927,6 @@ export function GeneratorsPanel({
 
   useEffect(() => {
     previewRef.current = preview;
-  }, [preview]);
-
-  useEffect(() => {
-    if (!preview) {
-      setReviewedPreviewHash(null);
-    }
   }, [preview]);
 
   useEffect(() => {
@@ -985,14 +1011,19 @@ export function GeneratorsPanel({
       onInitialGeneratorHandled?.();
       return;
     }
+    const abortController = new AbortController();
     setBusy("preview");
     apiFetch<GeneratorPreviewResponse>(
       `${serverUrl}/api/generators/${encodeURIComponent(initialGenerator.id)}/preview`,
-      { method: "POST" },
+      {
+        method: "POST",
+        signal: createFetchSignal(abortController.signal),
+      },
     )
       .then((data) => {
         if (
           cancelled ||
+          abortController.signal.aborted ||
           activeGeneratorIdRef.current !== initialGenerator.id ||
           data.preview.generatorId !== initialGenerator.id
         ) {
@@ -1002,7 +1033,13 @@ export function GeneratorsPanel({
         setExternalPreviewInvalidated(false);
       })
       .catch((previewError) => {
-        if (cancelled) return;
+        if (
+          cancelled ||
+          abortController.signal.aborted ||
+          isAbortError(previewError)
+        ) {
+          return;
+        }
         setError(
           previewError instanceof Error
             ? previewError.message
@@ -1010,11 +1047,25 @@ export function GeneratorsPanel({
         );
       })
       .finally(() => {
-        if (!cancelled) setBusy(null);
+        if (
+          mountedRef.current &&
+          activeGeneratorIdRef.current === initialGenerator.id &&
+          busyRef.current === "preview"
+        ) {
+          setBusy(null);
+        }
       });
     onInitialGeneratorHandled?.();
     return () => {
       cancelled = true;
+      abortController.abort();
+      if (
+        mountedRef.current &&
+        activeGeneratorIdRef.current === initialGenerator.id &&
+        busyRef.current === "preview"
+      ) {
+        setBusy(null);
+      }
     };
   }, [
     generators,
@@ -1417,6 +1468,9 @@ export function GeneratorsPanel({
 
     const runId = autoPreviewRunRef.current + 1;
     autoPreviewRunRef.current = runId;
+    autoPreviewAbortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    autoPreviewAbortControllerRef.current = abortController;
     setExternalPreviewInvalidated(true);
 
     const timeout = window.setTimeout(
@@ -1441,6 +1495,7 @@ export function GeneratorsPanel({
               ? {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
+                  signal: createFetchSignal(abortController.signal),
                   body: JSON.stringify({
                     name: previewGenerator.name,
                     targetCollectionId: previewGenerator.targetCollectionId,
@@ -1449,10 +1504,14 @@ export function GeneratorsPanel({
                     viewport: previewGenerator.viewport,
                   }),
                 }
-              : { method: "POST" },
+              : {
+                  method: "POST",
+                  signal: createFetchSignal(abortController.signal),
+                },
           );
           if (
             autoPreviewRunRef.current !== runId ||
+            abortController.signal.aborted ||
             activeGeneratorIdRef.current !== previewGeneratorId ||
             data.preview.generatorId !== previewGeneratorId
           ) {
@@ -1463,20 +1522,48 @@ export function GeneratorsPanel({
           setExternalPreviewInvalidated(false);
           setActiveInitialFocus(null);
         } catch (previewError) {
-          if (autoPreviewRunRef.current !== runId) return;
+          if (
+            autoPreviewRunRef.current !== runId ||
+            abortController.signal.aborted ||
+            isAbortError(previewError)
+          ) {
+            return;
+          }
           setError(
             previewError instanceof Error
               ? previewError.message
               : String(previewError),
           );
         } finally {
-          if (autoPreviewRunRef.current === runId) setBusy(null);
+          if (autoPreviewAbortControllerRef.current === abortController) {
+            autoPreviewAbortControllerRef.current = null;
+          }
+          if (
+            autoPreviewRunRef.current === runId &&
+            mountedRef.current &&
+            busyRef.current === "preview"
+          ) {
+            setBusy(null);
+          }
         }
       },
       dirty ? 500 : 0,
     );
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      window.clearTimeout(timeout);
+      abortController.abort();
+      if (autoPreviewAbortControllerRef.current === abortController) {
+        autoPreviewAbortControllerRef.current = null;
+      }
+      if (
+        autoPreviewRunRef.current === runId &&
+        mountedRef.current &&
+        busyRef.current === "preview"
+      ) {
+        setBusy(null);
+      }
+    };
   }, [
     activeGenerator,
     activeGeneratorSignature,
@@ -1509,13 +1596,6 @@ export function GeneratorsPanel({
     ) {
       setOutputDockOpen(true);
       setError("Review the output issues before applying.");
-      return;
-    }
-    if (reviewedPreviewHash !== preview.hash) {
-      setOutputDockOpen(true);
-      setError(
-        "Review the current outputs and mark them reviewed before applying.",
-      );
       return;
     }
     if (!saved) return;
@@ -1554,7 +1634,6 @@ export function GeneratorsPanel({
     loadGenerators,
     preview,
     refreshGeneratorStatuses,
-    reviewedPreviewHash,
     saveGenerator,
     serverUrl,
   ]);
@@ -1626,7 +1705,6 @@ export function GeneratorsPanel({
   const clearGeneratorSelectionState = useCallback(() => {
     autoPreviewRunRef.current += 1;
     setPreview(null);
-    setReviewedPreviewHash(null);
     setActiveInitialFocus(null);
     setError(null);
     setLastApply(null);
@@ -2438,13 +2516,11 @@ export function GeneratorsPanel({
         ? "Updating preview"
         : preview?.blocking || previewHasCollisions || previewHasNoOutputs
           ? "Preview has issues"
-          : preview
-            ? reviewedPreviewHash === preview.hash
-              ? "Ready to apply"
-              : "Outputs ready"
-            : activeGenerator
-              ? "Preparing preview"
-              : "No generator";
+        : preview
+          ? "Ready to apply"
+          : activeGenerator
+            ? "Preparing preview"
+            : "No generator";
   const activeGeneratorCollectionLabel = activeGenerator
     ? (collectionLabelById.get(activeGenerator.targetCollectionId) ??
       "Unknown collection")
@@ -2455,22 +2531,6 @@ export function GeneratorsPanel({
   const activeGeneratorSummary = activeGenerator
     ? `${activeGeneratorDestinationLabel} · ${activeGeneratorCollectionLabel}`
     : "Choose a generator";
-  const previewChangeCounts = preview
-    ? withRemovedPreviewChanges(
-        countPreviewChanges(preview.outputs),
-        deletedPreviewOutputPaths.length,
-      )
-    : null;
-  const workbenchStateSummary = preview
-    ? `${
-        preview.outputs.length === 1
-          ? "1 output"
-          : `${preview.outputs.length} outputs`
-      } · ${formatOutputChangeSummary(
-        previewChangeCounts ?? countPreviewChanges(preview.outputs),
-      )}`
-    : statusLabel;
-
   const openNodeLibraryPanel = useCallback(() => {
     if (selectedNode) {
       setInspectorMinimized(true);
@@ -2526,15 +2586,6 @@ export function GeneratorsPanel({
 
   const renderGraphWorkspace = () => {
     if (!activeGenerator) return null;
-    const visibleGraphPosition = (offsetX = 0, offsetY = 0) => {
-      if (typeof window !== "undefined" && flowInstance) {
-        return flowInstance.screenToFlowPosition({
-          x: window.innerWidth / 2 + offsetX,
-          y: window.innerHeight / 2 + offsetY,
-        });
-      }
-      return { x: 160 + offsetX, y: 120 + offsetY };
-    };
     return (
       <div className="relative h-full min-h-0 overflow-hidden">
         <section className="relative h-full min-h-0 w-full min-w-0">
@@ -2552,47 +2603,7 @@ export function GeneratorsPanel({
           {activeGenerator.nodes.length === 0 ? (
             <div className="tm-graph-empty-state">
               <div className="tm-graph-empty-state__content">
-                <h2>Add nodes</h2>
-                <div className="tm-graph-empty-state__actions">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="primary"
-                    onClick={openNodeLibraryPanel}
-                  >
-                    <Plus size={14} />
-                    Add node
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      const colorItem = PALETTE.find(
-                        (item) =>
-                          item.kind === "literal" && item.label === "Color",
-                      );
-                      if (colorItem)
-                        addPaletteNode(colorItem, visibleGraphPosition(-90));
-                    }}
-                  >
-                    Add color source
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      const outputItem = PALETTE.find(
-                        (item) => item.kind === "groupOutput",
-                      );
-                      if (outputItem)
-                        addPaletteNode(outputItem, visibleGraphPosition(90));
-                    }}
-                  >
-                    Add output
-                  </Button>
-                </div>
+                No nodes yet
               </div>
             </div>
           ) : null}
@@ -3168,59 +3179,32 @@ export function GeneratorsPanel({
 
                       <div className="tm-generator-selector-row__main">
                         <div className="tm-generator-selector-row__title-line">
-                          <h3 title={row.generator.name}>
+                          <button
+                            type="button"
+                            className="tm-generator-selector-row__name-button"
+                            onClick={() =>
+                              openGeneratorFromSelector(
+                                row.generator.id,
+                                "overview",
+                              )
+                            }
+                            title={`Open ${row.generator.name} overview`}
+                          >
                             {row.generator.name}
-                          </h3>
+                          </button>
                           <span
                             className={`tm-generator-selector-row__status tm-generator-selector-row__status--${row.issueTone}`}
                             title={row.statusLabel}
                           >
                             {row.statusLabel}
                           </span>
-                          {row.issueCount > 0 ? (
-                            <span
-                              className={`tm-generator-selector-row__issue-count tm-generator-selector-row__issue-count--${row.issueTone}`}
-                              title={`${row.issueCount} generator issue${
-                                row.issueCount === 1 ? "" : "s"
-                              }`}
-                            >
-                              {row.issueCount}
-                            </span>
-                          ) : null}
                         </div>
-                        <div className="tm-generator-selector-row__facts">
-                          <span>
-                            <strong>Input</strong>
-                            <span title={row.sourceLabel}>
-                              {row.sourceLabel}
-                            </span>
+                        <div className="tm-generator-selector-row__route">
+                          <span title={row.sourceLabel}>{row.sourceLabel}</span>
+                          <ChevronRight size={12} strokeWidth={1.6} aria-hidden />
+                          <span title={row.outputTitle || row.outputLabel}>
+                            {row.outputLabel}
                           </span>
-                          <span>
-                            <strong>Recipe</strong>
-                            <span title={row.recipeLabel}>
-                              {row.recipeLabel}
-                            </span>
-                          </span>
-                          <span>
-                            <strong>Output</strong>
-                            <span title={row.outputTitle || row.outputLabel}>
-                              {row.outputLabel}
-                            </span>
-                          </span>
-                          <span>
-                            <strong>Preview</strong>
-                            <span title={row.outputChangeLabel}>
-                              {row.outputChangeLabel}
-                            </span>
-                          </span>
-                          {generatorListScope === "all" ? (
-                            <span>
-                              <strong>Collection</strong>
-                              <span title={row.collectionLabel}>
-                                {row.collectionLabel}
-                              </span>
-                            </span>
-                          ) : null}
                         </div>
                       </div>
 
@@ -3228,7 +3212,7 @@ export function GeneratorsPanel({
                         <Button
                           type="button"
                           size="sm"
-                          variant="secondary"
+                          variant={selected && editorMode === "overview" ? "primary" : "secondary"}
                           onClick={() =>
                             openGeneratorFromSelector(row.generator.id, "overview")
                           }
@@ -3238,7 +3222,7 @@ export function GeneratorsPanel({
                         <Button
                           type="button"
                           size="sm"
-                          variant="secondary"
+                          variant={selected && editorMode === "graph" ? "primary" : "secondary"}
                           onClick={() =>
                             openGeneratorFromSelector(row.generator.id, "graph")
                           }
@@ -3256,7 +3240,8 @@ export function GeneratorsPanel({
           ) : (
             <FeedbackPlaceholder
               variant="empty"
-              size="full"
+              size="section"
+              align="start"
               icon={null}
               title={
                 hasScopedGenerators
@@ -3281,10 +3266,6 @@ export function GeneratorsPanel({
                   : generatorListScope === "collection"
                     ? [
                         {
-                          label: "Create generator",
-                          onClick: openCreateGenerator,
-                        },
-                        {
                           label: "Browse all",
                           tone: "secondary",
                           onClick: () => {
@@ -3293,12 +3274,7 @@ export function GeneratorsPanel({
                           },
                         },
                       ]
-                    : [
-                        {
-                          label: "Create generator",
-                          onClick: openCreateGenerator,
-                        },
-                      ]
+                    : []
               }
             />
           )}
@@ -3306,6 +3282,17 @@ export function GeneratorsPanel({
       </div>
     );
   };
+
+  const previewHasOutputIssues =
+    Boolean(preview) &&
+    (Boolean(preview?.blocking) || previewHasCollisions || previewHasNoOutputs);
+  const showGeneratorStatus =
+    busy !== null ||
+    graphHasErrors ||
+    dirty ||
+    externalPreviewInvalidated ||
+    !preview ||
+    previewHasOutputIssues;
 
   const renderStatusIndicator = (compact = false, includeId = true) => {
     if (busy) {
@@ -3363,6 +3350,9 @@ export function GeneratorsPanel({
         </button>
       );
     }
+    if (!showGeneratorStatus) {
+      return null;
+    }
     return (
       <span
         id={includeId ? "generator-status-label" : undefined}
@@ -3410,6 +3400,15 @@ export function GeneratorsPanel({
           onClick={() => setActionsMenuOpen(false)}
         />
         <div className="absolute right-0 top-9 z-30 min-w-[176px] rounded-md border border-[var(--border-muted)] bg-[var(--surface-panel-header)] p-1 shadow-[var(--shadow-popover)]">
+          <ActionRow
+            onClick={() => {
+              setActionsMenuOpen(false);
+              openCreateGenerator();
+            }}
+            disabled={busy !== null}
+          >
+            New generator
+          </ActionRow>
           {dirty ? (
             <ActionRow
               onClick={() => {
@@ -3435,21 +3434,16 @@ export function GeneratorsPanel({
       </>
     ) : null;
 
-  const previewHasOutputIssues =
-    Boolean(preview) &&
-    (Boolean(preview?.blocking) || previewHasCollisions || previewHasNoOutputs);
   const canOpenGeneratorOutputReview =
     busy === null && !graphHasErrors && Boolean(preview);
-  const previewReviewed =
-    Boolean(preview) && reviewedPreviewHash === preview?.hash;
-  const canApplyReviewedGenerator =
-    canOpenGeneratorOutputReview && previewReviewed && !previewHasOutputIssues;
+  const canApplyGeneratorPreview =
+    canOpenGeneratorOutputReview && !previewHasOutputIssues;
   const showGeneratorPrimaryAction =
-    canApplyReviewedGenerator || !(previewHasOutputIssues && outputDockOpen);
-  const generatorPrimaryActionLabel = canApplyReviewedGenerator
+    canApplyGeneratorPreview || !(previewHasOutputIssues && outputDockOpen);
+  const generatorPrimaryActionLabel = canApplyGeneratorPreview
     ? "Apply to collection"
     : "Review outputs";
-  const generatorPrimaryActionTitle = canApplyReviewedGenerator
+  const generatorPrimaryActionTitle = canApplyGeneratorPreview
     ? "Apply to collection"
     : "Review outputs before applying";
 
@@ -3490,7 +3484,7 @@ export function GeneratorsPanel({
       {preview &&
       preview.outputs.length > 0 &&
       !outputDockOpen &&
-      previewReviewed &&
+      !previewHasOutputIssues &&
       !compact ? (
         <Button
           title="Review outputs"
@@ -3507,13 +3501,15 @@ export function GeneratorsPanel({
         <Button
           title={generatorPrimaryActionTitle}
           aria-label={generatorPrimaryActionTitle}
-          aria-describedby="generator-status-label"
-          onClick={canApplyReviewedGenerator ? applyGenerator : openOutputReview}
+          aria-describedby={
+            showGeneratorStatus ? "generator-status-label" : undefined
+          }
+          onClick={canApplyGeneratorPreview ? applyGenerator : openOutputReview}
           disabled={!canOpenGeneratorOutputReview}
           variant="primary"
           size="sm"
         >
-          {canApplyReviewedGenerator ? (
+          {canApplyGeneratorPreview ? (
             <Sparkles size={14} />
           ) : (
             <PanelRight size={14} />
@@ -3587,26 +3583,16 @@ export function GeneratorsPanel({
             ) : null}
           </button>
           <div className="tm-generator-output-dock__actions">
-            {outputDockOpen &&
-            preview &&
-            !previewHasOutputIssues &&
-            reviewedPreviewHash !== preview.hash ? (
+            {outputDockOpen && preview && !previewHasOutputIssues ? (
               <Button
                 type="button"
                 size="sm"
-                variant="secondary"
-                onClick={markCurrentPreviewReviewed}
+                variant="primary"
+                onClick={applyGenerator}
+                disabled={busy !== null}
               >
-                Confirm review
+                Apply
               </Button>
-            ) : null}
-            {outputDockOpen &&
-            preview &&
-            !previewHasOutputIssues &&
-            reviewedPreviewHash === preview.hash ? (
-              <span className="tm-generator-output-dock__reviewed">
-                Reviewed
-              </span>
             ) : null}
           </div>
           {graphIssues.length > 0 || previewIssueCount > 0 ? (
@@ -3660,7 +3646,7 @@ export function GeneratorsPanel({
       className="relative flex h-full min-h-0 bg-[var(--surface-app)] text-[color:var(--color-figma-text)]"
     >
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-        {renderGeneratorCollectionBar()}
+        {generatorListOpen || !activeGenerator ? renderGeneratorCollectionBar() : null}
 
         {error ? (
           <div className="flex items-center gap-2 px-3 py-2 text-secondary text-[color:var(--color-figma-text-error)]">
@@ -3684,18 +3670,10 @@ export function GeneratorsPanel({
             <div className="tm-generator-workbench-header">
               <div className="tm-generator-workbench-header__primary">
                 {renderGeneratorIdentity()}
-                <div className="tm-generator-header__state">
-                  <span title={workbenchStateSummary}>
-                    {workbenchStateSummary}
-                  </span>
-                </div>
               </div>
               <div className="tm-generator-workbench-header__secondary">
                 {renderGeneratorTabs()}
                 <div className="tm-generator-header__actions">
-                  {renderCreateGeneratorButton(
-                    compactGenerators ? "New" : "New generator",
-                  )}
                   {renderStatusIndicator(compactGenerators)}
                   {renderGeneratorActions(compactGenerators)}
                 </div>
@@ -4097,7 +4075,7 @@ function GeneratorOverviewPanel({
       : null;
   return (
     <div className="min-w-0 shrink-0">
-      <div className="space-y-3">
+      <div className="space-y-1">
         <section className="tm-generator-overview">
           <div className="flex min-w-0 items-start gap-3">
             {outputSummary ? (
@@ -4141,17 +4119,6 @@ function GeneratorOverviewPanel({
             value={generator.name}
             onChange={onRename}
           />
-          {generator.nodes.length > 0 ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="secondary"
-              onClick={onAddNode}
-            >
-              <Plus size={14} />
-              Open Graph
-            </Button>
-          ) : null}
           {generator.nodes.length === 0 ? (
             <div className="space-y-2 py-1">
               <Button
